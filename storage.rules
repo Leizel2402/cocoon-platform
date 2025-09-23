@@ -1,0 +1,56 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Property images - public read, landlords can upload
+    match /properties/{propertyId}/{allPaths=**} {
+      allow read: if true; // Public read for property images
+      allow write: if request.auth != null && 
+        (request.auth.token.role == 'landlord_admin' || 
+         request.auth.token.role == 'landlord_employee');
+    }
+    
+    // Unit images - public read, landlords can upload
+    match /units/{unitId}/{allPaths=**} {
+      allow read: if true; // Public read for unit images
+      allow write: if request.auth != null && 
+        (request.auth.token.role == 'landlord_admin' || 
+         request.auth.token.role == 'landlord_employee');
+    }
+    
+    // Application documents - only applicant and landlord can access
+    match /applications/{applicationId}/{allPaths=**} {
+      allow read, write: if request.auth != null && (
+        request.auth.uid == resource.metadata.applicantId ||
+        request.auth.token.landlordId == resource.metadata.landlordId ||
+        request.auth.token.role in ['cocoon_admin', 'cocoon_employee']
+      );
+    }
+    
+    // User profile images - users can manage their own
+    match /users/{userId}/{allPaths=**} {
+      allow read, write: if request.auth != null && 
+        request.auth.uid == userId;
+    }
+    
+    // Maintenance request images - renters can upload, landlords can read
+    match /maintenance/{requestId}/{allPaths=**} {
+      allow read: if request.auth != null && (
+        request.auth.uid == resource.metadata.renterId ||
+        request.auth.token.landlordId == resource.metadata.landlordId ||
+        request.auth.token.role in ['cocoon_admin', 'cocoon_employee']
+      );
+      allow write: if request.auth != null && 
+        request.auth.uid == resource.metadata.renterId;
+    }
+    
+    // PII documents - only server-side access via Cloud Functions
+    match /pii/{document=**} {
+      allow read, write: if false; // Only Cloud Functions can access
+    }
+    
+    // Default deny all other paths
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

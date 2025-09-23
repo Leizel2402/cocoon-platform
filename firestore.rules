@@ -1,0 +1,114 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Users can read/write their own profile
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // Landlords collection - only admins can manage
+    match /landlords/{landlordId} {
+      allow read: if request.auth != null && 
+        (request.auth.token.role == 'landlord_admin' || 
+         request.auth.token.role == 'cocoon_admin' ||
+         request.auth.token.landlordId == landlordId);
+      allow write: if request.auth != null && 
+        (request.auth.token.role == 'landlord_admin' || 
+         request.auth.token.role == 'cocoon_admin');
+    }
+    
+    // Properties - public read for listings, landlords can manage their own
+    match /properties/{propertyId} {
+      allow read: if true; // Public read for listings
+      allow write: if request.auth != null && 
+        (request.auth.token.role == 'landlord_admin' || 
+         request.auth.token.role == 'landlord_employee') &&
+        request.auth.token.landlordId == resource.data.landlordId;
+    }
+    
+    // Units - landlords can manage their own property units
+    match /units/{unitId} {
+      allow read: if true; // Public read for listings
+      allow write: if request.auth != null && 
+        (request.auth.token.role == 'landlord_admin' || 
+         request.auth.token.role == 'landlord_employee') &&
+        request.auth.token.landlordId == resource.data.landlordId;
+    }
+    
+    // Listings - public read, landlords can manage their own
+    match /listings/{listingId} {
+      allow read: if true; // Public read for listings
+      allow write: if request.auth != null && 
+        (request.auth.token.role == 'landlord_admin' || 
+         request.auth.token.role == 'landlord_employee') &&
+        request.auth.token.landlordId == resource.data.landlordId;
+    }
+    
+    // Applications - prospects can create, landlords can read their properties
+    match /applications/{applicationId} {
+      allow create: if request.auth != null && 
+        request.auth.uid == request.resource.data.prospectId;
+      allow read, update: if request.auth != null && (
+        request.auth.uid == resource.data.prospectId ||
+        request.auth.token.landlordId == resource.data.landlordId ||
+        request.auth.token.role in ['cocoon_admin', 'cocoon_employee']
+      );
+    }
+    
+    // AI Conversations - users can manage their own
+    match /ai_conversations/{conversationId} {
+      allow read, write: if request.auth != null && 
+        request.auth.uid == resource.data.userId;
+    }
+    
+    // Saved Searches - users can manage their own
+    match /saved_searches/{searchId} {
+      allow read, write: if request.auth != null && 
+        request.auth.uid == resource.data.userId;
+    }
+    
+    // Favorite Properties - users can manage their own
+    match /favorite_properties/{favoriteId} {
+      allow read, write: if request.auth != null && 
+        request.auth.uid == resource.data.userId;
+    }
+    
+    // Maintenance Requests - renters can create, landlords can manage their properties
+    match /maintenance_requests/{requestId} {
+      allow create: if request.auth != null && 
+        request.auth.uid == request.resource.data.renterId;
+      allow read, update: if request.auth != null && (
+        request.auth.uid == resource.data.renterId ||
+        request.auth.token.landlordId == resource.data.landlordId ||
+        request.auth.token.role in ['cocoon_admin', 'cocoon_employee']
+      );
+    }
+    
+    // Payments - renters can read their own, landlords can read their properties
+    match /payments/{paymentId} {
+      allow read: if request.auth != null && (
+        request.auth.uid == resource.data.renterId ||
+        request.auth.token.landlordId == resource.data.landlordId ||
+        request.auth.token.role in ['cocoon_admin', 'cocoon_employee']
+      );
+      allow write: if false; // Only Cloud Functions can write payments
+    }
+    
+    // PII Vault - only server-side access via Cloud Functions
+    match /pii_vault/{document} {
+      allow read, write: if false; // Only Cloud Functions can access
+    }
+    
+    // Audit log - read-only for admins
+    match /audit_log/{document} {
+      allow read: if request.auth != null && 
+        request.auth.token.role in ['cocoon_admin', 'cocoon_employee'];
+      allow write: if false; // Only Cloud Functions can write
+    }
+    
+    // Default deny all other collections
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

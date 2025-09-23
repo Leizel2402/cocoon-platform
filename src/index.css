@@ -1,0 +1,9 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@media (max-width: 435px) {
+  .cust-div {
+   display: none;
+  }
+}
