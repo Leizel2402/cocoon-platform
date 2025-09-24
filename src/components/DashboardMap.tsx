@@ -4,8 +4,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import PropertyDetailsModal from '../components/rentar/unitSelecttion/PropertyDetailsModal';
 
 // React Leaflet imports
-import { Map, TileLayer, Marker, Popup, FeatureGroup } from 'react-leaflet';
-import { EditControl } from 'react-leaflet-draw';
+import { Map, TileLayer, Marker, Popup } from 'react-leaflet';
+// import { EditControl } from 'react-leaflet-draw';
 import FullscreenControl from 'react-leaflet-fullscreen';
 import L from 'leaflet';
 
@@ -280,8 +280,8 @@ const createClusters = (properties: Property[], zoom: number): Cluster[] => {
   return clusters;
 };
 
-// Drawing tools component
-const DrawTools: React.FC<{ onGeometryChange?: (geojson: any) => void }> = ({ onGeometryChange }) => {
+// Drawing tools component - Temporarily disabled due to build compatibility issues
+/* const DrawTools: React.FC<{ onGeometryChange?: (geojson: any) => void }> = ({ onGeometryChange }) => {
   const _onEdited = (e: any) => {
     let numEdited = 0;
     e.layers.eachLayer(() => {
@@ -375,7 +375,7 @@ const DrawTools: React.FC<{ onGeometryChange?: (geojson: any) => void }> = ({ on
       />
     </FeatureGroup>
   );
-};
+}; */
 
 const DashboardMap: React.FC<PropertyMapProps> = ({ 
   properties, 
@@ -385,7 +385,7 @@ const DashboardMap: React.FC<PropertyMapProps> = ({
   const [mapCenter, setMapCenter] = useState<[number, number]>([30.2672, -97.7431]); // Austin, TX
   const [zoom, setZoom] = useState(12);
   const [clusters, setClusters] = useState<Cluster[]>([]);
-  const [, setDrawnGeometry] = useState<any>(null);
+  // const [, setDrawnGeometry] = useState<any>(null);
   const [mapError, setMapError] = useState<string | null>(null);
   const mapRef = React.useRef<any>(null);
   const [showPropertyDetails, setShowPropertyDetails] = useState(false);
@@ -456,10 +456,10 @@ const DashboardMap: React.FC<PropertyMapProps> = ({
   console.log('DashboardMap - Valid properties:', validProperties.length);
   console.log('DashboardMap - Properties data:', properties);
 
-  const handleGeometryChange = (geojson: any) => {
-    setDrawnGeometry(geojson);
-    console.log('Drawn geometry updated:', geojson);
-  };
+  // const handleGeometryChange = (geojson: any) => {
+  //   setDrawnGeometry(geojson);
+  //   console.log('Drawn geometry updated:', geojson);
+  // };
 
   if (validProperties.length === 0) {
     return (
@@ -520,8 +520,8 @@ const DashboardMap: React.FC<PropertyMapProps> = ({
         {/* Fullscreen Control */}
         <FullscreenControl position="topleft" />
         
-        {/* Drawing Tools */}
-        <DrawTools onGeometryChange={handleGeometryChange} />
+        {/* Drawing Tools - Temporarily disabled due to build compatibility issues */}
+        {/* <DrawTools onGeometryChange={handleGeometryChange} /> */}
         
         {/* Tile Layer */}
         <TileLayer
