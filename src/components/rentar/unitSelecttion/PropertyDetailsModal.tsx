@@ -131,7 +131,7 @@ const PropertyDetailsModal: React.FC<PropertyDetailsModalProps> = ({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-5xl h-[90vh] overflow-hidden p-0 bg-gradient-to-br from-slate-50 via-gray-50 to-zinc-100">
         {/* Modern Header with Gradient Background */}
-        <DialogHeader className="relative bg-gradient-to-r from-blue-600 via-purple-600 to-blue-600 p-6 text-white">
+        <DialogHeader className="relative bg-gradient-to-r from-green-600 via-emerald-600 to-green-600 p-6 text-white">
           <div className="absolute inset-0 bg-black/10"></div>
           <div className="relative z-10 flex items-center justify-between">
             <div className="flex items-center space-x-4">
@@ -241,7 +241,7 @@ const PropertyDetailsModal: React.FC<PropertyDetailsModalProps> = ({
               {/* Price and Basic Info Card */}
               <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
                 <div className="flex items-center justify-between mb-4">
-                  <div className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                  <div className="text-3xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
                     {property.priceRange}
               </div>
                   <div className="flex items-center bg-yellow-50 px-3 py-2 rounded-xl">
@@ -258,7 +258,7 @@ const PropertyDetailsModal: React.FC<PropertyDetailsModalProps> = ({
                 </div>
                 {property.propertyType && (
                   <div className="mt-3">
-                    <Badge className="bg-blue-100 text-blue-700">
+                    <Badge className="bg-gray-100 text-gray-700">
                       {property.propertyType}
                     </Badge>
                   </div>
@@ -305,7 +305,7 @@ const PropertyDetailsModal: React.FC<PropertyDetailsModalProps> = ({
               {/* Property Specifications */}
               <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
                 <h3 className="font-bold text-gray-800 mb-4 flex items-center">
-                  <Building className="h-5 w-5 mr-2 text-green-600" />
+                  <Building className="h-5 w-5 mr-2 text-indigo-600" />
                   Specifications
                 </h3>
                 <div className="space-y-3">
@@ -345,7 +345,7 @@ const PropertyDetailsModal: React.FC<PropertyDetailsModalProps> = ({
               {/* Property Features */}
               <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
                 <h3 className="font-bold text-gray-800 mb-4 flex items-center">
-                  <Waves className="h-5 w-5 mr-2 text-blue-600" />
+                  <Waves className="h-5 w-5 mr-2 text-teal-600" />
                   Features
                 </h3>
                 <div className="space-y-3">
@@ -546,7 +546,7 @@ const PropertyDetailsModal: React.FC<PropertyDetailsModalProps> = ({
             <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="flex-1">
             <Button 
               onClick={() => onApplyNow?.(property)}
-                className="w-full h-12 text-base font-semibold bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-200"
+                className="w-full h-12 text-base font-semibold bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-200"
             >
                 <FileText className="h-4 w-4 mr-2" />
               Apply Now
