@@ -4,14 +4,21 @@ import { motion, AnimatePresence } from 'framer-motion';
 import PropertyDetailsModal from '../components/rentar/unitSelecttion/PropertyDetailsModal';
 
 // React Leaflet imports
-import { MapContainer,TileLayer, Marker, Popup } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 // import { EditControl } from 'react-leaflet-draw';
-import FullscreenControl from 'react-leaflet-fullscreen';
 import L from 'leaflet';
+
+// Try to import FullscreenControl, fallback if not available
+let FullscreenControl: any = null;
+try {
+  const fullscreenModule = require('react-leaflet-fullscreen');
+  FullscreenControl = fullscreenModule.FullscreenControl || fullscreenModule.default;
+} catch (error) {
+  console.warn('FullscreenControl not available:', error);
+}
 
 // Import CSS
 import 'leaflet/dist/leaflet.css';
-import 'react-leaflet-fullscreen/dist/styles.css';
 
 interface Property {
   id: string | number;
@@ -381,6 +388,8 @@ const DashboardMap: React.FC<PropertyMapProps> = ({
   properties, 
   onPropertySelect
 }) => {
+  // Debug: Log properties to see if filtering is working
+  console.log('DashboardMap received properties:', properties.length, properties);
   const [selectedProperty, setSelectedProperty] = useState<Property | null>(null);
   const [mapCenter, setMapCenter] = useState<[number, number]>([30.2672, -97.7431]); // Austin, TX
   const [zoom, setZoom] = useState(12);
@@ -401,40 +410,40 @@ const DashboardMap: React.FC<PropertyMapProps> = ({
     setSelectedPropertyForDetails(null);
   };
   
-  // Calculate map center based on properties
+  // Calculate map center and zoom to fit all properties
   useEffect(() => {
-  if (properties.length === 0) {
-      setMapCenter([37.7749, -122.4194]);
-      return;
-  }
-
-  const validCoords = properties.filter(
-    (p) =>
-      p.coordinates &&
-      Array.isArray(p.coordinates) &&
-      p.coordinates.length === 2 &&
-      !isNaN(p.coordinates[0]) &&
-      !isNaN(p.coordinates[1])
-  );
-
-  if (validCoords.length === 0) {
-      setMapCenter([37.7749, -122.4194]);
-      return;
+    if (properties.length === 0) {
+        setMapCenter([37.7749, -122.4194]);
+        return;
     }
-
-    const avgLat = validCoords.reduce((sum, p) => sum + p.coordinates[1], 0) / validCoords.length;
-    const avgLng = validCoords.reduce((sum, p) => sum + p.coordinates[0], 0) / validCoords.length;
-    setMapCenter([avgLat, avgLng]);
-    
-    // Adjust zoom based on number of properties
-    if (validCoords.length === 1) {
-      setZoom(15);
-    } else if (validCoords.length < 5) {
-      setZoom(13);
-    } else {
-      setZoom(11);
-    }
-  }, [properties]);
+  
+    const validCoords = properties.filter(
+      (p) =>
+        p.coordinates &&
+        Array.isArray(p.coordinates) &&
+        p.coordinates.length === 2 &&
+        !isNaN(p.coordinates[0]) &&
+        !isNaN(p.coordinates[1])
+    );
+  
+    if (validCoords.length === 0) {
+        setMapCenter([37.7749, -122.4194]);
+        return;
+      }
+  
+      const avgLat = validCoords.reduce((sum, p) => sum + p.coordinates[1], 0) / validCoords.length;
+      const avgLng = validCoords.reduce((sum, p) => sum + p.coordinates[0], 0) / validCoords.length;
+      setMapCenter([avgLat, avgLng]);
+      
+      // Adjust zoom based on number of properties
+      if (validCoords.length === 1) {
+        setZoom(15);
+      } else if (validCoords.length < 5) {
+        setZoom(13);
+      } else {
+        setZoom(11);
+      }
+    }, [properties]);
 
   // Update clusters when properties or zoom changes
   useEffect(() => {
@@ -506,19 +515,18 @@ const DashboardMap: React.FC<PropertyMapProps> = ({
   try {
     return (
       <div className="relative w-full h-full">
-        <MapContainer
+        <MapContainer 
           ref={mapRef}
           center={mapCenter} 
           zoom={zoom} 
           style={{ height: '100%', width: '100%' }}
           className="z-0"
           zoomControl={true}
-          whenReady={() => console.log('Map is ready')}
         >
         <MapUpdater center={mapCenter} zoom={zoom} mapRef={mapRef} />
         
         {/* Fullscreen Control */}
-        {/* <FullscreenControl position="topleft" /> */}
+        {FullscreenControl && <FullscreenControl position="topleft" />}
         
         {/* Drawing Tools - Temporarily disabled due to build compatibility issues */}
         {/* <DrawTools onGeometryChange={handleGeometryChange} /> */}
@@ -540,9 +548,11 @@ const DashboardMap: React.FC<PropertyMapProps> = ({
                 position={[cluster.center[0], cluster.center[1]]}
                 icon={createPropertyIcon(property)}
             eventHandlers={{
-                  click: () => {
+                  click: (e) => {
+                    // Prevent the popup from closing when clicking the marker
+                    e.originalEvent.stopPropagation();
                     setSelectedProperty(property);
-                    onPropertySelect?.(property);
+                    // Don't call onPropertySelect here to avoid redirecting
                   },
             }}
             >
@@ -641,7 +651,10 @@ const DashboardMap: React.FC<PropertyMapProps> = ({
                     
                     {/* Action Button */}
                     <button
-                      onClick={() => handleViewDetails(property)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleViewDetails(property);
+                      }}
                       className="w-full py-2 px-3 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white border-none rounded-lg text-sm font-semibold cursor-pointer transition-all duration-200"
                     >
                       View Details
@@ -692,85 +705,12 @@ const DashboardMap: React.FC<PropertyMapProps> = ({
           );
           }
         })}
-      </MapContainer>
+        </MapContainer>
 
-      {/* Selected Property Info Card */}
-      <AnimatePresence>
-        {selectedProperty && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 20 }}
-            className="absolute bottom-4 left-4 right-4 bg-white rounded-2xl shadow-2xl p-4 z-30 max-w-sm border border-gray-200"
-          >
-            <div className="flex justify-between items-start mb-3">
-              <div className="flex-1">
-                <h3 className="font-bold text-lg text-gray-900 mb-1">{selectedProperty.name}</h3>
-                <p className="text-gray-600 text-sm mb-2">{selectedProperty.address}</p>
-                <div className="flex items-center space-x-4 text-sm text-gray-500">
-                  <div className="flex items-center">
-                    <Bed className="h-4 w-4 mr-1" />
-                    {selectedProperty.beds || `${selectedProperty.bedrooms} beds`}
-                  </div>
-                  <div className="flex items-center">
-                    <Bath className="h-4 w-4 mr-1" />
-                    {selectedProperty.bathrooms} baths
-                  </div>
-                </div>
-              </div>
-              <button
-                onClick={() => setSelectedProperty(null)}
-                className="p-1 hover:bg-gray-100 rounded-full transition-colors"
-              >
-                <X className="h-4 w-4 text-gray-400" />
-              </button>
-            </div>
 
-            <div className="flex items-center justify-between">
-              <div className="text-2xl font-bold text-blue-600">
-                {selectedProperty.priceRange || (selectedProperty.rent_amount ? `$${selectedProperty.rent_amount.toLocaleString()}/month` : 'Price on request')}
-              </div>
-              <div className="flex space-x-2">
-                <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
-                  <Heart className="h-4 w-4 text-gray-400" />
-                </button>
-                <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
-                  <Share className="h-4 w-4 text-gray-400" />
-                </button>
-                <button 
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
-                  onClick={() => onPropertySelect?.(selectedProperty)}
-                >
-                  View Details
-                </button>
-              </div>
-            </div>
 
-            {selectedProperty.amenities && selectedProperty.amenities.length > 0 && (
-              <div className="mt-3 pt-3 border-t border-gray-100">
-                <div className="flex flex-wrap gap-1">
-                  {selectedProperty.amenities.slice(0, 3).map((amenity, idx) => (
-                    <span
-                      key={idx}
-                      className="px-2 py-1 bg-gray-100 text-gray-700 rounded-full text-xs"
-                    >
-                      {amenity}
-                    </span>
-                  ))}
-                  {selectedProperty.amenities.length > 3 && (
-                    <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded-full text-xs">
-                      +{selectedProperty.amenities.length - 3} more
-                    </span>
-                  )}
-          </div>
-          </div>
-            )}
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Properties Count */}
-      <div className="absolute top-4 right-4 bg-white rounded-lg shadow-lg px-4 py-2 z-40 border border-gray-200">
+      {/* Properties Count and Fit Button */}
+       <div className="absolute top-4 right-4 bg-white rounded-lg shadow-lg px-4 py-2 z-40 border border-gray-200">
         <div className="flex items-center space-x-2">
           <div className="w-3 h-3 bg-red-500 rounded-full"></div>
           <span className="font-semibold text-gray-900">{validProperties.length} properties</span>
