@@ -636,11 +636,10 @@ console.log("Selected Property", selectedProperty);
     const rentwiseMatch =
       !showOnlyRentWise || property.isRentWiseNetwork === true;
 
-    return (
-      locationMatch && priceInRange && bedsMatch && typeMatch && rentwiseMatch
-    );
+    return locationMatch && priceInRange && bedsMatch && typeMatch && rentwiseMatch;
   });
 
+  
   // Check for URL parameters to show specific view
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);

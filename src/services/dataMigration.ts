@@ -234,7 +234,7 @@ export const migrateStaticDataToFirestore = async () => {
 // Function to check if data already exists
 export const checkDataExists = async (): Promise<boolean> => {
   try {
-    const { getDocs, collection } = await import('firebase/firestore');
+    const { getDocs, collection } = require('firebase/firestore');
     const propertiesSnapshot = await getDocs(collection(db, 'properties'));
     return !propertiesSnapshot.empty;
   } catch (error) {

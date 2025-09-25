@@ -1,5 +1,5 @@
 declare module 'react-leaflet' {
-  export const Map: any;
+  export const MapContainer: any;
   export const TileLayer: any;
   export const Marker: any;
   export const Popup: any;
@@ -11,6 +11,5 @@ declare module 'react-leaflet-draw' {
 }
 
 declare module 'react-leaflet-fullscreen' {
-  const FullscreenControl: any;
-  export default FullscreenControl;
+  export const FullscreenControl: any;
 }

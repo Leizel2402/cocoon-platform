@@ -1,7 +1,6 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
-// https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
   resolve: {
@@ -12,6 +11,24 @@ export default defineConfig({
   },
   optimizeDeps: {
     exclude: ['lucide-react'],
-    include: ['leaflet']
+    include: ['leaflet', 'react-leaflet'],
+  },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ['react', 'react-dom'],
+          firebase: ['firebase/app', 'firebase/firestore', 'firebase/auth'],
+          leaflet: ['leaflet', 'react-leaflet'],
+          ui: [
+            '@radix-ui/react-dialog',
+            '@radix-ui/react-popover',
+            '@radix-ui/react-select',
+          ],
+          icons: ['lucide-react'], // 👈 added
+        },
+      },
+    },
+    chunkSizeWarningLimit: 2000, // 👈 increased
   },
 });

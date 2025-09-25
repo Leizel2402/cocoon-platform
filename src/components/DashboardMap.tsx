@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import PropertyDetailsModal from '../components/rentar/unitSelecttion/PropertyDetailsModal';
 
 // React Leaflet imports
-import { Map, TileLayer, Marker, Popup } from 'react-leaflet';
+import { MapContainer,TileLayer, Marker, Popup } from 'react-leaflet';
 // import { EditControl } from 'react-leaflet-draw';
 import FullscreenControl from 'react-leaflet-fullscreen';
 import L from 'leaflet';
@@ -506,7 +506,7 @@ const DashboardMap: React.FC<PropertyMapProps> = ({
   try {
     return (
       <div className="relative w-full h-full">
-        <Map 
+        <MapContainer
           ref={mapRef}
           center={mapCenter} 
           zoom={zoom} 
@@ -518,7 +518,7 @@ const DashboardMap: React.FC<PropertyMapProps> = ({
         <MapUpdater center={mapCenter} zoom={zoom} mapRef={mapRef} />
         
         {/* Fullscreen Control */}
-        <FullscreenControl position="topleft" />
+        {/* <FullscreenControl position="topleft" /> */}
         
         {/* Drawing Tools - Temporarily disabled due to build compatibility issues */}
         {/* <DrawTools onGeometryChange={handleGeometryChange} /> */}
@@ -692,7 +692,7 @@ const DashboardMap: React.FC<PropertyMapProps> = ({
           );
           }
         })}
-      </Map>
+      </MapContainer>
 
       {/* Selected Property Info Card */}
       <AnimatePresence>
