@@ -1328,7 +1328,7 @@ console.log("Selected Property", selectedProperty);
                   {/* Refine Search Button */}
                   <Button
                     variant="outline"
-                    className="text-sm px-4 py-3 bg-green-50 text-green-600 border-green-200 rounded-lg hover:bg-green-100 transition-all duration-200"
+                    className="text-sm px-4 py-3 bg-blue-50 text-black-600 border-blue-200 rounded-lg hover:bg-blue-100 transition-all duration-200"
                     onClick={() => setShowAllFilters(!showAllFilters)}
                   >
                     All Filters
@@ -1356,14 +1356,15 @@ console.log("Selected Property", selectedProperty);
                         setPropertyFeatures([]);
                         setShowOnlyRentWise(false);
                       }}
-                      className="text-sm px-4 py-3 text-green-600 border-green-300 bg-green-50 rounded-lg hover:bg-green-100 transition-all duration-200"
+                      className="text-sm px-4 py-3 bg-blue-50 text-black-600 border-blue-200 rounded-lg hover:bg-blue-100 transition-all duration-200"
                     >
                       Reset
                     </Button>
 
                     <Button
                       variant="outline"
-                      className="text-sm px-4 py-3 text-green-600 border-green-300 bg-green-50 rounded-lg hover:bg-green-100 transition-all duration-200"
+                      className="text-sm px-4 py-3 bg-blue-50 text-black-600 border-blue-200 rounded-lg hover:bg-blue-100 transition-all duration-200"
+
                     >
                       ♡ Save
                     </Button>

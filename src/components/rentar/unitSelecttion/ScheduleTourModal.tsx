@@ -4,19 +4,41 @@ import { Button } from '../../ui/Button';
 import { Input } from '../../ui/input';
 import { Label } from '../../ui/lable';
 import { Textarea } from '../../ui/textarea';
-import { Calendar, CheckCircle, MapPin, Bed, Bath, DollarSign, Home, Shield, Clock, User, Mail, Phone } from 'lucide-react';
+import { Calendar, CheckCircle, MapPin, Bed, Bath, DollarSign, Home, Shield, Clock, User, Mail, Phone, Square, Building } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useToast } from '../../../hooks/use-toast';
+
+interface LeaseTerm {
+  months: number;
+  rent: number;
+  popular: boolean;
+  savings: number | null;
+  concession: string | null;
+}
+
+interface Unit {
+  id: string;
+  unitNumber: string;
+  type: string;
+  bedrooms: number;
+  sqft: number;
+  available: boolean;
+  qualified: boolean;
+  leaseTerms: LeaseTerm[];
+  floorLevel: string;
+  unitAmenities: string[];
+  floorPlan: string;
+}
 
 interface ScheduleTourModalProps {
   property: {
     id: string;
     name: string;
     address: string;
-    priceRange: string;
-    rating: number;
-    beds: string;
-    amenities: string[];
+    priceRange?: string;
+    rating?: number;
+    beds?: string;
+    amenities?: string[];
     image?: string;
     rent_amount?: number;
     bedrooms?: number;
@@ -30,12 +52,15 @@ interface ScheduleTourModalProps {
     pet_friendly?: boolean;
     available_date?: string;
   };
+  unit?: Unit | null;
   isOpen: boolean;
   onClose: () => void;
 }
 
-const ScheduleTourModal = ({ property, isOpen, onClose }: ScheduleTourModalProps) => {
+const ScheduleTourModal = ({ property, unit, isOpen, onClose }: ScheduleTourModalProps) => {
   const { toast } = useToast();
+  console.log("property", property);
+  console.log("unit", unit);
   
   // Get today's date string once for performance
   const today = new Date().toISOString().split('T')[0];
@@ -106,11 +131,11 @@ const ScheduleTourModal = ({ property, isOpen, onClose }: ScheduleTourModalProps
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => { if (!open) handleClose(); }}>
-      <DialogContent className="max-w-2xl h-[70vh] overflow-hidden p-0 bg-gradient-to-br from-slate-50 via-gray-50 to-zinc-100">
+      <DialogContent className="max-w-3xl h-[70vh] overflow-hidden p-0 bg-gradient-to-br from-slate-50 via-gray-50 to-zinc-100">
         {/* Modern Header with Gradient Background */}
-        <DialogHeader className="relative bg-gradient-to-r from-blue-600 via-purple-600 to-blue-600 p-6 text-white">
+        <DialogHeader className="relative bg-gradient-to-r from-green-600 via-emerald-400 to-green-400 p-6 text-white">
           <div className="absolute inset-0 bg-black/10"></div>
-          <div className="relative z-10 flex items-center justify-between">
+          <div className="relative z-10 flex items-center justify-between mr-[50px]">
             <div className="flex items-center space-x-4">
               <motion.div
                 initial={{ scale: 0 }}
@@ -136,8 +161,6 @@ const ScheduleTourModal = ({ property, isOpen, onClose }: ScheduleTourModalProps
                 </div>
               </div>
             </div>
-          
-           
           </div>
         </DialogHeader>
 
@@ -174,7 +197,7 @@ const ScheduleTourModal = ({ property, isOpen, onClose }: ScheduleTourModalProps
               
               <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100 text-left max-w-2xl mx-auto">
                 <h4 className="font-bold text-gray-800 mb-4 text-xl flex items-center">
-                  <User className="h-5 w-5 mr-2 text-blue-600" />
+                  <User className="h-5 w-5 mr-2 text-green-600" />
                   Your Request Details
                 </h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
@@ -200,55 +223,106 @@ const ScheduleTourModal = ({ property, isOpen, onClose }: ScheduleTourModalProps
               
               </div>
               <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-                  <Button onClick={handleClose} className="w-full h-12 text-lg font-semibold bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-200">
+                  <Button onClick={handleClose} className="w-full h-12 text-lg font-semibold bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-200">
                     Close
                   </Button>
                 </motion.div>
             </div>
           ) : (
             <div className="space-y-8">
-              {/* Property Summary Card */}
+              {/* Property & Unit Summary Card */}
               <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
                 <h3 className="font-bold text-gray-800 mb-4 text-xl flex items-center">
                   <Home className="h-5 w-5 mr-2 text-blue-600" />
-                  Property Details
+                  {unit ? 'Selected Unit Details' : 'Property Details'}
                 </h3>
                 <div className="space-y-4">
                   <div className="flex items-center gap-2">
                     <MapPin className="h-4 w-4 text-gray-500" />
                     <span className="text-sm text-gray-600">{property.address}</span>
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="flex items-center gap-2 p-3 bg-blue-50 rounded-xl">
-                      <Bed className="h-4 w-4 text-blue-600" />
-                      <span className="text-sm font-medium text-blue-800">
-                        {property.beds}
-                      </span>
+                  
+                  {unit ? (
+                    // Unit-specific details
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                      <div className="flex items-center gap-2 p-3 bg-blue-50 rounded-xl">
+                        <Building className="h-4 w-4 text-blue-600" />
+                        <span className="text-sm font-medium text-blue-800">
+                          Unit {unit.unitNumber}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 p-3 bg-blue-50 rounded-xl">
+                        <Bed className="h-4 w-4 text-blue-600" />
+                        <span className="text-sm font-medium text-blue-800">
+                          {unit.bedrooms} bed{unit.bedrooms !== 1 ? 's' : ''}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 p-3 bg-blue-50 rounded-xl">
+                        <Square className="h-4 w-4 text-blue-600" />
+                        <span className="text-sm font-medium text-blue-800">
+                          {unit.sqft} sq ft
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 p-3 bg-blue-50 rounded-xl">
+                        <Building className="h-4 w-4 text-blue-600" />
+                        <span className="text-sm font-medium text-blue-800">
+                          {unit.floorLevel}
+                        </span>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2 p-3 bg-purple-50 rounded-xl">
-                      <Bath className="h-4 w-4 text-purple-600" />
-                      <span className="text-sm font-medium text-purple-800">
-                        {property.bathrooms ? `${property.bathrooms} bath${property.bathrooms !== 1 ? 's' : ''}` : 'Various bathrooms'}
-                      </span>
+                  ) : (
+                    // Property general details
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="flex items-center gap-2 p-3 bg-blue-50 rounded-xl">
+                        <Bed className="h-4 w-4 text-blue-600" />
+                        <span className="text-sm font-medium text-blue-800">
+                          {property.beds || 'Various bedrooms'}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 p-3 bg-blue-50 rounded-xl">
+                        <Bath className="h-4 w-4 text-blue-600" />
+                        <span className="text-sm font-medium text-blue-800">
+                          {property.bathrooms ? `${property.bathrooms} bath${property.bathrooms !== 1 ? 's' : ''}` : 'Various bathrooms'}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 p-3 bg-blue-50 rounded-xl">
+                        <DollarSign className="h-4 w-4 text-blue-600" />
+                        <span className="text-sm font-medium text-blue-800">
+                          {property.priceRange || 'Contact for pricing'}
+                        </span>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2 p-3 bg-green-50 rounded-xl">
-                      <DollarSign className="h-4 w-4 text-green-600" />
-                      <span className="text-sm font-medium text-green-800">
-                        {property.priceRange || 'Contact for pricing'}
-                      </span>
+                  )}
+
+                  {/* Unit amenities if available */}
+                  {unit && unit.unitAmenities.length > 0 && (
+                    <div className="mt-4">
+                      <h4 className="font-semibold text-gray-700 mb-2 text-sm">Unit Features:</h4>
+                      <div className="flex flex-wrap gap-2">
+                        {unit.unitAmenities.slice(0, 4).map((amenity, index) => (
+                          <span key={index} className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                            {amenity}
+                          </span>
+                        ))}
+                        {unit.unitAmenities.length > 4 && (
+                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
+                            +{unit.unitAmenities.length - 4} more
+                          </span>
+                        )}
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </div>
               </div>
 
               {/* Tour Request Form */}
               <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
                 <h3 className="font-bold text-gray-800 mb-6 text-xl flex items-center">
-                  <User className="h-5 w-5 mr-2 text-purple-600" />
+                  <User className="h-5 w-5 mr-2 text-blue-600" />
                   Contact Information
                 </h3>
                 
-                <form onSubmit={handleSubmit} className="space-y-6">
+                <form id="tour-form" onSubmit={handleSubmit} className="space-y-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
                       <Label htmlFor="firstName" className="text-sm font-medium text-gray-700 mb-2 block">First Name *</Label>
@@ -257,7 +331,7 @@ const ScheduleTourModal = ({ property, isOpen, onClose }: ScheduleTourModalProps
                         value={formData.firstName}
                         onChange={(e) => setFormData(prev => ({...prev, firstName: e.target.value}))}
                         placeholder="Enter first name"
-                        className="h-12 rounded-xl border-2 border-gray-200 px-4 py-3 font-medium text-gray-700 focus:ring-blue-500 focus:border-blue-500 hover:border-gray-300 shadow-sm"
+                        className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white/50 backdrop-blur-sm"
                         required
                       />
                     </div>
@@ -268,7 +342,7 @@ const ScheduleTourModal = ({ property, isOpen, onClose }: ScheduleTourModalProps
                         value={formData.lastName}
                         onChange={(e) => setFormData(prev => ({...prev, lastName: e.target.value}))}
                         placeholder="Enter last name"
-                        className="h-12 rounded-xl border-2 border-gray-200 px-4 py-3 font-medium text-gray-700 focus:ring-blue-500 focus:border-blue-500 hover:border-gray-300 shadow-sm"
+                        className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white/50 backdrop-blur-sm"
                         required
                       />
                     </div>
@@ -286,7 +360,7 @@ const ScheduleTourModal = ({ property, isOpen, onClose }: ScheduleTourModalProps
                         value={formData.email}
                         onChange={(e) => setFormData(prev => ({...prev, email: e.target.value}))}
                         placeholder="Enter email address"
-                        className="h-12 rounded-xl border-2 border-gray-200 px-4 py-3 font-medium text-gray-700 focus:ring-blue-500 focus:border-blue-500 hover:border-gray-300 shadow-sm"
+                        className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white/50 backdrop-blur-sm"
                         required
                       />
                     </div>
@@ -304,7 +378,7 @@ const ScheduleTourModal = ({ property, isOpen, onClose }: ScheduleTourModalProps
                         }}
                         placeholder="(555) 123-4567"
                         maxLength={14}
-                        className="h-12 rounded-xl border-2 border-gray-200 px-4 py-3 font-medium text-gray-700 focus:ring-blue-500 focus:border-blue-500 hover:border-gray-300 shadow-sm"
+                        className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white/50 backdrop-blur-sm"
                         required
                       />
                     </div>
@@ -322,7 +396,7 @@ const ScheduleTourModal = ({ property, isOpen, onClose }: ScheduleTourModalProps
                         value={formData.preferredDate}
                         onChange={(e) => setFormData(prev => ({...prev, preferredDate: e.target.value}))}
                         min={today}
-                        className="h-12 rounded-xl border-2 border-gray-200 px-4 py-3 font-medium text-gray-700 focus:ring-blue-500 focus:border-blue-500 hover:border-gray-300 shadow-sm"
+                        className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white/50 backdrop-blur-sm"
                         required
                       />
                     </div>
@@ -337,7 +411,7 @@ const ScheduleTourModal = ({ property, isOpen, onClose }: ScheduleTourModalProps
                         value={formData.moveInDate}
                         onChange={(e) => setFormData(prev => ({...prev, moveInDate: e.target.value}))}
                         min={today}
-                        className="h-12 rounded-xl border-2 border-gray-200 px-4 py-3 font-medium text-gray-700 focus:ring-blue-500 focus:border-blue-500 hover:border-gray-300 shadow-sm"
+                        className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white/50 backdrop-blur-sm"
                         required
                       />
                     </div>
@@ -351,28 +425,44 @@ const ScheduleTourModal = ({ property, isOpen, onClose }: ScheduleTourModalProps
                       onChange={(e) => setFormData(prev => ({...prev, apartmentPreferences: e.target.value}))}
                       placeholder="Any specific preferences? (floor preference, parking needs, pet accommodations, etc.)"
                       rows={4}
-                      className="rounded-xl border-2 border-gray-200 px-4 py-3 font-medium text-gray-700 focus:ring-blue-500 focus:border-blue-500 hover:border-gray-300 shadow-sm resize-none"
+                      className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white/50 backdrop-blur-sm resize-none"
                     />
                   </div>
 
-                  <div className="flex gap-4 pt-6">
-                    <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="flex-1">
-                      <Button type="button" variant="outline" onClick={handleClose} className="w-full h-12 text-lg font-semibold border-2 border-gray-300 hover:border-gray-500 hover:bg-gray-50 rounded-xl transition-all duration-200">
-                        Cancel
-                      </Button>
-                    </motion.div>
-                    <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="flex-1">
-                      <Button type="submit" disabled={!isFormValid()} className="w-full h-12 text-lg font-semibold bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed">
-                        <Calendar className="h-5 w-5 mr-2" />
-                        Schedule Tour
-                      </Button>
-                    </motion.div>
-                  </div>
                 </form>
               </div>
             </div>
           )}
         </div>
+
+        {/* Footer Section */}
+        {!showSuccess && (
+          <div className="bg-white border-t border-gray-200 p-4">
+            <div className="flex space-x-4">
+              <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="flex-1">
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={handleClose} 
+                  className="w-full h-12 text-base font-semibold border-2 border-gray-300 hover:border-gray-500 hover:bg-gray-50 rounded-xl transition-all duration-200"
+                >
+                  Cancel
+                </Button>
+              </motion.div>
+              <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="flex-1">
+                <Button 
+                  type="submit" 
+                  form="tour-form"
+                  disabled={!isFormValid()} 
+                  className="w-full h-12 text-base font-semibold bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <Calendar className="h-4 w-4 mr-2" />
+                  Schedule Tour
+                </Button>
+              </motion.div>
+            </div>
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   );

@@ -710,13 +710,13 @@ const DashboardMap: React.FC<PropertyMapProps> = ({
 
 
       {/* Properties Count and Fit Button */}
-       <div className="absolute top-4 right-4 bg-white rounded-lg shadow-lg px-4 py-2 z-40 border border-gray-200">
+    
+      <div className="absolute top-4 right-4 bg-white rounded-lg shadow-lg px-4 py-2 z-40 border border-gray-200">
         <div className="flex items-center space-x-2">
           <div className="w-3 h-3 bg-red-500 rounded-full"></div>
           <span className="font-semibold text-gray-900">{validProperties.length} properties</span>
         </div>
       </div>
-
       {/* Map Attribution */}
       <div className="absolute bottom-2 left-2 text-xs text-gray-500 z-30">
         Map data ©2025 OpenStreetMap contributors

@@ -27,6 +27,9 @@ import {
   X,
   ArrowRight
 } from 'lucide-react';
+import { UnitDetailsModal } from '../components/UnitDetailsModal';
+import ScheduleTourModal from '../components/rentar/unitSelecttion/ScheduleTourModal';
+import { toast } from '../hooks/use-toast';
 
 interface LeaseTerm {
   months: number;
@@ -137,6 +140,12 @@ const QualifiedProperties: React.FC<QualifiedPropertiesProps> = ({
   const [selectedBedroomTypes, setSelectedBedroomTypes] = useState<string[]>(['1', '2', '3']);
   const [comparisonUnits, setComparisonUnits] = useState<{ property: QualifiedProperty; unit: Unit }[]>(initialComparisonUnits);
   const [showFilters, setShowFilters] = useState(false);
+  const [showUnitDetails, setShowUnitDetails] = useState(false);
+  const [selectedUnitForDetails, setSelectedUnitForDetails] = useState<{ property: QualifiedProperty; unit: Unit } | null>(null);
+  const [selectedPropertyForTour, setSelectedPropertyForTour] = useState<QualifiedProperty | null>(null);
+  const [selectedUnitForTour, setSelectedUnitForTour] = useState<Unit | null>(null);
+  const [scheduleTourModalOpen, setScheduleTourModalOpen] = useState(false);
+
   const [selectedUnit, setSelectedUnit] = useState<{ property: QualifiedProperty; unit: Unit } | null>(null);
   const [qualifiedProperties, setQualifiedProperties] = useState<QualifiedProperty[]>([]);
   const [propertiesLoading, setPropertiesLoading] = useState(false);
@@ -486,6 +495,19 @@ const QualifiedProperties: React.FC<QualifiedPropertiesProps> = ({
     onUnitSelect(property, unit);
   };
 
+  const handleTourClick = (property: QualifiedProperty, unit: Unit) => {
+    // console.log("unit",unit);
+    // console.log("property",property);
+    setSelectedPropertyForTour(property);
+    setSelectedUnitForTour(unit);
+    setScheduleTourModalOpen(true);
+  };
+
+  const handleUnitDetailsClick = (property: QualifiedProperty, unit: Unit) => {
+    setSelectedUnitForDetails({ property, unit });
+    setShowUnitDetails(true);
+  };
+
   const toggleComparisonUnit = (property: QualifiedProperty, unit: Unit) => {
     const existingIndex = comparisonUnits.findIndex(
       item => item.property.id === property.id && item.unit.id === unit.id
@@ -535,12 +557,12 @@ const QualifiedProperties: React.FC<QualifiedPropertiesProps> = ({
           <div className="bg-white/80 backdrop-blur-md rounded-2xl shadow-xl p-8 border border-white/20">
             <div className="flex items-center justify-between">
               <div className="flex items-center">
-                <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-3 rounded-xl shadow-lg mr-4">
-                  <Building className="h-8 w-8 text-white" />
-                </div>
+                {/* <div className="bg-gradient-to-r from-blue-500 to-emerald-500 p-3 rounded-xl shadow-lg mr-4">
+                  <Building className="h-6 w-6 text-white" />
+                </div> */}
                 <div>
-                  <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                    {selectedProperty ? `${selectedProperty.name || selectedProperty.title} - Available Units` : 'Available Units'}
+                  <h1 className="text-4xl text-black-600 font-bold">
+                  Available Units
                   </h1>
                   <p className="text-gray-600 text-lg">
                     {selectedProperty 
@@ -555,9 +577,9 @@ const QualifiedProperties: React.FC<QualifiedPropertiesProps> = ({
                 whileTap={{ scale: 0.98 }}
                 onClick={() => onCompareUnits?.(comparisonUnits)}
                 disabled={comparisonUnits.length === 0}
-                className={`flex items-center px-6 py-3 rounded-xl font-semibold transition-all duration-200 shadow-lg hover:shadow-xl ${
+                className={`flex items-center px-6 py-3 rounded-lg font-semibold transition-all duration-200 shadow-lg hover:shadow-xl ${
                   comparisonUnits.length > 0
-                    ? 'bg-gradient-to-r from-red-500 to-pink-600 text-white'
+                    ? 'bg-blue-600 text-white hover:bg-blue-700'
                     : 'bg-white text-gray-400 border border-gray-200 cursor-not-allowed'
                 }`}
               >
@@ -630,16 +652,16 @@ const QualifiedProperties: React.FC<QualifiedPropertiesProps> = ({
                 placeholder="Search by location, property name..."
                 value={searchFilters.location}
                 onChange={(e) => setSearchFilters(prev => ({ ...prev, location: e.target.value }))}
-                className="w-full pl-16 pr-4 py-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/70 backdrop-blur-sm text-lg placeholder-gray-500 transition-all duration-200"
+                className="w-full pl-16 pr-4 py-3 border border-gray-200 rounded-lg focus:border-green-500 focus:ring-2 focus:ring-green-200 bg-white/80 backdrop-blur-sm text-sm placeholder-gray-500 transition-all duration-200"
               />
             </div>
             <motion.button
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               onClick={() => setShowFilters(!showFilters)}
-              className={`flex items-center px-6 py-4 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl border ${
+              className={`flex items-center px-6 py-3 rounded-lg transition-all duration-200 shadow-lg hover:shadow-xl border ${
                 showFilters 
-                  ? 'bg-blue-600 text-white border-blue-600' 
+                  ? 'bg-green-600 text-white border-green-600' 
                   : 'text-gray-600 bg-white/80 backdrop-blur-sm border-gray-200 hover:bg-white'
               }`}
             >
@@ -658,9 +680,9 @@ const QualifiedProperties: React.FC<QualifiedPropertiesProps> = ({
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   onClick={() => handleBedroomToggle(option.value)}
-                  className={`flex items-center px-4 py-2 rounded-xl border-2 transition-all duration-200 ${
+                  className={`flex items-center px-4 py-2 rounded-lg border  transition-all duration-200 ${
                     selectedBedroomTypes.includes(option.value)
-                      ? 'border-blue-500 bg-blue-50 text-blue-700'
+                      ? 'border-blue-200 bg-blue-50 text-gray-700 '
                       : 'border-gray-200 bg-white hover:border-gray-300'
                   }`}
                 >
@@ -700,7 +722,7 @@ const QualifiedProperties: React.FC<QualifiedPropertiesProps> = ({
                           placeholder="Min"
                           value={searchFilters.minPrice}
                           onChange={(e) => setSearchFilters(prev => ({ ...prev, minPrice: Number(e.target.value) }))}
-                          className="w-full pl-8 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/70 backdrop-blur-sm transition-all duration-200"
+                          className="w-full pl-8 pr-4 py-3 border border-gray-200 rounded-lg focus:border-green-500 focus:ring-2 focus:ring-green-200 bg-white/80 backdrop-blur-sm transition-all duration-200"
                         />
                       </div>
                       <div className="relative flex-1">
@@ -710,7 +732,7 @@ const QualifiedProperties: React.FC<QualifiedPropertiesProps> = ({
                           placeholder="Max"
                           value={searchFilters.maxPrice}
                           onChange={(e) => setSearchFilters(prev => ({ ...prev, maxPrice: Number(e.target.value) }))}
-                          className="w-full pl-8 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/70 backdrop-blur-sm transition-all duration-200"
+                          className="w-full pl-8 pr-4 py-3 border border-gray-200 rounded-lg focus:border-green-500 focus:ring-2 focus:ring-green-200 bg-white/80 backdrop-blur-sm transition-all duration-200"
                         />
                       </div>
                     </div>
@@ -721,7 +743,7 @@ const QualifiedProperties: React.FC<QualifiedPropertiesProps> = ({
                       type="date"
                       value={searchFilters.moveInDate}
                       onChange={(e) => setSearchFilters(prev => ({ ...prev, moveInDate: e.target.value }))}
-                      className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/70 backdrop-blur-sm transition-all duration-200"
+                      className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:border-green-500 focus:ring-2 focus:ring-green-200 bg-white/80 backdrop-blur-sm transition-all duration-200"
                     />
                   </div>
                   <div>
@@ -732,7 +754,7 @@ const QualifiedProperties: React.FC<QualifiedPropertiesProps> = ({
                         ...prev, 
                         petFriendly: e.target.value === 'any' ? null : e.target.value === 'true' 
                       }))}
-                      className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/70 backdrop-blur-sm transition-all duration-200"
+                      className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:border-green-500 focus:ring-2 focus:ring-green-200 bg-white/80 backdrop-blur-sm transition-all duration-200"
                     >
                       <option value="any">Any</option>
                       <option value="true">Pet Friendly</option>
@@ -766,7 +788,7 @@ const QualifiedProperties: React.FC<QualifiedPropertiesProps> = ({
                       <div className="flex items-center mb-2">
                         <h3 className="text-2xl font-bold text-gray-900 mr-3">{property.name}</h3>
                         {property.isRentWiseNetwork && (
-                          <span className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-3 py-1 rounded-full text-xs font-medium">
+                          <span className="bg-blue-500 text-white px-3 py-1 rounded-full text-xs font-medium">
                             RentWise Network
                           </span>
                         )}
@@ -802,54 +824,63 @@ const QualifiedProperties: React.FC<QualifiedPropertiesProps> = ({
                         initial={{ opacity: 0, scale: 0.9 }}
                         animate={{ opacity: 1, scale: 1 }}
                         transition={{ duration: 0.3, delay: unitIndex * 0.1 }}
-                        className={`bg-white rounded-xl shadow-lg border-2 transition-all duration-300 hover:shadow-xl ${
+                        className={`bg-white rounded-2xl shadow-lg border transition-all duration-300 hover:shadow-xl  ${
                           unit.qualified 
-                            ? 'border-green-200 hover:border-green-300' 
+                            ? 'hover:border-blue-300' 
                             : 'border-gray-200 hover:border-gray-300'
                         }`}
                       >
                         {/* Unit Header */}
-                        <div className="p-4 border-b border-gray-100">
-                          <div className="flex items-center justify-between mb-2">
-                            <h4 className="text-lg font-bold text-gray-900">Unit {unit.unitNumber}</h4>
+                        <div className="p-5 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white">
+                          <div className="flex items-center justify-between mb-3">
+                            <div>
+                              <h4 className="text-xl font-bold text-gray-900 mb-1">Unit {unit.unitNumber}</h4>
+                              <p className="text-sm text-gray-600">{unit.type} • {unit.floorLevel}</p>
+                            </div>
                             <div className="flex items-center gap-2">
                               {unit.qualified && (
-                                <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs font-medium">
-                                  Qualified
+                                <span className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-xs font-semibold border border-green-200">
+                                  ✓ Qualified
                                 </span>
                               )}
                               <motion.button
                                 whileHover={{ scale: 1.1 }}
                                 whileTap={{ scale: 0.9 }}
                                 onClick={() => toggleComparisonUnit(property, unit)}
-                                className={`p-1 rounded-full transition-colors ${
+                                className={`p-2 rounded-full transition-colors ${
                                   isInComparison(property, unit)
-                                    ? 'text-red-500 bg-red-50'
-                                    : 'text-gray-400 hover:text-red-500 hover:bg-red-50'
+                                    ? 'text-red-500 bg-red-50 border border-red-200'
+                                    : 'text-gray-400 hover:text-red-500 hover:bg-red-50 border border-transparent'
                                 }`}
                               >
-                                <Heart className={`h-4 w-4 ${isInComparison(property, unit) ? 'fill-current' : ''}`} />
+                                <Heart className={`h-5 w-5 ${isInComparison(property, unit) ? 'fill-current' : ''}`} />
                               </motion.button>
                             </div>
                           </div>
-                          <p className="text-sm text-gray-600 mb-3">{unit.type} • {unit.floorLevel}</p>
                           
                           {/* Unit Stats */}
-                          <div className="flex items-center justify-between text-sm text-gray-600 bg-gray-50 rounded-lg p-3">
-                            <div className="flex items-center">
-                              <Bed className="h-4 w-4 mr-1 text-blue-600" />
-                              <span>{unit.bedrooms} bed{unit.bedrooms !== 1 ? 's' : ''}</span>
+                          <div className="grid grid-cols-2 gap-3">
+                            <div className="bg-white rounded-lg p-3 border border-gray-200">
+                              <div className="flex items-center text-sm text-gray-600">
+                                <Bed className="h-4 w-4 mr-2 text-blue-600" />
+                                <span className="font-medium">{unit.bedrooms} bed{unit.bedrooms !== 1 ? 's' : ''}</span>
+                              </div>
                             </div>
-                            <div className="flex items-center">
-                              <Square className="h-4 w-4 mr-1 text-purple-600" />
-                              <span>{unit.sqft} sqft</span>
+                            <div className="bg-white rounded-lg p-3 border border-gray-200">
+                              <div className="flex items-center text-sm text-gray-600">
+                                <Square className="h-4 w-4 mr-2 text-blue-600" />
+                                <span className="font-medium">{unit.sqft} sqft</span>
+                              </div>
                             </div>
                           </div>
                         </div>
 
                         {/* Lease Terms */}
-                        <div className="p-4">
-                          <h5 className="font-semibold text-gray-900 mb-3">Lease Terms</h5>
+                        <div className="p-5">
+                          <h5 className="font-semibold text-gray-900 mb-4 flex items-center">
+                            <DollarSign className="h-4 w-4 mr-2 text-green-600" />
+                            Lease Terms
+                          </h5>
                           <div className="space-y-2">
                             {unit.leaseTerms.slice(0, 2).map((term, termIndex) => (
                               <div
@@ -891,8 +922,11 @@ const QualifiedProperties: React.FC<QualifiedPropertiesProps> = ({
                         </div>
 
                         {/* Unit Amenities */}
-                        <div className="p-4 border-t border-gray-100">
-                          <h5 className="font-semibold text-gray-900 mb-2">Unit Features</h5>
+                        <div className="p-5 border-t border-gray-100">
+                          <h5 className="font-semibold text-gray-900 mb-3 flex items-center">
+                            <Star className="h-4 w-4 mr-2 text-blue-600" />
+                            Unit Features
+                          </h5>
                           <div className="flex flex-wrap gap-1">
                             {unit.unitAmenities.slice(0, 3).map((amenity) => (
                               <span
@@ -912,22 +946,38 @@ const QualifiedProperties: React.FC<QualifiedPropertiesProps> = ({
 
                         {/* Actions */}
                         <div className="p-4 border-t border-gray-100">
-                          <div className="flex gap-2">
+                          <div className="space-y-3">
+                            {/* Primary Action */}
                             <motion.button
                               whileHover={{ scale: 1.02 }}
                               whileTap={{ scale: 0.98 }}
                               onClick={() => handleUnitSelect(property, unit)}
-                              className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 text-white py-2 px-4 rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all duration-200 font-semibold shadow-lg hover:shadow-xl"
+                              className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white text-sm px-6 py-2 font-semibold rounded-lg shadow-lg hover:shadow-xl transition-all duration-200"
                             >
                               Apply Now
                             </motion.button>
-                            <motion.button
-                              whileHover={{ scale: 1.02 }}
-                              whileTap={{ scale: 0.98 }}
-                              className="px-4 py-2 border border-gray-200 text-gray-600 rounded-lg hover:bg-gray-50 transition-colors"
-                            >
-                              <Eye className="h-4 w-4" />
-                            </motion.button>
+                            
+                            {/* Secondary Actions */}
+                            <div className="flex gap-2">
+                              <motion.button
+                                whileHover={{ scale: 1.02 }}
+                                whileTap={{ scale: 0.98 }}
+                                onClick={() => handleTourClick(property, unit)}
+                                className="flex-1 border hover:bg-blue-600 hover:text-white border-gray-200 text-gray-600 text-sm px-4 py-2 font-semibold rounded-lg transition-all duration-200"
+                              >
+                                <Calendar className="h-4 w-4 inline mr-2" />
+                                Tour
+                              </motion.button>
+                              <motion.button
+                                whileHover={{ scale: 1.02 }}
+                                whileTap={{ scale: 0.98 }}
+                                onClick={() => handleUnitDetailsClick(property, unit)}
+                                className="flex-1 border hover:bg-blue-600 hover:text-white border-gray-200 text-gray-600 text-sm px-4 py-2 font-semibold rounded-lg transition-all duration-200"
+                              >
+                                <Eye className="h-4 w-4 inline mr-2" />
+                                Unit Details
+                              </motion.button>
+                            </div>
                           </div>
                         </div>
                       </motion.div>
@@ -938,54 +988,45 @@ const QualifiedProperties: React.FC<QualifiedPropertiesProps> = ({
             );
           })}
         </div>
-
-        {/* No Results */}
-        {/* {filteredProperties.length === 0 && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.5 }}
-            className="text-center py-16"
-          >
-            <div className="bg-white/80 backdrop-blur-md rounded-3xl shadow-xl p-12 max-w-md mx-auto border border-white/20">
-              <div className="bg-gradient-to-r from-blue-100 to-purple-100 rounded-full w-24 h-24 flex items-center justify-center mx-auto mb-6">
-                <Search className="h-12 w-12 text-blue-600" />
-              </div>
-              <h3 className="text-2xl font-bold text-gray-900 mb-4">No Properties Found</h3>
-              <p className="text-gray-600 mb-8 text-lg">
-                Try adjusting your search filters to find more available units.
-              </p>
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => {
-                  setSearchFilters({
-                    location: '',
-                    minPrice: 500,
-                    maxPrice: 3000,
-                    bedrooms: 'any',
-                    bathrooms: 'any',
-                    petFriendly: null,
-                    propertyType: 'any',
-                    leaseLength: 'any',
-                    moveInDate: '',
-                    amenities: [],
-                    parking: 'any',
-                    laundry: 'any',
-                    furnished: 'any',
-                    utilities: 'any'
-                  });
-                  setSelectedBedroomTypes(['1', '2', '3']);
-                }}
-                className="inline-flex items-center px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl hover:from-blue-700 hover:to-purple-700 transition-all duration-200 font-semibold shadow-lg hover:shadow-xl"
-              >
-                Reset Filters
-                <ArrowRight className="ml-2 h-5 w-5" />
-              </motion.button>
-            </div>
-          </motion.div>
-        )} */}
       </div>
+       <UnitDetailsModal
+         unit={selectedUnitForDetails?.unit || null}
+         propertyName={selectedUnitForDetails?.property.name || ''}
+         isOpen={showUnitDetails}
+         onClose={() => {
+           setShowUnitDetails(false);
+           setSelectedUnitForDetails(null);
+         }}
+         onScheduleTour={(unit) => {
+           setSelectedPropertyForTour(selectedUnitForDetails?.property || null);
+           setSelectedUnitForTour(unit);
+           setScheduleTourModalOpen(true);
+           setShowUnitDetails(false);
+         }}
+         onApply={(unit, leaseTerm) => {
+           if (selectedUnitForDetails) {
+             handleUnitSelect(selectedUnitForDetails.property, unit, leaseTerm);
+             setShowUnitDetails(false);
+             setSelectedUnitForDetails(null);
+           }
+         }}
+       />
+       {selectedPropertyForTour && (
+         <ScheduleTourModal
+           isOpen={scheduleTourModalOpen} 
+           onClose={() => {
+             setScheduleTourModalOpen(false);
+             setSelectedPropertyForTour(null);
+             setSelectedUnitForTour(null);
+             toast({
+               title: "Tour Scheduled!",
+               description: "You'll receive a confirmation email with the details.",
+             });
+           }}
+           property={selectedPropertyForTour}
+           unit={selectedUnitForTour}
+         />
+       )}
     </div>
   );
 };
