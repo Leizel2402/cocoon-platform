@@ -9,29 +9,21 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "../components/ui/popover";
-import { Calendar } from "../components/ui/calender";
 import { Checkbox } from "../components/ui/checkbox";
 // import {Slider}  from '../components/ui/slider';
 import {
   LogOut,
   Search,
-  Building2,
   MapPin,
-  Bed,
-  Star,
-  Calendar as CalendarIcon,
   ChevronDown,
   ArrowLeft,
   Home,
+  DollarSign,
 } from "lucide-react";
-import { format } from "date-fns";
-import { cn } from "../lib/utils";
 import { useTranslation } from "../hooks/useTranslations";
 import {
   collection,
   query,
-  where,
-  orderBy,
   limit,
   getDocs,
 } from "firebase/firestore";
@@ -55,13 +47,14 @@ import UnitsComparison from "../components/rentar/unitSelecttion/UnitsComparison
 import DashboardMap from "../components/DashboardMap";
 // import SearchFilters from '../renter/search/SearchFilters';
 // import AccountManagement from '../landlord/shared/AccountManagement';
-import TestBypassIndicator from "../components/common/TestBypassIndicator";
 import { useToast } from "../hooks/use-toast";
 import { generateMockComparisonUnits } from "../lib/mockUnits";
 import PropertyDetailsModal from "../components/rentar/unitSelecttion/PropertyDetailsModal";
 import ScheduleTourModal from "../components/rentar/unitSelecttion/ScheduleTourModal";
-import DashboardMapWrapper from "../components/DashboardMapWrapper ";
 
+import { ModernPropertyCard } from "../components/ModernPropertyCard";
+import { CalendarPopover } from "../components/CalendarPopover";
+import SearchFilters from "../components/PropertyAllFilter";
 // const owlImg = "/lovable-uploads/730c12d2-40cf-4a50-85a4-355e34288dfd.png";
 
 const Dashboards = () => {
@@ -101,23 +94,21 @@ const Dashboards = () => {
   const [applicationStep, setApplicationStep] = useState<number | null>(null);
   const [comparisonUnits, setComparisonUnits] = useState<any[]>([]);
   const [selectedProperty, setSelectedProperty] = useState<any>(null);
-  const [selectedUnit, setSelectedUnit] = useState<any>(null);
-  const [selectedLeaseTerm, setSelectedLeaseTerm] = useState<any>(null);
-  const [paymentData, setPaymentData] = useState<any>(null);
-  const [editingProperty, setEditingProperty] = useState<any>(null);
+  // const [selectedUnit, setSelectedUnit] = useState<any>(null);
+  // const [selectedLeaseTerm, setSelectedLeaseTerm] = useState<any>(null);
+  // const [paymentData, setPaymentData] = useState<any>(null);
+  // const [editingProperty, setEditingProperty] = useState<any>(null);
   const [scheduleTourModalOpen, setScheduleTourModalOpen] = useState(false);
   const [selectedPropertyForTour, setSelectedPropertyForTour] =
     useState<any>(null);
   const [searchLocation, setSearchLocation] = useState("");
-  const [userLocation, setUserLocation] = useState("Austin, TX"); // Default to Austin, would be IP-based in production
+  const [userLocation] = useState("Austin, TX"); // Default to Austin, would be IP-based in production
   const [isPrequalified, setIsPrequalified] = useState(false);
-  const [selectedLanguage, setSelectedLanguage] = useState<
-    "EN" | "ES" | "FR" | "DE"
-  >("EN");
+  const [selectedLanguage] = useState<"EN" | "ES" | "FR" | "DE">("EN");
   const { t } = useTranslation(selectedLanguage);
 
   // Simple in-app view history for back navigation
-  const [viewHistory, setViewHistory] = useState<(typeof currentView)[]>([]);
+  // const [viewHistory, setViewHistory] = useState<(typeof currentView)[]>([]);
   const prevView = useRef<typeof currentView | null>(null);
   const isBackNav = useRef(false);
 
@@ -127,7 +118,7 @@ const Dashboards = () => {
         // Skip pushing history when navigating back
         isBackNav.current = false;
       } else {
-        setViewHistory((h) => [...h, prevView.current as typeof currentView]);
+        // setViewHistory((h) => [...h, prevView.current as typeof currentView]);
       }
     }
     prevView.current = currentView;
@@ -135,19 +126,20 @@ const Dashboards = () => {
 
   const handleBack = () => {
     isBackNav.current = true;
-    setViewHistory((h) => {
-      if (h.length === 0) {
+    // setViewHistory((h) => {
+    //   if (h.length === 0) {
+    //     setCurrentView("dashboard");
+    //     return h;
+    //   }
+    //   const last = h[h.length - 1];
+    //   setCurrentView(last);
+    //   return h.slice(0, -1);
+    // });
         setCurrentView("dashboard");
-        return h;
-      }
-      const last = h[h.length - 1];
-      setCurrentView(last);
-      return h.slice(0, -1);
-    });
   };
 
   // Filter states
-  const [priceRange, setPriceRange] = useState([0, 5000]);
+  const [priceRange, setPriceRange] = useState<[number, number]>([0, 5000]);
   const [selectedBeds, setSelectedBeds] = useState<string[]>([]);
   const [selectedBaths, setSelectedBaths] = useState<string[]>([]);
   const [selectedHomeTypes, setSelectedHomeTypes] = useState<string[]>([]);
@@ -173,8 +165,8 @@ const Dashboards = () => {
   const [petPolicy, setPetPolicy] = useState<string>("");
   const [parkingType, setParkingType] = useState<string[]>([]);
   const [utilityPolicy, setUtilityPolicy] = useState<string[]>([]);
-  const [squareFootage, setSquareFootage] = useState([500, 3000]);
-  const [yearBuilt, setYearBuilt] = useState([1980, 2024]);
+  const [squareFootage, setSquareFootage] = useState<[number, number]>([500, 3000]);
+  const [yearBuilt, setYearBuilt] = useState<[number, number]>([1980, 2024]);
   const [additionalSpecialties, setAdditionalSpecialties] = useState<string[]>(
     []
   );
@@ -189,7 +181,7 @@ const Dashboards = () => {
 
   // Units data state
   const [unitsData, setUnitsData] = useState<any[]>([]);
-  const [unitsLoading, setUnitsLoading] = useState(false);
+  // const [unitsLoading, setUnitsLoading] = useState(false);
 console.log("Selected Property", selectedProperty);
 
   // Load properties from Firebase
@@ -380,7 +372,7 @@ console.log("Selected Property", selectedProperty);
   // Load units data from Firebase
   const loadUnitsData = async () => {
     try {
-      setUnitsLoading(true);
+      // setUnitsLoading(true);
 
       // Load from units collection (your actual unit data)
       const unitsQuery = query(collection(db, "units"), limit(50));
@@ -462,7 +454,7 @@ console.log("Selected Property", selectedProperty);
       console.error("Error loading units from Firebase:", error);
       setUnitsData([]);
     } finally {
-      setUnitsLoading(false);
+      // setUnitsLoading(false);
     }
   };
 
@@ -599,18 +591,33 @@ console.log("Selected Property", selectedProperty);
     // Price filter - handle both database and sample data formats
     let priceInRange = true;
 
-    if (property.priceRange) {
-      // Sample data format: "$1,255 - $2,849"
+    // Skip price filtering if range is set to show all prices (0 to 5000)
+    if (priceRange[0] === 0 && priceRange[1] === 5000) {
+      priceInRange = true;
+    } else if (property.rent_amount && property.rent_amount > 0) {
+      // Database format: numeric rent_amount (preferred)
+      const rent = Number(property.rent_amount);
+      priceInRange = rent >= priceRange[0] && rent <= priceRange[1];
+      console.log(`Property ${property.name}: rent_amount=${rent}, filter=[${priceRange[0]}, ${priceRange[1]}], priceInRange=${priceInRange}`);
+    } else if (property.priceRange) {
+      // Sample data format: "$1,255 - $2,849" or single price "$3,500"
+      if (property.priceRange.includes(" - ")) {
+        // Range format: "$1,255 - $2,849"
       const priceParts = property.priceRange.split(" - ");
       if (priceParts.length >= 2) {
         const minPrice = parseInt(priceParts[0]?.replace(/[$,]/g, "") || "0");
         const maxPrice = parseInt(priceParts[1]?.replace(/[$,]/g, "") || "0");
-        priceInRange = minPrice >= priceRange[0] && minPrice <= priceRange[1];
+        // Check if any part of the price range overlaps with the selected range
+        priceInRange = (minPrice >= priceRange[0] && minPrice <= priceRange[1]) ||
+                      (maxPrice >= priceRange[0] && maxPrice <= priceRange[1]) ||
+                      (minPrice <= priceRange[0] && maxPrice >= priceRange[1]);
       }
-    } else if (property.rent_amount) {
-      // Database format: numeric rent_amount
-      const rent = Number(property.rent_amount);
-      priceInRange = rent >= priceRange[0] && rent <= priceRange[1];
+      } else {
+        // Single price format: "$3,500"
+        const price = parseInt(property.priceRange.replace(/[$,]/g, "") || "0");
+        priceInRange = price >= priceRange[0] && price <= priceRange[1];
+        console.log(`Property ${property.name}: priceRange="${property.priceRange}", parsed=${price}, filter=[${priceRange[0]}, ${priceRange[1]}], priceInRange=${priceInRange}`);
+      }
     }
 
     // Beds filter
@@ -626,17 +633,116 @@ console.log("Selected Property", selectedProperty);
         );
       });
 
+    // Bathrooms filter
+    const bathsMatch =
+      selectedBaths.length === 0 ||
+      selectedBaths.some((bath) => {
+        if (bath === "4+")
+          return property.bathrooms >= 4;
+        if (bath.includes("+")) {
+          const minBaths = parseFloat(bath.replace("+", ""));
+          return property.bathrooms >= minBaths;
+        }
+        return property.bathrooms === parseFloat(bath);
+      });
+
     // Home type filter using the actual propertyType field
     const typeMatch =
       selectedHomeTypes.length === 0 ||
       selectedHomeTypes.includes(property.propertyType || "Apartment") ||
       selectedHomeTypes.includes(property.property_type || "Apartment");
 
+    // Amenities filter
+    const amenitiesMatch =
+      selectedAmenities.length === 0 ||
+      selectedAmenities.every((amenity) =>
+        property.amenities?.includes(amenity)
+      );
+
+    // Features filter
+    const featuresMatch =
+      selectedFeatures.length === 0 ||
+      selectedFeatures.every((feature) =>
+        property.features?.includes(feature)
+      );
+
+    // Pet policy filter
+    const petPolicyMatch =
+      !petPolicy || property.petPolicy === petPolicy;
+
+    // Parking type filter
+    const parkingMatch =
+      parkingType.length === 0 ||
+      parkingType.some((parking) =>
+        property.parkingType?.includes(parking)
+      );
+
+    // Utility policy filter
+    const utilityMatch =
+      utilityPolicy.length === 0 ||
+      utilityPolicy.some((utility) =>
+        property.utilityPolicy?.includes(utility)
+      );
+
+    // Square footage filter
+    const squareFootageMatch =
+      !property.squareFootage ||
+      (property.squareFootage >= squareFootage[0] && property.squareFootage <= squareFootage[1]);
+
+    // Year built filter
+    const yearBuiltMatch =
+      !property.yearBuilt ||
+      (property.yearBuilt >= yearBuilt[0] && property.yearBuilt <= yearBuilt[1]);
+
+    // Additional specialties filter
+    const specialtiesMatch =
+      additionalSpecialties.length === 0 ||
+      additionalSpecialties.some((specialty) =>
+        property.specialties?.includes(specialty)
+      );
+
+    // Laundry facilities filter
+    const laundryMatch =
+      laundryFacilities.length === 0 ||
+      laundryFacilities.some((laundry) =>
+        property.laundryFacilities?.includes(laundry)
+      );
+
+    // Rating filter
+    const ratingMatch =
+      !selectedRating ||
+      (property.rating && property.rating >= parseFloat(selectedRating));
+
+    // Property features filter
+    const propertyFeaturesMatch =
+      propertyFeatures.length === 0 ||
+      propertyFeatures.some((feature) =>
+        property.propertyFeatures?.includes(feature)
+      );
+
     // RentWise Network filter
     const rentwiseMatch =
       !showOnlyRentWise || property.isRentWiseNetwork === true;
 
-    return locationMatch && priceInRange && bedsMatch && typeMatch && rentwiseMatch;
+    return (
+      locationMatch &&
+      priceInRange &&
+      bedsMatch &&
+      bathsMatch &&
+      typeMatch &&
+      amenitiesMatch &&
+      featuresMatch &&
+      petPolicyMatch &&
+      parkingMatch &&
+      utilityMatch &&
+      squareFootageMatch &&
+      yearBuiltMatch &&
+      specialtiesMatch &&
+      laundryMatch &&
+      ratingMatch &&
+      propertyFeaturesMatch &&
+      rentwiseMatch
+    );
   });
 
   
@@ -826,7 +932,6 @@ console.log("Selected Property", selectedProperty);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100">
-      <TestBypassIndicator />
 
       {/* Modern Header */}
       <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-gray-200 shadow-lg">
@@ -957,215 +1062,146 @@ console.log("Selected Property", selectedProperty);
                     className="w-64 px-4 py-3 rounded-lg border-gray-200 focus:border-green-500 focus:ring-2 focus:ring-green-200 bg-white/80 backdrop-blur-sm"
                   />
 
-                  {/* Price Filter */}
+                  {/* Simple Price Filter */}
                   <Popover>
                     <PopoverTrigger asChild>
                       <Button
                         variant="outline"
                         className="text-sm px-4 py-3 rounded-lg border-gray-200 hover:bg-green-50 hover:border-green-300 transition-all duration-200"
                       >
-                        Price <ChevronDown className="ml-2 h-4 w-4" />
+                        {priceRange[0] === 0 && priceRange[1] === 5000 
+                          ? "Any Price" 
+                          : `$${priceRange[0].toLocaleString()} - $${priceRange[1].toLocaleString()}`
+                        } <ChevronDown className="ml-2 h-4 w-4" />
                       </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="w-80 p-6 bg-white border-2 border-gray-200 shadow-xl rounded-lg z-50">
+                    <PopoverContent className="w-80 p-6 bg-white border-2 border-gray-200 shadow-2xl rounded-xl z-50">
                       <div className="space-y-6">
-                        <h4 className="font-bold text-gray-800 text-lg">
-                          Price Range
-                        </h4>
-
-                        {/* Price Display Pills */}
-                        <div className="flex justify-between">
-                          <span className="bg-green-100 text-green-700 px-3 py-2 rounded-full text-sm font-semibold">
-                            ${priceRange[0].toLocaleString()}
-                          </span>
-                          <span className="bg-green-100 text-green-700 px-3 py-2 rounded-full text-sm font-semibold">
-                            ${priceRange[1].toLocaleString()}
+                        {/* Header */}
+                        <div className="flex items-center justify-between">
+                          <h4 className="font-bold text-gray-800 text-lg">Price Range</h4>
+                          <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
+                            ${(priceRange[1] - priceRange[0]).toLocaleString()} range
                           </span>
                         </div>
 
-                        {/* Modern Slider with Owl-like Handles */}
-                        <div className="relative">
-                          <div className="flex items-center space-x-3">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() =>
-                                setPriceRange([
-                                  Math.max(500, priceRange[0] - 100),
-                                  priceRange[1],
-                                ])
-                              }
-                              disabled={priceRange[0] <= 500}
-                              className="h-8 w-8 p-0 rounded-lg border-2 border-gray-300 hover:border-green-500 hover:bg-green-50"
-                            >
-                              -
-                            </Button>
-                            <div className="flex-1 relative">
-                              <div className="h-2 bg-green-200 rounded-full relative">
-                                <div
-                                  className="absolute h-2 bg-green-500 rounded-full"
+                        {/* Current Range Display */}
+                        <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-4 border border-green-200">
+                          <div className="flex items-center justify-between">
+                            <div className="text-center">
+                              <div className="text-2xl font-bold text-green-600">
+                                ${priceRange[0].toLocaleString()}
+                              </div>
+                              <div className="text-xs text-gray-500">Min</div>
+                            </div>
+                            <div className="flex-1 mx-4">
+                              <div className="h-2 bg-green-200 rounded-full">
+                                <div 
+                                  className="h-2 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full"
                                   style={{
-                                    left: `${
-                                      ((priceRange[0] - 500) / (5000 - 500)) *
-                                      100
-                                    }%`,
-                                    width: `${
-                                      ((priceRange[1] - priceRange[0]) /
-                                        (5000 - 500)) *
-                                      100
-                                    }%`,
+                                    width: `${((priceRange[1] - priceRange[0]) / (5000 - 0)) * 100}%`,
+                                    marginLeft: `${((priceRange[0] - 0) / (5000 - 0)) * 100}%`
                                   }}
                                 />
-                                {/* Min Handle */}
-                                <div
-                                  className="absolute w-6 h-6 bg-white border-2 border-green-500 rounded-full shadow-lg cursor-pointer transform -translate-y-2 hover:scale-110 transition-transform"
-                                  style={{
-                                    left: `calc(${
-                                      ((priceRange[0] - 500) / (5000 - 500)) *
-                                      100
-                                    }% - 12px)`,
-                                  }}
-                                  onMouseDown={(e) => {
-                                    const startX = e.clientX;
-                                    const startValue = priceRange[0];
-                                    const handleMouseMove = (e: MouseEvent) => {
-                                      const deltaX = e.clientX - startX;
-                                      const deltaValue = Math.round(
-                                        (deltaX / 300) * (5000 - 500)
-                                      );
-                                      const newValue = Math.max(
-                                        500,
-                                        Math.min(
-                                          priceRange[1] - 100,
-                                          startValue + deltaValue
-                                        )
-                                      );
-                                      setPriceRange([newValue, priceRange[1]]);
-                                    };
-                                    const handleMouseUp = () => {
-                                      document.removeEventListener(
-                                        "mousemove",
-                                        handleMouseMove
-                                      );
-                                      document.removeEventListener(
-                                        "mouseup",
-                                        handleMouseUp
-                                      );
-                                    };
-                                    document.addEventListener(
-                                      "mousemove",
-                                      handleMouseMove
-                                    );
-                                    document.addEventListener(
-                                      "mouseup",
-                                      handleMouseUp
-                                    );
-                                  }}
-                                >
-                                  <div className="w-2 h-2 bg-green-500 rounded-full absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2"></div>
-                                  <div className="w-1 h-1 bg-green-500 rounded-full absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2"></div>
-                                </div>
-                                {/* Max Handle */}
-                                <div
-                                  className="absolute w-6 h-6 bg-white border-2 border-green-500 rounded-full shadow-lg cursor-pointer transform -translate-y-2 hover:scale-110 transition-transform"
-                                  style={{
-                                    left: `calc(${
-                                      ((priceRange[1] - 500) / (5000 - 500)) *
-                                      100
-                                    }% - 12px)`,
-                                  }}
-                                  onMouseDown={(e) => {
-                                    const startX = e.clientX;
-                                    const startValue = priceRange[1];
-                                    const handleMouseMove = (e: MouseEvent) => {
-                                      const deltaX = e.clientX - startX;
-                                      const deltaValue = Math.round(
-                                        (deltaX / 300) * (5000 - 500)
-                                      );
-                                      const newValue = Math.max(
-                                        priceRange[0] + 100,
-                                        Math.min(5000, startValue + deltaValue)
-                                      );
-                                      setPriceRange([priceRange[0], newValue]);
-                                    };
-                                    const handleMouseUp = () => {
-                                      document.removeEventListener(
-                                        "mousemove",
-                                        handleMouseMove
-                                      );
-                                      document.removeEventListener(
-                                        "mouseup",
-                                        handleMouseUp
-                                      );
-                                    };
-                                    document.addEventListener(
-                                      "mousemove",
-                                      handleMouseMove
-                                    );
-                                    document.addEventListener(
-                                      "mouseup",
-                                      handleMouseUp
-                                    );
-                                  }}
-                                >
-                                  <div className="w-2 h-2 bg-green-500 rounded-full absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2"></div>
-                                  <div className="w-1 h-1 bg-green-500 rounded-full absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2"></div>
-                                </div>
                               </div>
                             </div>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() =>
-                                setPriceRange([
-                                  priceRange[0],
-                                  Math.min(5000, priceRange[1] + 100),
-                                ])
-                              }
-                              disabled={priceRange[1] >= 5000}
-                              className="h-8 w-8 p-0 rounded-lg border-2 border-gray-300 hover:border-green-500 hover:bg-green-50"
-                            >
-                              +
-                            </Button>
+                            <div className="text-center">
+                              <div className="text-2xl font-bold text-green-600">
+                                ${priceRange[1].toLocaleString()}
+                              </div>
+                              <div className="text-xs text-gray-500">Max</div>
+                            </div>
                           </div>
                         </div>
 
-                        {/* Input Fields */}
-                        <div className="grid grid-cols-2 gap-3">
+                        {/* Manual Input Fields */}
+                        <div className="grid grid-cols-2 gap-4">
                           <div>
                             <label className="text-sm font-semibold text-gray-700 mb-2 block">
                               Min Price
                             </label>
-                            <Input
-                              type="number"
-                              placeholder="0"
-                              value={priceRange[0]}
-                              onChange={(e) =>
-                                setPriceRange([
-                                  parseInt(e.target.value) || 500,
-                                  priceRange[1],
-                                ])
-                              }
-                              className="h-10 px-3 border-2 border-gray-200 rounded-lg focus:border-green-500 focus:ring-2 focus:ring-green-200"
-                            />
+                            <div className="relative">
+                              <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                              <Input
+                                type="number"
+                                placeholder="0"
+                                value={priceRange[0]}
+                                onChange={(e) => {
+                                  const value = parseInt(e.target.value) || 0;
+                                  const newMin = Math.max(0, Math.min(value, priceRange[1] - 1));
+                                  setPriceRange([newMin, priceRange[1]]);
+                                }}
+                                className="h-10 pl-10 pr-3 border-2 border-gray-200 rounded-lg focus:border-green-500 focus:ring-2 focus:ring-green-200"
+                              />
+                            </div>
                           </div>
                           <div>
                             <label className="text-sm font-semibold text-gray-700 mb-2 block">
                               Max Price
                             </label>
-                            <Input
-                              type="number"
-                              placeholder="5000"
-                              value={priceRange[1]}
-                              onChange={(e) =>
-                                setPriceRange([
-                                  priceRange[0],
-                                  parseInt(e.target.value) || 5000,
-                                ])
-                              }
-                              className="h-10 px-3 border-2 border-gray-200 rounded-lg focus:border-green-500 focus:ring-2 focus:ring-green-200"
-                            />
+                            <div className="relative">
+                              <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                              <Input
+                                type="number"
+                                placeholder="5000"
+                                value={priceRange[1]}
+                                onChange={(e) => {
+                                  const value = parseInt(e.target.value) || 5000;
+                                  const newMax = Math.min(5000, Math.max(value, priceRange[0] + 1));
+                                  setPriceRange([priceRange[0], newMax]);
+                                }}
+                                className="h-10 pl-10 pr-3 border-2 border-gray-200 rounded-lg focus:border-green-500 focus:ring-2 focus:ring-green-200"
+                              />
+                            </div>
                           </div>
+                        </div>
+
+                        {/* Quick Range Buttons */}
+                        <div className="space-y-3">
+                          <p className="text-sm font-medium text-gray-600">Quick Select:</p>
+                          <div className="grid grid-cols-2 gap-2">
+                            <button
+                              onClick={() => setPriceRange([500, 1500])}
+                              className="flex items-center justify-center p-3 rounded-lg border-2 border-gray-200 hover:border-green-300 hover:bg-gray-50 transition-all duration-200"
+                            >
+                              <span className="text-sm font-medium">Budget</span>
+                            </button>
+                            <button
+                              onClick={() => setPriceRange([1500, 3000])}
+                              className="flex items-center justify-center p-3 rounded-lg border-2 border-gray-200 hover:border-green-300 hover:bg-gray-50 transition-all duration-200"
+                            >
+                              <span className="text-sm font-medium">Mid-range</span>
+                            </button>
+                            <button
+                              onClick={() => setPriceRange([3000, 5000])}
+                              className="flex items-center justify-center p-3 rounded-lg border-2 border-gray-200 hover:border-green-300 hover:bg-gray-50 transition-all duration-200"
+                            >
+                              <span className="text-sm font-medium">Premium</span>
+                            </button>
+                            <button
+                              onClick={() => setPriceRange([0, 5000])}
+                              className="flex items-center justify-center p-3 rounded-lg border-2 border-gray-200 hover:border-green-300 hover:bg-gray-50 transition-all duration-200"
+                            >
+                              <span className="text-sm font-medium">Any Price</span>
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Action Buttons */}
+                        <div className="flex items-center justify-between pt-4 border-t border-gray-200">
+                          <Button
+                            variant="outline"
+                            onClick={() => setPriceRange([0, 5000])}
+                            className="text-sm px-6 py-2 rounded-lg border-gray-300 hover:bg-gray-50 transition-colors"
+                          >
+                            Reset
+                          </Button>
+                          <Button
+                            onClick={() => {/* Close popover automatically */}}
+                            className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white text-sm px-8 py-2 rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 font-semibold"
+                          >
+                            Apply Filter
+                          </Button>
                         </div>
                       </div>
                     </PopoverContent>
@@ -1303,27 +1339,13 @@ console.log("Selected Property", selectedProperty);
                   </Popover>
 
                   {/* Move-In Date Filter */}
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button variant="outline" className="text-sm px-3">
-                        <CalendarIcon className="mr-1 h-4 w-4" />
-                        {moveInDate
-                          ? format(moveInDate, "MMM dd")
-                          : "Move-in Date"}
-                        <ChevronDown className="ml-1 h-4 w-4" />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0">
-                      <Calendar
-                        mode="single"
-                        selected={moveInDate}
-                        onSelect={setMoveInDate}
-                        initialFocus
-                        className={cn("p-3 pointer-events-auto")}
+                  <CalendarPopover
+                    selectedDate={moveInDate}
+                    onDateSelect={setMoveInDate}
+                    placeholder="Move-in Date"
+                    className="text-sm px-4 py-3 w-auto rounded-lg border-gray-200 hover:bg-green-50 hover:border-green-300 transition-all duration-200"
                         disabled={(date) => date < new Date()}
                       />
-                    </PopoverContent>
-                  </Popover>
 
                   {/* Refine Search Button */}
                   <Button
@@ -1338,6 +1360,7 @@ console.log("Selected Property", selectedProperty);
                     <Button
                       variant="outline"
                       onClick={() => {
+                        setSearchLocation("");
                         setPriceRange([500, 5000]);
                         setSelectedBeds([]);
                         setSelectedBaths([]);
@@ -1348,8 +1371,8 @@ console.log("Selected Property", selectedProperty);
                         setPetPolicy("");
                         setParkingType([]);
                         setUtilityPolicy([]);
-                        setSquareFootage([500, 3000]);
-                        setYearBuilt([1980, 2024]);
+                        setSquareFootage([500, 3000] as [number, number]);
+                        setYearBuilt([1980, 2024] as [number, number]);
                         setAdditionalSpecialties([]);
                         setLaundryFacilities([]);
                         setSelectedRating("");
@@ -1382,7 +1405,7 @@ console.log("Selected Property", selectedProperty);
                 {/* Refine Search Expanded Section */}
                 {showAllFilters && (
                   <div className="mt-4">
-                    {/* <SearchFilters
+                    <SearchFilters
                       searchLocation={searchLocation}
                       setSearchLocation={setSearchLocation}
                       priceRange={priceRange}
@@ -1399,29 +1422,15 @@ console.log("Selected Property", selectedProperty);
                       setSelectedAmenities={setSelectedAmenities}
                       selectedFeatures={selectedFeatures}
                       setSelectedFeatures={setSelectedFeatures}
-                      petPolicy={petPolicy}
-                      setPetPolicy={setPetPolicy}
-                      parkingType={parkingType}
-                      setParkingType={setParkingType}
-                      utilityPolicy={utilityPolicy}
-                      setUtilityPolicy={setUtilityPolicy}
                       squareFootage={squareFootage}
                       setSquareFootage={setSquareFootage}
                       yearBuilt={yearBuilt}
                       setYearBuilt={setYearBuilt}
-                      additionalSpecialties={additionalSpecialties}
-                      setAdditionalSpecialties={setAdditionalSpecialties}
-                      laundryFacilities={laundryFacilities}
-                      setLaundryFacilities={setLaundryFacilities}
-                      selectedRating={selectedRating}
-                      setSelectedRating={setSelectedRating}
-                      propertyFeatures={propertyFeatures}
-                      setPropertyFeatures={setPropertyFeatures}
                       showOnlyRentWise={showOnlyRentWise}
                       setShowOnlyRentWise={setShowOnlyRentWise}
                       onClose={() => setShowAllFilters(false)}
                       showSearch={true}
-                    /> */}
+                    />
                   </div>
                 )}
               </div>
@@ -1430,7 +1439,7 @@ console.log("Selected Property", selectedProperty);
             {/* Modern Main Content Area - Map + Listings */}
             <section className="flex" style={{ height: "calc(100vh - 140px)" }}>
               {/* Map Section - Left Side */}
-              <div className="w-1/2 bg-gradient-to-br from-gray-50 to-gray-100 relative">
+              <div className="w-[60%] bg-gradient-to-br from-gray-50 to-gray-100 relative">
                 {/* <DashboardMapWrapper
                   properties={filteredProperties} // Your Firebase property data
                   isPrequalified={isPrequalified}
@@ -1452,8 +1461,8 @@ console.log("Selected Property", selectedProperty);
               </div>
 
               {/* Listings Section - Right Side - Scrollable */}
-              <div className="w-1/2 overflow-y-auto bg-gradient-to-br from-white to-green-50/30">
-                <div className="p-6">
+              <div className="w-[40%] overflow-y-auto bg-gradient-to-br from-white to-green-50/30">
+                <div className="py-6 px-4">
                   <div className="flex items-center justify-between mb-6">
                     <div>
                       <h2 className="text-2xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
@@ -1498,162 +1507,17 @@ console.log("Selected Property", selectedProperty);
                       </div>
                     ) : (
                       <>
-                        {/* Modern Property Cards - MyApplications Style */}
+                        {/* Modern Property Cards */}
                         {filteredProperties.map((property, index) => (
-                          <div
+                          <ModernPropertyCard
                             key={property.id}
-                            className="bg-white rounded-lg shadow-xl overflow-hidden hover:shadow-2xl transition-all duration-300 border border-gray-100 cursor-pointer"
-                          >
-                            <div className="md:flex">
-                              {/* Property Image */}
-                              <div className="md:w-1/3">
-                                <div className="relative h-48 md:h-full">
-                                  <img
-                                    src={
-                                      property.image ||
-                                      "https://images.pexels.com/photos/106399/pexels-photo-106399.jpeg?auto=compress&cs=tinysrgb&w=800"
-                                    }
-                                    alt={property.name || "Property"}
-                                    className="w-full h-full object-cover"
-                                  />
-
-                                  {/* Status Badge */}
-                                  <div className="absolute top-4 right-4">
-                                    <span className="bg-green-500 text-white px-3 py-1 rounded-full text-sm font-medium shadow-lg">
-                                      Available
-                                    </span>
-                                  </div>
-
-                                  {/* Special Offers */}
-                                  {property.id === 1 && (
-                                    <div className="absolute top-4 left-4 bg-red-600 text-white text-xs px-2 py-1 rounded font-semibold">
-                                      1 MONTH FREE
-                                    </div>
-                                  )}
-                                  {property.id === 3 && (
-                                    <div className="absolute top-4 left-4 bg-red-600 text-white text-xs px-2 py-1 rounded font-semibold">
-                                      2 MONTHS FREE
-                                    </div>
-                                  )}
-
-                                  {/* RentWise Verified Badge */}
-                                  {property.isRentWiseNetwork && (
-                                    <div className="absolute bottom-4 left-4 bg-blue-600 text-white text-xs px-2 py-1 rounded font-medium">
-                                      RentWise Verified
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-
-                              {/* Property Details */}
-                              <div className="md:w-2/3 p-6">
-                                <div className="flex justify-between items-start mb-4">
-                                  <div>
-                                    <h3 className="text-2xl font-bold text-gray-900 mb-2">
-                                      {property.name || "Property"}
-                                    </h3>
-                                    <div className="flex items-center text-gray-600 mb-2">
-                                      <MapPin className="h-5 w-5 mr-2 text-gray-500" />
-                                      <span className="text-lg">
-                                        {property.address}
-                                      </span>
-                                    </div>
-                                  </div>
-                                  <div className="text-right">
-                                    <div className="text-3xl font-bold text-gray-900">
-                                      {property.priceRange}
-                                    </div>
-                                    <div className="text-gray-500">
-                                      per month
-                                    </div>
-                                  </div>
-                                </div>
-
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                                  <div className="bg-gray-50 rounded-lg p-4">
-                                    <div className="flex items-center mb-2">
-                                      <Bed className="h-5 w-5 text-gray-600 mr-2" />
-                                      <span className="font-semibold text-gray-700">
-                                        Bedrooms
-                                      </span>
-                                    </div>
-                                    <p className="text-gray-900 font-medium">
-                                      {property.beds}
-                                    </p>
-                                  </div>
-
-                                  <div className="bg-gray-50 rounded-lg p-4">
-                                    <div className="flex items-center mb-2">
-                                      <Star className="h-5 w-5 text-gray-600 mr-2" />
-                                      <span className="font-semibold text-gray-700">
-                                        Rating
-                                      </span>
-                                    </div>
-                                    <p className="text-gray-900 font-medium">
-                                      {property.rating.toFixed(1)} ⭐
-                                    </p>
-                                  </div>
-
-                                  <div className="bg-gray-50 rounded-lg p-4">
-                                    <div className="flex items-center mb-2">
-                                      <Building2 className="h-5 w-5 text-gray-600 mr-2" />
-                                      <span className="font-semibold text-gray-700">
-                                        Type
-                                      </span>
-                                    </div>
-                                    <p className="text-gray-900 font-medium">
-                                      {property.propertyType || "Apartment"}
-                                    </p>
-                                  </div>
-                                </div>
-
-                                {/* Amenities */}
-                                {property.amenities &&
-                                  property.amenities.length > 0 && (
-                                    <div className="bg-gray-50 rounded-lg p-4 mb-4">
-                                      <h4 className="font-semibold text-gray-700 mb-2">
-                                        Amenities
-                                      </h4>
-                                      <div className="flex flex-wrap gap-2">
-                                        {Array.from(new Set(property.amenities))
-                                          .slice(0, 4)
-                                          .map((amenity, idx) => (
-                                            <span
-                                              key={idx}
-                                              className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded border border-gray-200"
-                                            >
-                                              {String(amenity)}
-                                            </span>
-                                          ))}
-                                        {property.amenities.length > 4 && (
-                                          <span className="text-xs text-gray-500">
-                                            +{property.amenities.length - 4}{" "}
-                                            more
-                                          </span>
-                                        )}
-                                      </div>
-                                    </div>
-                                  )}
-
-                                {/* Action Buttons */}
-                                <div className="flex items-center justify-between">
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    className="border-gray-600 text-gray-600 hover:bg-gray-50 px-6 py-2"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
+                            property={property}
+                            index={index}
+                            onViewDetails={(property) => {
                                       setSelectedProperty(property);
                                       setCurrentView("property-details");
                                     }}
-                                  >
-                                    View Details
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white text-sm  rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 px-6 py-2 font-semibold "
-                                    onClick={async (e) => {
-                                      e.stopPropagation();
+                            onViewUnits={async (property) => {
                                       setSelectedProperty(property);
                                       // Load units for this specific property
                                       console.log(
@@ -1668,13 +1532,7 @@ console.log("Selected Property", selectedProperty);
                                       );
                                       setCurrentView("unit-selection");
                                     }}
-                                  >
-                                    Available Units
-                                  </Button>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
+                          />
                         ))}
                       </>
                     )}
@@ -1692,7 +1550,7 @@ console.log("Selected Property", selectedProperty);
               console.log("Selected unit:", unit, "from property:", property);
               // Navigate to rental application
               setSelectedProperty(property);
-              setSelectedUnit(unit);
+              // setSelectedUnit(unit);
               setCurrentView("application-process");
             }}
             onNavigateToLeaseHolders={() => {
@@ -1703,7 +1561,7 @@ console.log("Selected Property", selectedProperty);
               setCurrentView("application-process");
               setApplicationStep(3); // Step 3 is "Lease Holders & Guarantors"
             }}
-            onCompareUnits={async (units) => {
+            onCompareUnits={async (/* units */) => {
               // Load real units data from Firebase
               await loadUnitsData();
               // Generate comparison units using real data
@@ -1740,8 +1598,8 @@ console.log("Selected Property", selectedProperty);
                 leaseTerm,
               });
               setSelectedProperty(property);
-              setSelectedUnit(unit);
-              setSelectedLeaseTerm(leaseTerm);
+              // setSelectedUnit(unit);
+              // setSelectedLeaseTerm(leaseTerm);
               setCurrentView("product-selection");
             }}
             onUnitSelect={(property, unit, leaseTerm) => {
