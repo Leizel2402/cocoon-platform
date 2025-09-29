@@ -37,7 +37,7 @@ export function SignUp() {
           navigate('/portal', { replace: true });
           break;
         case 'prospect':
-          navigate('/prospect-dashboard', { replace: true });
+          navigate('/property', { replace: true });
           break;
         default:
           navigate('/', { replace: true });

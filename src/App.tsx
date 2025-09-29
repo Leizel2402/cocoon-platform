@@ -5,6 +5,7 @@ import { ProtectedRoute } from './components/ProtectedRoute';
 import { DataMigration } from './components/DataMigration';
 import { Home } from './pages/Home';
 import { SignIn, SignUp } from './pages/auth';
+import { MagicLinkHandler } from './components/MagicLinkHandler';
 import { Apply } from './pages/Apply';
 import { Dashboard } from './pages/Dashboard';
 import Dashboards from './pages/Dashboards';
@@ -14,6 +15,7 @@ import { PropertyManagement } from './pages/PropertyManagement';
 import { Property } from './pages/Property';
 import { AddyChat } from './pages/AddyChat';
 import { ProspectApplication } from './pages/ProspectApplication';
+import PropertySearch from './Prospect/PropertySearch';
 // import ApplicationProcess from './Prospect/ApplicationProcess';
 
  
@@ -26,13 +28,16 @@ function App() {
           <Route path="/" element={<Home />} />
           <Route path="/signin" element={<SignIn />} />
           <Route path="/signup" element={<SignUp />} />
+          <Route path="/magic-link-verify" element={<MagicLinkHandler />} />
           
           {/* Prospect routes */}
           <Route
-            path="/prospect-dashboard"
+            path="/property"
             element={
               <ProtectedRoute requiredRole="prospect">
                 <Dashboards />
+                {/* <Home /> */}
+                {/* <PropertySearch/> */}
               </ProtectedRoute>
             }
           />

@@ -1,11 +1,14 @@
 import { useState, useEffect } from 'react';
 import { 
   onAuthStateChanged, 
-  signInWithEmailAndPassword, 
   createUserWithEmailAndPassword, 
   signOut,
   updateProfile,
-  sendEmailVerification
+  sendEmailVerification,
+  sendSignInLinkToEmail,
+  isSignInWithEmailLink,
+  signInWithEmailLink,
+  getAdditionalUserInfo
 } from 'firebase/auth';
 import { doc, getDoc, setDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from '../lib/firebase';
@@ -86,15 +89,9 @@ export function useAuth() {
     return unsubscribe;
   }, []);
  
-  const signIn = async (email: string, password: string) => {
-    try {
-      const result = await signInWithEmailAndPassword(auth, email, password);
-      return result;
-    } catch (error: unknown) {
-      console.error('Sign in error:', error);
-      const errorCode = (error as { code?: string })?.code || 'unknown';
-      throw new Error(getAuthErrorMessage(errorCode));
-    }
+  // Legacy signIn function - deprecated in favor of magic links
+  const signIn = async () => {
+    throw new Error('Password authentication is disabled. Please use magic link authentication.');
   };
  
   const signUp = async (
@@ -174,6 +171,94 @@ export function useAuth() {
   const logout = () => {
     return signOut(auth);
   };
+
+  // Magic Link Authentication
+  const sendMagicLink = async (email: string) => {
+    try {
+      // Rate limiting: Check if user has sent too many requests
+      const lastSent = localStorage.getItem(`magicLink_${email}_lastSent`);
+      const now = Date.now();
+      const cooldownPeriod = 60000; // 1 minute cooldown
+      
+      if (lastSent && (now - parseInt(lastSent)) < cooldownPeriod) {
+        throw new Error('Please wait before requesting another magic link. Try again in a minute.');
+      }
+
+      const actionCodeSettings = {
+        // URL you want to redirect back to after clicking the magic link
+        url: `${window.location.origin}/magic-link-verify`,
+        // This must be true for magic links to work
+        handleCodeInApp: true,
+      };
+
+      await sendSignInLinkToEmail(auth, email, actionCodeSettings);
+      
+      // Save the email to localStorage for later use
+      localStorage.setItem('emailForSignIn', email);
+      
+      // Record the time this magic link was sent
+      localStorage.setItem(`magicLink_${email}_lastSent`, now.toString());
+      
+      return true;
+    } catch (error: unknown) {
+      console.error('Magic link error:', error);
+      const errorCode = (error as { code?: string })?.code || 'unknown';
+      
+      // Handle quota exceeded error specifically
+      if (errorCode === 'auth/too-many-requests' || errorCode === 'auth/quota-exceeded') {
+        throw new Error('Too many magic link requests. Please try again later or contact support.');
+      }
+      
+      throw new Error(getAuthErrorMessage(errorCode));
+    }
+  };
+
+  const verifyMagicLink = async (email: string) => {
+    try {
+      if (isSignInWithEmailLink(auth, window.location.href)) {
+        // Get the email from localStorage
+        const savedEmail = localStorage.getItem('emailForSignIn');
+        const emailToSignIn = email || savedEmail;
+        
+        if (!emailToSignIn) {
+          throw new Error('No email found for magic link sign in');
+        }
+
+        // Sign in with the magic link
+        const result = await signInWithEmailLink(auth, emailToSignIn, window.location.href);
+        
+        // Clear the email from localStorage
+        localStorage.removeItem('emailForSignIn');
+        
+        // Check if this is a new user
+        const additionalUserInfo = getAdditionalUserInfo(result);
+        const isNewUser = additionalUserInfo?.isNewUser;
+        
+        if (isNewUser) {
+          // Create user document for new users
+          const userData = {
+            uid: result.user.uid,
+            role: 'prospect' as UserRole,
+            displayName: result.user.displayName || '',
+            email: result.user.email || '',
+            customClaims: {},
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp(),
+          };
+          
+          await setDoc(doc(db, 'users', result.user.uid), userData);
+        }
+        
+        return result;
+      } else {
+        throw new Error('Invalid magic link');
+      }
+    } catch (error: unknown) {
+      console.error('Magic link verification error:', error);
+      const errorCode = (error as { code?: string })?.code || 'unknown';
+      throw new Error(getAuthErrorMessage(errorCode));
+    }
+  };
  
   // Helper function to check if user has specific role
   const hasRole = (role: UserRole): boolean => {
@@ -202,6 +287,8 @@ export function useAuth() {
     signUp,
     updateUserProfile,
     logout,
+    sendMagicLink,
+    verifyMagicLink,
     hasRole,
     hasAnyRole,
     isLandlord,
@@ -223,7 +310,9 @@ function getAuthErrorMessage(errorCode: string): string {
     case 'auth/invalid-email':
       return 'Please enter a valid email address.';
     case 'auth/too-many-requests':
-      return 'Too many failed attempts. Please try again later.';
+      return 'Too many requests. Please wait a moment and try again.';
+    case 'auth/quota-exceeded':
+      return 'Daily quota exceeded. Please try again tomorrow or contact support.';
     case 'auth/network-request-failed':
       return 'Network error. Please check your connection and try again.';
     default:

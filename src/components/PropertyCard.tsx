@@ -57,7 +57,7 @@ export function PropertyCard({ property, index }: PropertyCardProps) {
             {property.title}
           </h3>
           <div className="text-right ml-4">
-            <span className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+            <span className="text-2xl font-bold">
               ${property.rent.toLocaleString()}
             </span>
             <div className="text-sm text-gray-500">per month</div>
@@ -119,20 +119,20 @@ export function PropertyCard({ property, index }: PropertyCardProps) {
       </div>
 
         {/* Apply button (disable if unavailable) */}
-        {user?.role !== "owner" ? (
+        {/* {user?.role !== "owner" ? (
           <motion.button
             whileTap={{ scale: property.available ? 0.98 : 1 }}
             onClick={() => property.available && navigate(`/apply?property=${property.id}`)}
             disabled={!property.available}
             className={`w-full py-3 px-4 rounded-xl font-semibold shadow-lg transition-all duration-200 ${
               property.available
-                ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:from-blue-700 hover:to-purple-700 hover:shadow-xl'
+                ? 'bg-gradient-to-r from-green-600 to-blue-600 text-white hover:from-green-700 hover:to-blue-700 hover:shadow-xl'
                 : 'bg-gray-300 text-gray-600 cursor-not-allowed'
             }`}
           >
             {property.available ? 'Apply Now' : 'Not Available'}
           </motion.button>
-        ) : (null)}
+        ) : (null)} */}
       </div>
     </motion.div>
   );

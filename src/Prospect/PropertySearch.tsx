@@ -8,11 +8,11 @@ import { MapPin, Bed, Bath, Calendar, Globe, ArrowLeft } from 'lucide-react';
 import { useTranslation } from '../hooks/useTranslations';
 import { AddySearchBox } from '../components/AddySearch/AddySearchBox';
 import { AddyChat } from '../components/AddyChat/Chat';
-import heroImage from '@/assets/luxury-apartments-hero.jpg';
-import property1 from '@/assets/property-1.jpg';
-import property2 from '@/assets/property-2.jpg';
-import property3 from '@/assets/property-3.jpg';
-import property4 from '@/assets/property-4.jpg';
+import heroImage from '../assets/images/hero-apartments.jpg';
+import property1 from '../assets/images/hero-apartments.jpg';
+import property2 from '../assets/images/hero-apartments.jpg';
+import property3 from '../assets/images/hero-apartments.jpg';
+import property4 from '../assets/images/hero-apartments.jpg';
 
 const PropertySearch = () => {
   const [searchLocation, setSearchLocation] = useState('');

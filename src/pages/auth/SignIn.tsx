@@ -1,53 +1,233 @@
-import { useState, useEffect } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { useState, useEffect, useCallback } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { motion } from 'framer-motion';
-import { LogIn, Eye, EyeOff, Home, ArrowRight } from 'lucide-react';
+import { Mail, Home, ArrowRight, CheckCircle, AlertCircle } from 'lucide-react';
+import { isSignInWithEmailLink } from 'firebase/auth';
+import { auth } from '../../lib/firebase';
+import { QuotaExceededFallback } from '../../components/QuotaExceededFallback';
 
 export function SignIn() {
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [emailSent, setEmailSent] = useState(false);
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [quotaExceeded, setQuotaExceeded] = useState(false);
 
-  const { signIn, user } = useAuth();
+  const { sendMagicLink, verifyMagicLink, user } = useAuth();
   const navigate = useNavigate();
-  const location = useLocation();
 
-  const from = (location.state as any)?.from?.pathname || '/';
-
-  // Redirect if already logged in
-  useEffect(() => {
-    if (user) {
-      if (user.role === 'prospect') {
-        navigate('/prospect-dashboard', { replace: true });
-      } else if (user.role === 'renter') {
+  // Role-based redirect function
+  const redirectUserByRole = useCallback((userRole: string) => {
+    switch (userRole) {
+      case 'prospect':
+        navigate('/property', { replace: true });
+        break;
+      case 'renter':
         navigate('/portal', { replace: true });
-      } else if (user.role === 'landlord_admin' || user.role === 'landlord_employee') {
+        break;
+      case 'landlord_admin':
+      case 'landlord_employee':
         navigate('/landlord-dashboard', { replace: true });
-      } else if (user.role === 'cocoon_admin' || user.role === 'cocoon_employee') {
+        break;
+      case 'cocoon_admin':
+      case 'cocoon_employee':
         navigate('/cocoon-dashboard', { replace: true });
-      } else {
+        break;
+      default:
         navigate('/', { replace: true });
-      }
     }
-  }, [user, navigate]);
+  }, [navigate]);
+
+  const handleMagicLinkVerification = useCallback(async () => {
+    try {
+      const savedEmail = localStorage.getItem('emailForSignIn');
+      console.log('Starting magic link verification:', { savedEmail });
+      
+      await verifyMagicLink(savedEmail || '');
+      console.log('Magic link verification successful');
+      
+      // Clean up URL after successful verification
+      window.history.replaceState({}, document.title, window.location.pathname);
+      
+      // The navigation will be handled by useEffect above when user state updates
+    } catch (error: unknown) {
+      console.error('Magic link verification failed:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Verification failed';
+      setError(errorMessage);
+      setIsVerifying(false);
+      
+      // Clean up URL on error too
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }, [verifyMagicLink]);
+
+  // Enhanced magic link detection
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const hasOobCode = urlParams.has('oobCode');
+    const hasApiKey = urlParams.has('apiKey');
+    const mode = urlParams.get('mode');
+    
+    // Check multiple conditions for magic link
+    const isMagicLink = isSignInWithEmailLink(auth, window.location.href) || 
+                       (hasOobCode && hasApiKey && mode === 'signIn');
+    
+    console.log('Magic link detection:', {
+      currentUrl: window.location.href,
+      isMagicLink,
+      hasOobCode,
+      hasApiKey,
+      mode,
+      searchParams: window.location.search
+    });
+    
+    if (isMagicLink) {
+      setIsVerifying(true);
+      handleMagicLinkVerification();
+    }
+  }, [handleMagicLinkVerification]);
+
+
+  // Updated redirect effect for logged in users
+  useEffect(() => {
+    if (user && !isVerifying) {
+      console.log('User logged in, redirecting based on role:', user.role);
+      redirectUserByRole(user.role);
+    }
+  }, [user, navigate, isVerifying, redirectUserByRole]);
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setLoading(true);
+    setQuotaExceeded(false);
 
     try {
-      await signIn(email, password);
-      // Navigation will be handled by useEffect above
-    } catch (error: any) {
-      setError(error.message);
+      await sendMagicLink(email);
+      setEmailSent(true);
+    } catch (error: unknown) {
+      console.error('Magic link error:', error);
+      const errorMessage = error instanceof Error ? error.message : 'An error occurred';
+      
+      // Check if it's a quota exceeded error
+      if (errorMessage.includes('quota') || errorMessage.includes('QUOTA_EXCEEDED')) {
+        setQuotaExceeded(true);
+      } else {
+        setError(errorMessage);
+      }
     } finally {
       setLoading(false);
     }
   };
+
+  const handleRetry = () => {
+    setQuotaExceeded(false);
+    setError('');
+  };
+
+  const handleContactSupport = () => {
+    // You can implement contact support functionality here
+    window.open('mailto:support@cocoon.com?subject=Magic Link Quota Exceeded', '_blank');
+  };
+
+  if (quotaExceeded) {
+    return <QuotaExceededFallback onRetry={handleRetry} onContactSupport={handleContactSupport} />;
+  }
+
+  if (isVerifying) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-600 via-purple-600 to-indigo-800 flex flex-col justify-center py-12 sm:px-6 lg:px-8 relative overflow-hidden">
+        {/* Background Elements */}
+        <div className="absolute inset-0 overflow-hidden">
+          <div className="absolute -top-40 -right-40 w-80 h-80 bg-white/10 rounded-full blur-3xl"></div>
+          <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-white/10 rounded-full blur-3xl"></div>
+        </div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+          className="sm:mx-auto sm:w-full sm:max-w-md relative z-10"
+        >
+          <div className="bg-white/95 backdrop-blur-md py-10 px-8 shadow-2xl sm:rounded-3xl border border-white/20 text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">
+              Verifying Magic Link
+            </h2>
+            <p className="text-gray-600">
+              Please wait while we verify your magic link...
+            </p>
+          </div>
+        </motion.div>
+      </div>
+    );
+  }
+
+  if (emailSent) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-600 via-purple-600 to-indigo-800 flex flex-col justify-center py-12 sm:px-6 lg:px-8 relative overflow-hidden">
+        {/* Background Elements */}
+        <div className="absolute inset-0 overflow-hidden">
+          <div className="absolute -top-40 -right-40 w-80 h-80 bg-white/10 rounded-full blur-3xl"></div>
+          <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-white/10 rounded-full blur-3xl"></div>
+        </div>
+
+        {/* Back to Home */}
+        <div className="absolute top-6 left-6 z-10">
+          <Link
+            to="/"
+            className="flex items-center text-white/80 hover:text-white transition-colors group"
+          >
+            <Home className="h-5 w-5 mr-2 group-hover:scale-110 transition-transform" />
+            <span className="font-medium">Back to Home</span>
+          </Link>
+        </div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+          className="sm:mx-auto sm:w-full sm:max-w-md relative z-10"
+        >
+          <div className="bg-white/95 backdrop-blur-md py-10 px-8 shadow-2xl sm:rounded-3xl border border-white/20 text-center">
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
+              className="mx-auto w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mb-6"
+            >
+              <CheckCircle className="h-10 w-10 text-green-600" />
+            </motion.div>
+            
+            <h2 className="text-3xl font-bold text-gray-900 mb-4">
+              Check Your Email
+            </h2>
+            <p className="text-lg text-gray-600 mb-6">
+              We've sent a magic link to <strong>{email}</strong>
+            </p>
+            <p className="text-sm text-gray-500 mb-8">
+              Click the link in your email to sign in. The link will expire in 1 hour.
+            </p>
+
+            <div className="space-y-4">
+              <button
+                onClick={() => {
+                  setEmailSent(false);
+                  setEmail('');
+                }}
+                className="w-full py-3 px-4 border border-gray-300 rounded-xl text-gray-700 hover:bg-gray-50 transition-colors"
+              >
+                Send to Different Email
+              </button>
+            </div>
+          </div>
+        </motion.div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-600 via-purple-600 to-indigo-800 flex flex-col justify-center py-12 sm:px-6 lg:px-8 relative overflow-hidden">
@@ -82,13 +262,13 @@ export function SignIn() {
             transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
             className="mx-auto w-20 h-20 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center mb-6 shadow-2xl"
           >
-            <LogIn className="h-10 w-10 text-white" />
+            <Mail className="h-10 w-10 text-white" />
           </motion.div>
           <h2 className="text-4xl font-bold text-white mb-4">
-            Welcome Back
+            Sign In
           </h2>
           <p className="text-xl text-white/80">
-            Sign in to your account to continue
+            Enter your email to receive a magic link
           </p>
         </div>
       </motion.div>
@@ -105,8 +285,9 @@ export function SignIn() {
               <motion.div
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
-                className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm font-medium"
+                className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm font-medium flex items-center"
               >
+                <AlertCircle className="h-4 w-4 mr-2" />
                 {error}
               </motion.div>
             )}
@@ -129,36 +310,6 @@ export function SignIn() {
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-semibold text-gray-700 mb-2">
-                Password
-              </label>
-              <div className="relative">
-                <input
-                  id="password"
-                  name="password"
-                  type={showPassword ? 'text' : 'password'}
-                  autoComplete="current-password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="appearance-none block w-full px-4 py-3 pr-12 border border-gray-200 rounded-xl placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 bg-white/70 backdrop-blur-sm"
-                  placeholder="Enter your password"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 pr-4 flex items-center hover:bg-gray-50 rounded-r-xl transition-colors"
-                >
-                  {showPassword ? (
-                    <EyeOff className="h-5 w-5 text-gray-400" />
-                  ) : (
-                    <Eye className="h-5 w-5 text-gray-400" />
-                  )}
-                </button>
-              </div>
-            </div>
-
-            <div>
               <motion.button
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
@@ -169,11 +320,11 @@ export function SignIn() {
                 {loading ? (
                   <div className="flex items-center">
                     <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-                    Signing in...
+                    Sending magic link...
                   </div>
                 ) : (
                   <div className="flex items-center">
-                    Sign in
+                    Send Magic Link
                     <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
                   </div>
                 )}

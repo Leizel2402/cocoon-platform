@@ -1,27 +1,50 @@
-import { useState, useEffect } from "react";
-import { SearchFiltersComponent } from "../components/SearchFilters";
+import { useState, useEffect, useCallback } from "react";
 import { PropertyCard } from "../components/PropertyCard";
 import { Property, SearchFilters } from "../types";
+
 import { motion } from "framer-motion";
 import {
-  DollarSign,
-  Home as HomeIcon,
-  Key,
   Search,
   ChevronDown,
   ChevronUp,
-  MapPin,
+  Home as HomeIcon,
+  Users,
+  Shield,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
+
+import { useNavigate } from "react-router-dom";
 import Footer from "../layout/Footer";
 import ApplicationProcess from "../Prospect/ApplicationProcess";
 import { Button } from "../components/ui/Button";
+
+import { AddySearchBox } from "../components/AddySearch/AddySearchBox";
+import { AddyChat } from "../components/AddyChat/Chat";
+import { FAQSection, FAQItem } from "../components/FAQ";
+import { TestimonialCard } from "../components/TestimonialCard/TestimonialCard";
+import { testimonialsData, faqData } from "../constants/data";
+import heroImage from "../assets/images/hero-apartments.jpg";
+
+// Import Swiper React components
+import { Swiper, SwiperSlide } from 'swiper/react';
+import { Navigation, Pagination, Autoplay } from 'swiper/modules';
+
+// Import Swiper styles
+import 'swiper/css';
+import 'swiper/css/navigation';
+import 'swiper/css/pagination';
+
+// Firebase imports
+import { collection, query, limit, getDocs } from "firebase/firestore";
+import { db } from "../lib/firebase";
 
 export function Home() {
   const navigate = useNavigate();
   const [properties, setProperties] = useState<Property[]>([]);
   const [filteredProperties, setFilteredProperties] = useState<Property[]>([]);
-  const [applicationStep, setApplicationStep] = useState<number | null>(null);
+
+  const [applicationStep] = useState<number | null>(null);
   const [currentView, setCurrentView] = useState<
     | "s"
     | "applications"
@@ -37,37 +60,223 @@ export function Home() {
     | "prequalification-info"
     | "property-details"
     | "account-management"
-  >("dashboard");
-  const [isPrequalified, setIsPrequalified] = useState(false);
+  >("s");
   const [loading, setLoading] = useState(true);
   const [showAllProperties, setShowAllProperties] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
   const [filters, setFilters] = useState<SearchFilters>({
     city: "",
     minRent: 0,
     maxRent: 10000,
-    beds: 0,
-    baths: 0,
   });
+  const [showAddyChat, setShowAddyChat] = useState(false);
+  const [chatQuery, setChatQuery] = useState("");
+  const [propertiesLoading, setPropertiesLoading] = useState(true);
 
-  const INITIAL_PROPERTY_COUNT = 6;
+  const faqData: FAQItem[] = [
+    {
+      question: "How do I apply for a rental property?",
+      answer:
+        "You can apply for rental properties through our platform by creating an account, completing your profile, and submitting applications directly to properties you're interested in. Our streamlined process makes it easy to apply to multiple properties with one profile.",
+    },
+    {
+      question: "What documents do I need to rent an apartment?",
+      answer:
+        "Typically, you'll need a valid ID, proof of income (pay stubs, bank statements, or employment letter), credit report, rental history, and references. Some properties may require additional documentation like pet records or insurance information.",
+    },
+    {
+      question: "How much should I budget for rent?",
+      answer:
+        "A general rule is to spend no more than 30% of your gross monthly income on rent. However, this can vary based on your location, lifestyle, and other financial obligations. Our platform helps you find properties within your budget range.",
+    },
+    {
+      question: "Can I negotiate rent prices?",
+      answer:
+        "In some cases, yes! Rent negotiation is more common in certain markets or during slower rental periods. Factors like your credit score, rental history, and lease length can influence negotiation success. Our agents can help you understand local market conditions.",
+    },
+    {
+      question: "What's included in my rent?",
+      answer:
+        "This varies by property. Some include utilities, parking, or amenities, while others don't. Always check the lease agreement carefully. Our property listings clearly indicate what's included, and our team can help clarify any questions.",
+    },
+    {
+      question: "How long does the rental application process take?",
+      answer:
+        "Typically, rental applications are processed within 1-3 business days, though this can vary by property and landlord. Our platform streamlines the process by pre-verifying your information, which can speed up approval times.",
+    },
+    {
+      question: "What if I have pets?",
+      answer:
+        "Many properties are pet-friendly! Our search filters help you find pet-friendly rentals. Be prepared for pet deposits, monthly pet rent, or breed restrictions. We can help you understand each property's specific pet policies.",
+    },
+    {
+      question: "Can I break my lease early?",
+      answer:
+        "Lease terms vary by property and state laws. Some leases allow early termination with notice and fees, while others may require finding a replacement tenant. Our team can help you understand your specific lease terms and options.",
+    },
+  ];
+
+  const INITIAL_PROPERTY_COUNT = 3;
 
   useEffect(() => {
-    // Load properties from local JSON
-    fetch("/data/properties.json")
-      .then((response) => response.json())
-      .then((data: Property[]) => {
-        setProperties(data);
-        setFilteredProperties(data);
+    const loadProperties = async () => {
+      try {
+        setPropertiesLoading(true);
+
+        // First try to load from properties collection
+        let querySnapshot;
+        let collectionName = "properties";
+
+        try {
+          // First try to load from properties collection
+          const propertiesQuery = query(
+            collection(db, "properties"),
+            limit(20)
+          );
+          querySnapshot = await getDocs(propertiesQuery);
+
+          if (querySnapshot.empty) {
+            throw new Error("No properties found");
+          }
+
+          // Filter available properties in memory
+          const availableProperties = querySnapshot.docs.filter((doc) => {
+            const data = doc.data();
+            return data.is_available === true;
+          });
+
+          if (availableProperties.length === 0) {
+            throw new Error("No available properties found");
+          }
+
+          // Create a new query snapshot with only available properties
+          querySnapshot = {
+            docs: availableProperties,
+            empty: false,
+            size: availableProperties.length,
+            forEach: (callback: (doc: any) => void) =>
+              availableProperties.forEach(callback),
+            docChanges: () => [],
+            isEqual: () => false,
+            metadata: { fromCache: false, hasPendingWrites: false },
+          } as any;
+        } catch {
+          console.log("No properties found, trying listings collection...");
+          // Fallback to listings collection
+          const listingsQuery = query(collection(db, "listings"), limit(20));
+          querySnapshot = await getDocs(listingsQuery);
+
+          // Filter available listings in memory
+          const availableListings = querySnapshot.docs.filter((doc) => {
+            const data = doc.data();
+            return data.available === true;
+          });
+
+          if (availableListings.length > 0) {
+            querySnapshot = {
+              docs: availableListings,
+              empty: false,
+              size: availableListings.length,
+              forEach: (callback: (doc: any) => void) =>
+                availableListings.forEach(callback),
+              docChanges: () => [],
+              isEqual: () => false,
+              metadata: { fromCache: false, hasPendingWrites: false },
+            } as any;
+            collectionName = "listings";
+          } else {
+            throw new Error("No available properties found");
+          }
+        }
+
+        if (querySnapshot.empty) {
+          console.log("No properties found in Firebase");
+          setProperties([]);
+          setFilteredProperties([]);
+          setLoading(false);
+          setPropertiesLoading(false);
+          return;
+        }
+
+        // Transform Firebase data to match expected format
+        const transformedProperties = querySnapshot.docs.map(
+          (doc: any, index: number) => {
+            const prop = doc.data();
+
+            // Handle different data structures from listings vs properties
+            if (collectionName === "listings") {
+              // Data from listings collection (migrated data)
+              return {
+                id: doc.id,
+                title: prop.title || "Property",
+                address: `123 ${(prop.title || "Property").replace(
+                  /\s+/g,
+                  ""
+                )} St, City, State 00000`,
+                city: "City",
+                state: "State",
+                rent: prop.rent || 1500,
+                beds: prop.bedrooms || 1,
+                baths: prop.bathrooms || 1,
+                sqft: prop.sqft || 800,
+                rating: 4.2 + (index % 10) * 0.1,
+                available: prop.availableDate || "Available Now",
+                image:
+                  prop.images?.[0] ||
+                  "https://images.pexels.com/photos/106399/pexels-photo-106399.jpeg?auto=compress&cs=tinysrgb&w=800",
+                amenities: prop.amenities || ["Pool", "Gym", "Pet Friendly"],
+                description:
+                  prop.description || "Beautiful property in great location",
+              };
+            } else {
+              // Data from properties collection (original format)
+              return {
+                id: doc.id,
+                title: prop.title || prop.name || "Property",
+                address:
+                  prop.address ||
+                  `${prop.city || ""}, ${prop.state || ""} ${
+                    prop.zip_code || ""
+                  }`.trim(),
+                city: prop.city || "City",
+                state: prop.state || "State",
+                rent: prop.rent_amount || 1500,
+                beds: prop.bedrooms || 1,
+                baths: prop.bathrooms || 1,
+                sqft: prop.sqft || 800,
+                rating: prop.rating || 4.2 + (index % 10) * 0.1,
+                available: prop.available_date || "Available Now",
+                image:
+                  prop.image ||
+                  "https://images.pexels.com/photos/106399/pexels-photo-106399.jpeg?auto=compress&cs=tinysrgb&w=800",
+                amenities: prop.amenities || ["Pool", "Gym", "Pet Friendly"],
+                description:
+                  prop.description || "Beautiful property in great location",
+              };
+            }
+          }
+        );
+
+        console.log("Loaded properties from Firebase:", transformedProperties);
+        setProperties(transformedProperties);
+        setFilteredProperties(transformedProperties);
         setLoading(false);
-      })
-      .catch((error) => {
-        console.error("Error loading properties:", error);
+
+        setPropertiesLoading(false);
+      } catch (error) {
+        console.error("Error loading properties from Firebase:", error);
+        setProperties([]);
+        setFilteredProperties([]);
         setLoading(false);
-      });
+
+        setPropertiesLoading(false);
+      }
+    };
+
+    loadProperties();
   }, []);
 
-  const handleSearch = (activeFilters: SearchFilters = filters) => {
+  const handleSearch = useCallback(
+    (activeFilters: SearchFilters = filters) => {
     const filtered = properties.filter((property) => {
       const keyword = activeFilters.keyword?.toLowerCase() || "";
 
@@ -76,35 +285,24 @@ export function Home() {
         property.city.toLowerCase().includes(keyword) ||
         property.state.toLowerCase().includes(keyword) ||
         property.title.toLowerCase().includes(keyword) ||
-        property.description.toLowerCase().includes(keyword);
+          (property.description || "").toLowerCase().includes(keyword);
 
       const matchesRent =
-        property.rent >= activeFilters.minRent &&
-        property.rent <= activeFilters.maxRent;
+          property.rent >= (activeFilters.minRent || 0) &&
+          property.rent <= (activeFilters.maxRent || 10000);
 
-      const matchesBeds =
-        activeFilters.beds === 0 || property.beds >= activeFilters.beds;
-      const matchesBaths =
-        activeFilters.baths === 0 || property.baths >= activeFilters.baths;
-
-      return matchesKeyword && matchesRent && matchesBeds && matchesBaths;
+        return matchesKeyword && matchesRent;
     });
 
     setFilteredProperties(filtered);
     setShowAllProperties(false); // Reset to show limited properties when new search is performed
-  };
-
-  const handleSearchSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (searchQuery.trim()) {
-      // Navigate to properties page with search query
-      navigate(`/property?search=${encodeURIComponent(searchQuery.trim())}`);
-    }
-  };
+    },
+    [properties, filters]
+  );
 
   useEffect(() => {
     handleSearch();
-  }, [properties]);
+  }, [properties, handleSearch]);
 
   // Get properties to display based on showAllProperties state
   const propertiesToDisplay = showAllProperties
@@ -113,108 +311,218 @@ export function Home() {
 
   const hasMoreProperties = filteredProperties.length > INITIAL_PROPERTY_COUNT;
 
-  if (loading) {
+  if (loading || propertiesLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading properties...</p>
+      <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 flex items-center justify-center">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.5 }}
+          className="text-center"
+        >
+          <div className="relative">
+            <div className="animate-spin rounded-full h-16 w-16 border-4 border-green-200 border-t-green-600 mx-auto mb-6"></div>
+            <div
+              className="absolute inset-0 rounded-full h-16 w-16 border-4 border-transparent border-t-blue-600 animate-spin mx-auto"
+              style={{
+                animationDirection: "reverse",
+                animationDuration: "1.5s",
+              }}
+            ></div>
         </div>
+
+          <h3 className="text-xl font-semibold text-gray-900 mb-2">
+            Loading Properties
+          </h3>
+          <p className="text-gray-600">
+            Finding the best rental homes for you...
+          </p>
+        </motion.div>
       </div>
     );
   }
 
   return (
     <>
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+      <style dangerouslySetInnerHTML={{
+        __html: `
+          .testimonials-swiper {
+            padding: 20px 0 60px 0;
+          }
+          .testimonials-swiper-pagination-bullet {
+            width: 12px;
+            height: 12px;
+            background: #d1d5db;
+            opacity: 1;
+            margin: 0 6px;
+            transition: all 0.3s ease;
+          }
+          .testimonials-swiper-pagination-bullet-active {
+            background: #10b981;
+            transform: scale(1.2);
+          }
+          .testimonials-swiper .swiper-pagination {
+            bottom: 20px;
+          }
+          .testimonials-swiper-button-prev,
+          .testimonials-swiper-button-next {
+            width: 48px;
+            height: 48px;
+            margin-top: -24px;
+          }
+          .testimonials-swiper-button-prev:after,
+          .testimonials-swiper-button-next:after {
+            display: none;
+          }
+        `
+      }} />
+      <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50">
         {/* Hero Section */}
-        <div className="bg-gradient-to-r from-blue-600 to-purple-700 text-white">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24">
+
+        <div className="relative  overflow-hidden">
+          <img
+            src={heroImage}
+            alt="Beautiful apartment buildings"
+            className="w-full h-full object-cover absolute inset-0"
+          />
+          <div className="absolute inset-0 bg-black/40"></div>
+
+          {/* Green line at bottom of image */}
+          <div className="absolute bottom-0 left-0 right-0 h-1 bg-green-600"></div>
             <div className="text-center">
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.8 }}
               >
-                <div className="bg-white/20 backdrop-blur-md p-4 rounded-2xl inline-block mb-6">
-                  <HomeIcon className="h-16 w-16 text-white" />
-                </div>
-                <h1 className="text-4xl sm:text-6xl font-bold mb-6">
-                  Find Your Perfect
-                  <span className="block text-yellow-400">Rental Home</span>
+              {/* Hero Content */}
+              <div className="relative z-10 flex flex-col items-center text-center px-4 py-16 pb-4">
+                <h1 className="text-4xl sm:text-6xl font-bold mb-6 text-white">
+                Forget everything you know
+                  <span className="block text-green-600 my-1"> about Renting</span>
                 </h1>
-                <p className="text-xl sm:text-2xl text-blue-100 max-w-3xl mx-auto mb-8">
+                {/* <p className="text-xl sm:text-2xl text-blue-100 max-w-3xl mx-auto mb-8">
                 Forget everything you know about renting
-                </p>
+                </p> */}
 
-                {/* Search Input */}
-                {/* <form onSubmit={handleSearchSubmit} className="max-w-2xl mx-auto mb-8">
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                      <Search className="h-6 w-6 text-gray-400" />
+                {/* <div className="mb-8">
+              <h1 className="text-white mb-8" style={{ fontSize: "64px", fontWeight: "bold", lineHeight: "1.1" }}>
+                Forget everything you know about Renting
+              </h1>
+            </div> */}
                     </div>
-                    <input
-                      type="text"
-                      placeholder="Enter city, neighborhood, or address..."
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      className="w-full pl-12 pr-4 py-4 text-lg border-0 rounded-xl focus:ring-4 focus:ring-white/30 focus:outline-none bg-white/90 backdrop-blur-sm placeholder-gray-500"
-                    />
-                    <button
-                      type="submit"
-                      className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors font-medium"
-                    >
-                      Search
-                    </button>
+            </motion.div>
                   </div>
-                </form> */}
 
-                {/* <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                  <Button
-                    onClick={() => {
-                      setCurrentView("application-process");
-                      setIsPrequalified(true);
+          <div className="relative  z-20">
+            <div className="max-w-4xl mx-auto px-4 ">
+              {!showAddyChat ? (
+                <>
+                  <AddySearchBox
+                    onStartConversation={(q) => {
+                      setChatQuery(q);
+                      setShowAddyChat(true);
                     }}
-                    className="inline-flex items-center px-8 py-4 text-lg font-medium rounded-xl text-black bg-white hover:bg-gray-100 transition-colors duration-200"
-                  >
-                    Get Prequalified
-                  </Button>
+                  />
+                 <div className="mb-16 mt-6 text-center">
                   <Button
-                    onClick={() => navigate('/property')}
-                    className="inline-flex items-center px-8 py-4 text-lg font-medium rounded-xl text-white bg-transparent border-2 border-white hover:bg-white hover:text-blue-600 transition-colors duration-200"
-                  >
-                    <MapPin className="h-5 w-5 mr-2" />
-                    Browse All Properties
+                      variant="ghost"
+                      onClick={() => navigate("/property")}
+                      className="text-white hover:text-green-600 text-[16px] hover:underline font-normal  px-6 py-2 rounded-lg"
+                    >
+                      Skip questions - Browse properties directly
                   </Button>
-                </div> */}
-              </motion.div>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden">
+                    <AddyChat
+                      initialSearch={chatQuery}
+                      onComplete={(filters) => {
+                        localStorage.setItem(
+                          "housingFilters",
+                          JSON.stringify(filters)
+                        );
+                        navigate("/property");
+                      }}
+                    />
+                  </div>
+                  <div className="mb-16 mt-6 text-center">
+                  <Button
+                      variant="ghost"
+                      onClick={() => navigate("/property")}
+                      className="text-white text-[16px] font-normal hover:underline  px-6 py-2 rounded-lg"
+                  >
+                      Skip remaining questions - Browse properties now
+                  </Button>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </div>
 
+        {/* Chat Board Section - Separate from hero */}
+        {/* <div className="relative -mt-20 z-20">
+          <div className="max-w-4xl mx-auto px-4">
+            {!showAddyChat ? (
+              <>
+                <AddySearchBox onStartConversation={(q) => { setChatQuery(q); setShowAddyChat(true); }} />
+                <div className="mt-6 text-center">
+                  <Button
+                    variant="ghost"
+                    onClick={() => navigate('/property')}
+                    className="text-gray-600 hover:text-green-600 text-sm underline bg-white/90 backdrop-blur-sm px-6 py-2 rounded-lg"
+                  >
+                    Skip questions - Browse properties directly
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden">
+                  <AddyChat initialSearch={chatQuery} onComplete={(filters) => {
+                    localStorage.setItem('housingFilters', JSON.stringify(filters));
+                    navigate('/property');
+                  }} />
+                </div>
+                <div className="mt-6 text-center">
+                  <Button
+                    variant="ghost"
+                    onClick={() => navigate('/property')}
+                    className="text-gray-600 hover:text-green-600 text-sm underline bg-white/90 backdrop-blur-sm px-6 py-2 rounded-lg"
+                  >
+                    Skip remaining questions - Browse properties now
+                  </Button>
+                </div>
+              </>
+            )}
+          </div>
+        </div> */}
+
         {/* Search and Results */}
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <SearchFiltersComponent
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
+          {/* <SearchFiltersComponent
             filters={filters}
             onFiltersChange={setFilters}
             onSearch={handleSearch}
-          />
+
+          /> */}
 
           {/* Results Header */}
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center">
-              <div className="bg-blue-100 p-2 rounded-lg mr-3">
-                <Search className="h-5 w-5 text-blue-600" />
-              </div>
-              <h2 className="text-2xl font-bold text-gray-900">
-                {filteredProperties.length} Properties Found
-                {!showAllProperties && hasMoreProperties && (
-                  <span className="text-sm font-normal text-gray-600 ml-2">
-                    (Showing first {INITIAL_PROPERTY_COUNT})
-                  </span>
-                )}
+          <div className="flex items-center flex-col gap-2 mb-6">
+            {/* <div className="flex items-center justify-center flex-col"> */}
+              {/* <div className="bg-gradient-to-r from-green-100 to-blue-100 p-2 rounded-lg mr-3">
+                <Search className="h-5 w-5 text-green-600" />
+              </div> */}
+              <h2 className="text-5xl font-bold text-gray-900">
+                Featured Properties
               </h2>
+              <div className="text-gray-600 text-xl">
+                Discover amazing places to call home
             </div>
+            {/* </div> */}
           </div>
 
           {/* Property Grid */}
@@ -236,22 +544,10 @@ export function Home() {
                   <motion.button
                     whileTap={{ scale: 0.95 }}
                     whileHover={{ scale: 1.02 }}
-                    onClick={() => setShowAllProperties(!showAllProperties)}
-                    className="inline-flex items-center px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl hover:from-blue-700 hover:to-purple-700 transition-all duration-200 font-semibold shadow-lg hover:shadow-xl"
+                    onClick={() => navigate("/property")}
+                    className="inline-flex items-center px-8 py-4 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl hover:from-green-700 hover:to-emerald-700 transition-all duration-200 font-semibold shadow-lg hover:shadow-xl"
                   >
-                    {showAllProperties ? (
-                      <>
-                        Show Less
-                        <ChevronUp className="ml-2 h-5 w-5" />
-                      </>
-                    ) : (
-                      <>
-                        Show More (
-                        {filteredProperties.length - INITIAL_PROPERTY_COUNT}{" "}
-                        more properties)
-                        <ChevronDown className="ml-2 h-5 w-5" />
-                      </>
-                    )}
+                    Browse More properties
                   </motion.button>
                 </div>
               )}
@@ -282,12 +578,10 @@ export function Home() {
                       city: "",
                       minRent: 0,
                       maxRent: 10000,
-                      beds: 0,
-                      baths: 0,
                     });
                     handleSearch();
                   }}
-                  className="px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl hover:from-blue-700 hover:to-purple-700 transition-all duration-200 font-semibold shadow-lg hover:shadow-xl"
+                  className="px-8 py-4 bg-gradient-to-r from-green-600 to-blue-600 text-white rounded-xl hover:from-green-700 hover:to-blue-700 transition-all duration-200 font-semibold shadow-lg hover:shadow-xl"
                 >
                   Reset Filters
                 </motion.button>
@@ -296,43 +590,165 @@ export function Home() {
           )}
 
           {/* Services Section */}
-          <div className="mt-16 mb-8">
-            <div className="grid grid-cols-1 lg:grid-cols-3 md:grid-cols-2 gap-6">
-              {/* Buy a home */}
+        </div>
+
+        {/* How It Works Section */}
+       
+
+        {/* Features Section */}
+        <div className="py-20 bg-white">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6 }}
+              className="text-center mb-16"
+            >
+              <h2 className="text-4xl font-bold text-gray-900 mb-4">
+                Why Choose Our Platform?
+              </h2>
+              <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+                We make finding your perfect rental home simple, fast, and
+                stress-free
+              </p>
+            </motion.div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6, delay: 0.1 }}
-                className="bg-white rounded-2xl shadow-lg p-8 text-center hover:shadow-xl transition-shadow duration-300"
+                className="text-center p-8 rounded-2xl bg-gradient-to-br from-green-50 to-green-100 border border-green-200"
               >
-                <div className="mb-6">
-                  <div className="relative w-32 h-32 mx-auto mb-4">
-                    {/* Couple looking at house illustration */}
-                    <div className="absolute inset-0 bg-gradient-to-br from-green-100 to-green-200 rounded-full"></div>
-                    <div className="absolute bottom-4 left-8 w-12 h-8 bg-gradient-to-t from-blue-600 to-blue-400 rounded-full"></div>
-                    <div className="absolute bottom-4 right-8 w-10 h-6 bg-gradient-to-t from-orange-500 to-orange-300 rounded-full"></div>
-                    {/* House */}
-                    <div className="absolute top-6 left-1/2 transform -translate-x-1/2 w-16 h-12 bg-gradient-to-b from-blue-500 to-blue-600 rounded-lg"></div>
-                    <div className="absolute top-4 left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-8 border-r-8 border-b-6 border-l-transparent border-r-transparent border-b-red-500"></div>
-                    <div className="absolute top-10 left-1/2 transform -translate-x-1/2 -translate-x-2 w-3 h-4 bg-yellow-300 rounded-sm"></div>
-                    {/* Hearts/love indicators */}
-                    <div className="absolute top-2 right-6 w-3 h-3 bg-pink-400 rounded-full"></div>
-                    <div className="absolute top-8 left-4 w-2 h-2 bg-pink-300 rounded-full"></div>
-                  </div>
+                <div className="w-16 h-16 bg-gradient-to-r from-green-500 to-green-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <HomeIcon className="h-8 w-8 text-white" />
                 </div>
                 <h3 className="text-2xl font-bold text-gray-900 mb-4">
-                  Buy a home
+                  Smart Matching
                 </h3>
-                <p className="text-gray-600 mb-6 leading-relaxed">
-                  A real estate agent can provide you with a clear breakdown of
-                  costs so that you can avoid surprise expenses.
+                <p className="text-gray-600 leading-relaxed">
+                  Our AI-powered system matches you with properties that fit
+                  your budget, lifestyle, and preferences perfectly.
                 </p>
-                <button className="px-6 py-3 border-2 border-blue-600 text-blue-600 rounded-lg hover:bg-blue-600 hover:text-white transition-colors duration-200 font-medium">
-                  Find a local agent
-                </button>
               </motion.div>
 
-           
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 0.2 }}
+                className="text-center p-8 rounded-2xl bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200"
+              >
+                <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-blue-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <Users className="h-8 w-8 text-white" />
+                  </div>
+                <h3 className="text-2xl font-bold text-gray-900 mb-4">
+                  Expert Support
+                </h3>
+                <p className="text-gray-600 leading-relaxed">
+                  Get personalized assistance from our team of rental experts
+                  who understand your local market.
+                </p>
+              </motion.div>
+
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 0.3 }}
+                className="text-center p-8 rounded-2xl bg-gradient-to-br from-purple-50 to-purple-100 border border-purple-200"
+              >
+                <div className="w-16 h-16 bg-gradient-to-r from-purple-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <Shield className="h-8 w-8 text-white" />
+                </div>
+                <h3 className="text-2xl font-bold text-gray-900 mb-4">
+                  Secure & Safe
+                </h3>
+                <p className="text-gray-600 leading-relaxed">
+                  Your data is protected with bank-level security. Apply safely
+                  and securely to multiple properties.
+                </p>
+              </motion.div>
+            </div>
+          </div>
+        </div>
+
+       
+        {/* FAQ Section */}
+        <FAQSection
+          faqData={faqData}
+          onBrowseProperties={() => navigate("/property")}
+          onContactSupport={() => {
+            // Add contact support functionality here
+            console.log("Contact support clicked");
+          }}
+        />
+        {/* Testimonials Section */}
+        <div className="py-20 bg-white">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6 }}
+              className="text-center mb-16"
+            >
+              <h2 className="text-4xl font-bold text-gray-900 mb-4">
+                What Our Renters Say
+              </h2>
+              <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+                Real stories from real people who found their perfect home
+              </p>
+            </motion.div>
+
+            <div className="relative">
+              <Swiper
+                modules={[Navigation, Pagination, Autoplay]}
+                spaceBetween={30}
+                slidesPerView={1}
+                navigation={{
+                  nextEl: '.testimonials-swiper-button-next',
+                  prevEl: '.testimonials-swiper-button-prev',
+                }}
+                pagination={{
+                  clickable: true,
+                  bulletClass: 'testimonials-swiper-pagination-bullet',
+                  bulletActiveClass: 'testimonials-swiper-pagination-bullet-active',
+                }}
+                autoplay={{
+                  delay: 5000,
+                  disableOnInteraction: false,
+                }}
+                breakpoints={{
+                  640: {
+                    slidesPerView: 1,
+                    spaceBetween: 20,
+                  },
+                  768: {
+                    slidesPerView: 2,
+                    spaceBetween: 30,
+                  },
+                  1024: {
+                    slidesPerView: 3,
+                    spaceBetween: 30,
+                  },
+                }}
+                className="testimonials-swiper"
+              >
+                {testimonialsData.map((testimonial, index) => (
+                  <SwiperSlide key={testimonial.id}>
+                    <TestimonialCard 
+                      testimonial={testimonial} 
+                      index={index} 
+                    />
+                  </SwiperSlide>
+                ))}
+              </Swiper>
+
+              {/* Custom Navigation Buttons */}
+              <button className="testimonials-swiper-button-prev absolute left-0 top-1/2 transform -translate-y-1/2 z-10 bg-white rounded-full p-3 shadow-lg hover:shadow-xl transition-all duration-200 border border-gray-200 hover:border-green-500 group">
+                <ChevronLeft className="h-6 w-6 text-gray-600 group-hover:text-green-600" />
+              </button>
+              <button className="testimonials-swiper-button-next absolute right-0 top-1/2 transform -translate-y-1/2 z-10 bg-white rounded-full p-3 shadow-lg hover:shadow-xl transition-all duration-200 border border-gray-200 hover:border-green-500 group">
+                <ChevronRight className="h-6 w-6 text-gray-600 group-hover:text-green-600" />
+              </button>
             </div>
           </div>
         </div>

@@ -12,8 +12,13 @@ import {
   Menu,
   X,
   MessageCircle,
+  Globe,
 } from "lucide-react";
 import { motion } from "framer-motion";
+import { Button } from "../ui/Button";
+import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
+
+import { useTranslation } from "../../hooks/useTranslations";
 interface LayoutProps {
   children: React.ReactNode;
 }
@@ -21,29 +26,43 @@ export function Layout({ children }: LayoutProps) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const [searchLocation, setSearchLocation] = useState("");
+  const [selectedLanguage, setSelectedLanguage] = useState<
+    "EN" | "ES" | "FR" | "DE"
+  >("EN");
+  const [langOpen, setLangOpen] = useState(false);
+  const [showAddyChat, setShowAddyChat] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  // Redirect logged-in users away from auth pages and to appropriate dashboards
-useEffect(() => {
-  if (!user) return;
+  const { t } = useTranslation(selectedLanguage);
 
-  // Redirect from auth pages
-  if (location.pathname === "/signin" || location.pathname === "/signup") {
-    if (user.role === "prospect") {
-      navigate("/prospect-dashboard", { replace: true });
-    } else if (user.role === "renter") {
-      navigate("/portal", { replace: true });
-    } else if (user.role === "landlord_admin" || user.role === "landlord_employee") {
-      navigate("/landlord-dashboard", { replace: true });
-    } else if (user.role === "cocoon_admin" || user.role === "cocoon_employee") {
-      navigate("/cocoon-dashboard", { replace: true });
+  // Redirect logged-in users away from auth pages and to appropriate dashboards
+  useEffect(() => {
+    if (!user) return;
+
+    // Redirect from auth pages
+    if (location.pathname === "/signin" || location.pathname === "/signup") {
+      if (user.role === "prospect") {
+        navigate("/property", { replace: true });
+      } else if (user.role === "renter") {
+        navigate("/portal", { replace: true });
+      } else if (
+        user.role === "landlord_admin" ||
+        user.role === "landlord_employee"
+      ) {
+        navigate("/landlord-dashboard", { replace: true });
+      } else if (
+        user.role === "cocoon_admin" ||
+        user.role === "cocoon_employee"
+      ) {
+        navigate("/cocoon-dashboard", { replace: true });
+      }
     }
-  }
-  
-  // Redirect prospect users from home page to their dashboard
-  if (location.pathname === "/" && user.role === "prospect") {
-    navigate("/prospect-dashboard", { replace: true });
-  }
-}, [user, location.pathname, navigate]);
+
+    // Redirect prospect users from home page to their dashboard
+    if (location.pathname === "/" && user.role === "prospect") {
+      navigate("/property", { replace: true });
+    }
+  }, [user, location.pathname, navigate]);
 
   const handleLogout = async () => {
     try {
@@ -56,9 +75,9 @@ useEffect(() => {
   const isActive = (path: string) => location.pathname === path;
   // Hide header on auth pages and prospect dashboard (to avoid double headers)
   const hideHeader =
-    location.pathname === "/signin" || 
+    location.pathname === "/signin" ||
     location.pathname === "/signup" ||
-    (user?.role === "prospect" && location.pathname === "/prospect-dashboard");
+    (user?.role === "prospect" && location.pathname === "/property");
   // Close mobile menu when route changes
   useEffect(() => {
     setIsMobileMenuOpen(false);
@@ -71,40 +90,50 @@ useEffect(() => {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex justify-between items-center h-16">
               <Link to="/" className="flex items-center space-x-3">
-                <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-2 rounded-xl shadow-lg">
-                  <Home className="h-6 w-6 text-white" />
+                <div className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white p-3 rounded-lg shadow-xl">
+                  <Home className="h-7 w-7 text-white" />
                 </div>
-                
-                <span className="text-2xl hidden sm:flex  cust-div font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+
+                <span className="text-3xl hidden sm:flex font-bold bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 bg-clip-text text-transparent">
                   Cocoon
                 </span>
               </Link>
-              <nav className="hidden lg:flex items-center space-x-8">
-                {!user ? '':
-                <Link
-                  to="/"
-                  className={`text-sm font-medium transition-all duration-200 px-3 py-2 rounded-lg ${
-                    isActive("/")
-                      ? "text-blue-600 bg-blue-50"
-                      : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
-                  }`}
+              <Button 
+                  variant="ghost" 
+                  className="text-gray-700 hover:bg-muted"
+                  onClick={() => navigate('/property-search')}
                 >
-                  Home
-                </Link>}
+                  Property Search
+                </Button>
+              <nav className="hidden lg:flex items-center space-x-8">
+                {!user ? (
+                  ""
+                ) : (
+                  <Link
+                    to="/"
+                    className={`text-sm font-medium transition-all duration-200 px-3 py-2 rounded-lg ${
+                      isActive("/")
+                        ? "text-blue-600 bg-blue-50"
+                        : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+                    }`}
+                  >
+                    Home
+                  </Link>
+                )}
 
-                    {/* Show prospect routes */}
-                    {user?.role === "prospect" && (
-                      <>
-                        <button
-                          onClick={() => navigate("/property")}
-                          className={`text-sm font-medium transition-all duration-200 px-3 py-2 rounded-lg ${
-                            isActive("/property")
-                              ? "text-blue-600 bg-blue-50"
-                              : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
-                          }`}
-                        >
-                          Find Properties
-                        </button>
+                {/* Show prospect routes */}
+                {user?.role === "prospect" && (
+                  <>
+                    <button
+                      onClick={() => navigate("/property")}
+                      className={`text-sm font-medium transition-all duration-200 px-3 py-2 rounded-lg ${
+                        isActive("/property")
+                          ? "text-blue-600 bg-blue-50"
+                          : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+                      }`}
+                    >
+                      Find Properties
+                    </button>
                     <button
                       onClick={() => navigate("/addy-chat")}
                       className={`text-sm font-medium transition-all duration-200 px-3 py-2 rounded-lg ${
@@ -175,7 +204,8 @@ useEffect(() => {
                 )}
 
                 {/* Show landlord routes */}
-                {(user?.role === "landlord_admin" || user?.role === "landlord_employee") && (
+                {(user?.role === "landlord_admin" ||
+                  user?.role === "landlord_employee") && (
                   <>
                     <button
                       onClick={() => navigate("/landlord-dashboard")}
@@ -201,7 +231,8 @@ useEffect(() => {
                 )}
 
                 {/* Show Cocoon employee routes */}
-                {(user?.role === "cocoon_admin" || user?.role === "cocoon_employee") && (
+                {(user?.role === "cocoon_admin" ||
+                  user?.role === "cocoon_employee") && (
                   <>
                     <button
                       onClick={() => navigate("/cocoon-dashboard")}
@@ -240,11 +271,17 @@ useEffect(() => {
                           {user.email}
                         </span>
                         <span className="block text-xs bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent font-medium">
-                          {user.role === "landlord_admin" ? "Landlord Admin" : 
-                           user.role === "landlord_employee" ? "Landlord Employee" :
-                           user.role === "cocoon_admin" ? "Cocoon Admin" :
-                           user.role === "cocoon_employee" ? "Cocoon Employee" :
-                           user.role === "renter" ? "Renter" : "Prospect"}
+                          {user.role === "landlord_admin"
+                            ? "Landlord Admin"
+                            : user.role === "landlord_employee"
+                            ? "Landlord Employee"
+                            : user.role === "cocoon_admin"
+                            ? "Cocoon Admin"
+                            : user.role === "cocoon_employee"
+                            ? "Cocoon Employee"
+                            : user.role === "renter"
+                            ? "Renter"
+                            : "Prospect"}
                         </span>
                       </div>
                     </div>
@@ -260,6 +297,65 @@ useEffect(() => {
                   </div>
                 ) : (
                   <div className="flex items-center space-x-4">
+                      <Popover open={langOpen} onOpenChange={setLangOpen}>
+                  <PopoverTrigger asChild>
+                    <Button variant="ghost" size="sm" className="text-gray-500 px-2">
+                      <Globe className="h-4 w-4 mr-1" />
+                      {selectedLanguage}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-32 p-2 bg-white border shadow-lg z-[60]">
+                    <div className="space-y-1">
+                      {(['EN', 'ES', 'FR', 'DE'] as const).map((lang) => (
+                        <Button
+                          key={lang}
+                          variant="ghost"
+                          size="sm"
+                          className="w-full justify-start text-left hover:bg-gray-100"
+                          onClick={() => {
+                            setSelectedLanguage(lang);
+                            setLangOpen(false);
+                          }}
+                        >
+                          {lang === 'EN' && t('english')}
+                          {lang === 'ES' && t('spanish')}
+                          {lang === 'FR' && t('french')}
+                          {lang === 'DE' && t('german')}
+                        </Button>
+                      ))}
+                    </div>
+                  </PopoverContent>
+                </Popover>
+
+                    <Button
+                      variant="ghost"
+                      className="text-gray-700 hover:bg-muted"
+                      onClick={() => {
+                        localStorage.setItem("portal_context", "manager");
+                        navigate("/signin");
+                      }}
+                    >
+                      Manager Portal
+                    </Button>
+
+                    <Button
+                      variant="ghost"
+                      className="text-gray-700 hover:bg-muted"
+                      onClick={() => {
+                        localStorage.setItem("portal_context", "renter");
+                        navigate("/auth");
+                      }}
+                    >
+                      Renter Portal
+                    </Button>
+
+                    <Button
+                      variant="ghost"
+                      className="text-gray-700 hover:bg-muted"
+                      onClick={() => navigate("/faq")}
+                    >
+                      FAQs
+                    </Button>
                     <motion.div
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
@@ -277,7 +373,7 @@ useEffect(() => {
                     >
                       <button
                         onClick={() => navigate("/signup")}
-                        className="inline-flex items-center px-6 py-2 text-sm font-medium text-white bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all duration-200 shadow-md hover:shadow-lg"
+                        className="inline-flex items-center px-6 py-2 text-sm font-medium bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 rounded-lg text-white transition-all duration-200 shadow-md hover:shadow-lg"
                       >
                         Sign Up
                       </button>
@@ -312,7 +408,9 @@ useEffect(() => {
         >
           {/* Header inside menu */}
           <div className="flex justify-between items-center p-4 border-b border-gray-200">
-            <span className="text-lg  font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">Cocoon</span>
+            <span className="text-lg  font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+              Cocoon
+            </span>
             <button
               onClick={() => setIsMobileMenuOpen(false)}
               className="p-2 rounded-lg hover:bg-gray-100 transition"
@@ -339,22 +437,22 @@ useEffect(() => {
 
             {user?.role === "prospect" && (
               <>
-                    <motion.div whileTap={{ scale: 0.95 }}>
-                      <button
-                        onClick={() => {
-                          navigate("/property");
-                          setIsMobileMenuOpen(false);
-                        }}
-                        className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all w-full ${
-                          isActive("/property")
-                            ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-md"
-                            : "text-gray-700 hover:bg-gray-100"
-                        }`}
-                      >
-                        <Home className="h-5 w-5" />
-                        Find Properties
-                      </button>
-                    </motion.div>
+                <motion.div whileTap={{ scale: 0.95 }}>
+                  <button
+                    onClick={() => {
+                      navigate("/property");
+                      setIsMobileMenuOpen(false);
+                    }}
+                    className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all w-full ${
+                      isActive("/property")
+                        ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-md"
+                        : "text-gray-700 hover:bg-gray-100"
+                    }`}
+                  >
+                    <Home className="h-5 w-5" />
+                    Find Properties
+                  </button>
+                </motion.div>
 
                 <motion.div whileTap={{ scale: 0.95 }}>
                   <button
@@ -464,7 +562,8 @@ useEffect(() => {
               </>
             )}
 
-            {(user?.role === "landlord_admin" || user?.role === "landlord_employee") && (
+            {(user?.role === "landlord_admin" ||
+              user?.role === "landlord_employee") && (
               <>
                 <motion.div whileTap={{ scale: 0.95 }}>
                   <button
@@ -502,7 +601,8 @@ useEffect(() => {
               </>
             )}
 
-            {(user?.role === "cocoon_admin" || user?.role === "cocoon_employee") && (
+            {(user?.role === "cocoon_admin" ||
+              user?.role === "cocoon_employee") && (
               <>
                 <motion.div whileTap={{ scale: 0.95 }}>
                   <button

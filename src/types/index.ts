@@ -162,6 +162,24 @@ export interface AIConversation {
   updatedAt: Date;
 }
 
+// Property interface for property cards and listings
+export interface Property {
+  id: string;
+  title: string;
+  address: string;
+  city: string;
+  state: string;
+  rent: number;
+  beds: number;
+  baths: number;
+  sqft?: number;
+  rating: number;
+  available: string;
+  image: string;
+  amenities?: string[];
+  description?: string;
+}
+
 // Search filters interface
 export interface SearchFilters {
   keyword?: string;

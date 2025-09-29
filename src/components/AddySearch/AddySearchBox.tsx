@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { ProgressBar } from "./ProgressBar";
 
@@ -9,11 +9,9 @@ export interface AddySearchBoxProps {
 export function AddySearchBox({ onStartConversation }: AddySearchBoxProps) {
   const navigate = useNavigate();
   const inputRef = useRef<HTMLInputElement>(null);
-  const stepInputRef = useRef<HTMLInputElement>(null);
-  const [mode, setMode] = useState<"search" | "prequal">("search");
+  const [mode] = useState<"search" | "prequal">("search");
   const [query, setQuery] = useState("");
   const [step, setStep] = useState(0);
-  const [loading, setLoading] = useState(false);
   const [f, setF] = useState({
     first_name: "",
     description: "",
@@ -50,7 +48,7 @@ export function AddySearchBox({ onStartConversation }: AddySearchBoxProps) {
     navigate('/property-search');
   };
 
-  const handleStepComplete = (stepData?: any) => {
+  const handleStepComplete = (stepData?: Partial<typeof f>) => {
     if (step < 6) {
       setStep(step + 1);
       if (stepData) {
@@ -63,20 +61,20 @@ export function AddySearchBox({ onStartConversation }: AddySearchBoxProps) {
   };
 
   return (
-    <div style={{ 
-      background: "#fff", 
-      border: "1px solid #e2e8f0", 
-      borderRadius: 16, 
-      boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)", 
-      padding: 16,
-      maxWidth: "800px",
-      margin: "0 auto"
+    <div className="bg-gradient-to-br from-white to-slate-50 rounded-3xl shadow-2xl p-6 max-w-4xl mx-auto relative overflow-hidden border-2 border-transparent bg-clip-padding" style={{
+      backgroundImage: "linear-gradient(135deg, #ffffff 0%, #f8fafc 100%), linear-gradient(135deg, #10b981, #3b82f6)",
+      backgroundOrigin: "border-box",
+      backgroundClip: "padding-box, border-box"
     }}>
+      {/* Decorative background elements */}
+      <div className="absolute -top-12 -right-12 w-24 h-24 bg-gradient-to-br from-green-500 to-blue-500 rounded-full opacity-10 z-0" />
+      <div className="absolute -bottom-8 -left-8 w-16 h-16 bg-gradient-to-br from-blue-500 to-green-500 rounded-full opacity-10 z-0" />
+      
       {/* Addy Header */}
-      <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "11px 13px 16px 0" }}>
-        <span aria-hidden style={{ width: 13, height: 13, borderRadius: 999, background: "#2C5AA0", display: "inline-block" }} />
-        <span style={{ fontSize: 19, color: "#64748b" }}>
-          Hi, I'm <strong style={{ color: "#0f172a" }}>Addy</strong> — ready to help you find your next home.
+      <div className="flex items-center gap-3 pb-5 relative z-10">
+        <div className="w-4 h-4 bg-gradient-to-br from-green-600 to-emerald-600 rounded-full shadow-lg shadow-green-500/30" />
+        <span className="text-xl text-gray-700 leading-relaxed">
+          Hi, I'm <strong className="text-gray-900 bg-gradient-to-r from-green-600 to-blue-600 bg-clip-text text-transparent">Addy</strong> — ready to help you find your next home.
           {mode === "search" ? " What can I help you find today?" : " Let me ask you a few questions to find the perfect match."}
         </span>
       </div>
@@ -84,48 +82,25 @@ export function AddySearchBox({ onStartConversation }: AddySearchBoxProps) {
       {/* Search Mode - Input Box + Chips */}
       {mode === "search" && (
         <>
-          <form onSubmit={onSubmit}>
-            <input 
-              ref={inputRef}
-              style={{ 
-                width: "100%",
-                padding: "16px 21px",
-                border: "1px solid #e2e8f0",
-                borderRadius: 11,
-                fontSize: 19,
-                outline: "none",
-                transition: "border-color 0.2s"
-              }}
-              value={query} 
-              onChange={(e) => setQuery(e.target.value)} 
-              placeholder="Try: 2-bed near Riverside around $1,900, move-in in October"
-              onFocus={(e) => e.target.style.borderColor = "#2C5AA0"}
-              onBlur={(e) => e.target.style.borderColor = "#e2e8f0"}
-            />
+          <form onSubmit={onSubmit} className="relative z-10">
+            <div className="relative">
+              <input 
+                ref={inputRef}
+                className="w-full py-3 px-6 border border-gray-200 rounded-xl text-lg outline-none transition-all duration-300
+                 bg-white/90 backdrop-blur-sm shadow-md"
+                value={query} 
+                onChange={(e) => setQuery(e.target.value)} 
+                placeholder="Try: 2-bed near Riverside around $1,900, move-in in October"
+              />
+              <div className={`absolute right-4 top-1/2 transform -translate-y-1/2 w-2 h-2 bg-gradient-to-r from-green-600 to-emerald-600 rounded-full transition-opacity duration-300 ${query ? 'opacity-100' : 'opacity-30'}`} />
+            </div>
           </form>
-          <div style={{ display: "flex", gap: 11, flexWrap: "wrap", marginTop: 13 }}>
+          <div className="flex gap-3 flex-wrap mt-5 relative z-10">
             {suggestions.map((s) => (
               <button 
                 key={s} 
                 type="button" 
-                style={{
-                  padding: "8px 16px",
-                  border: "1px solid #e2e8f0",
-                  borderRadius: 8,
-                  background: "#fff",
-                  fontSize: 16,
-                  cursor: "pointer",
-                  transition: "all 0.2s",
-                  color: "#374151"
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.borderColor = "#2C5AA0";
-                  e.currentTarget.style.background = "#f8fafc";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.borderColor = "#e2e8f0";
-                  e.currentTarget.style.background = "#fff";
-                }}
+                className="px-4 py-2 border border-gray-200 rounded-lg bg-white text-base cursor-pointer transition-all duration-300 text-gray-700 font-medium shadow-sm relative overflow-hidden hover:-translate-y-0.5 hover:shadow-lg hover:shadow-green-500/15 hover:bg-gradient-to-r hover:from-green-600 hover:to-emerald-600 hover:text-white"
                 onClick={() => setQuery(s)}
               >
                 {s}
@@ -137,20 +112,13 @@ export function AddySearchBox({ onStartConversation }: AddySearchBoxProps) {
 
       {/* Prequal Mode - Questions */}
       {mode === "prequal" && (
-        <div style={{ padding: "8px 0" }}>
+        <div className="py-2 relative z-10">
           {/* Dynamic questions based on step */}
           {step === 0 && (
             <>
-              <p style={{ margin: "0 0 16px", fontSize: 19 }}>Who do I have the pleasure of speaking with today?</p>
+              <p className="mb-5 text-xl text-gray-700 font-medium leading-relaxed">Who do I have the pleasure of speaking with today?</p>
               <input 
-                style={{ 
-                  width: "100%",
-                  padding: "16px 21px",
-                  border: "1px solid #e2e8f0",
-                  borderRadius: 11,
-                  fontSize: 19,
-                  outline: "none"
-                }} 
+                className="w-full py-5 px-6 border-2 border-gray-200 rounded-2xl text-lg outline-none transition-all duration-300 bg-white/90 backdrop-blur-sm shadow-md "
                 placeholder="You can call me..." 
                 onChange={(e) => setF(prev => ({ ...prev, first_name: e.target.value }))}
                 onKeyPress={(e) => {
@@ -164,27 +132,18 @@ export function AddySearchBox({ onStartConversation }: AddySearchBoxProps) {
           
           {step === 1 && (
             <>
-              <p style={{ margin: "0 0 16px", fontSize: 19 }}>Perfect! Now, are you planning to bring any furry friends along?</p>
-              <div style={{ display: "flex", gap: 11, flexWrap: "wrap" }}>
+              <p className="mb-5 text-xl text-gray-700 font-medium leading-relaxed">Perfect! Now, are you planning to bring any furry friends along?</p>
+              <div className="flex gap-3 flex-wrap">
                 {["Dog","Cat","Other","None"].map(p => (
                   <button 
                     key={p} 
+                    className="px-6 py-3.5 border-2 border-transparent rounded-xl bg-gradient-to-br from-white to-slate-50 text-lg cursor-pointer transition-all duration-300 text-gray-700 font-medium
+                     shadow-sm relative overflow-hidden hover:-translate-y-0.5 hover:shadow-lg hover:shadow-green-500/15 hover:bg-gradient-to-r
+                      hover:from-green-600 hover:to-emerald-600 hover:text-white"
                     style={{
-                      padding: "11px 21px",
-                      border: "1px solid #e2e8f0",
-                      borderRadius: 8,
-                      background: "#fff",
-                      fontSize: 19,
-                      cursor: "pointer",
-                      transition: "all 0.2s"
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.borderColor = "#2C5AA0";
-                      e.currentTarget.style.background = "#f8fafc";
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.borderColor = "#e2e8f0";
-                      e.currentTarget.style.background = "#fff";
+                      backgroundImage: "linear-gradient(135deg, #ffffff, #f8fafc), linear-gradient(135deg, #10b981, #3b82f6)",
+                      backgroundOrigin: "border-box",
+                      backgroundClip: "padding-box, border-box"
                     }}
                     onClick={() => handleStepComplete({ pet_type: p as typeof f.pet_type })}
                   >

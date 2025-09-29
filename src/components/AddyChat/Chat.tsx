@@ -1,12 +1,10 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/input';
-import { Card, CardContent } from '../ui/card';
-import { Avatar, AvatarFallback } from '../ui/avatar';
 import { Progress } from '../ui/progress';
-import { Send, Loader2, ArrowRight } from 'lucide-react';
+import { Send, Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
+// import { supabase } from '@/integrations/supabase/client';
 
 interface Message {
   id: string;
@@ -40,30 +38,11 @@ export const AddyChat: React.FC<AddyChatProps> = ({ initialSearch, onComplete })
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [userFilters, setUserFilters] = useState<UserFilters>({});
   const [currentStep, setCurrentStep] = useState(0);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
-
-  const calculateProgress = (filters: UserFilters, messageCount: number) => {
-    let step = 0;
-    
-    // Step 0: Name provided
-    if (filters.userName || messageCount >= 2) step = 1;
-    
-    // Step 1: Initial search description provided  
-    if ((filters.location?.length || filters.budget || filters.bedrooms) && messageCount >= 4) step = 2;
-    
-    // Step 2: Pets information provided
-    if (filters.pets !== undefined && messageCount >= 6) step = 3;
-    
-    // Step 3: Household details (income and credit) provided
-    if (filters.income && filters.creditScore) step = 4;
-    
-    return step;
-  };
 
   const scrollToBottom = () => {
     if (messagesContainerRef.current) {
@@ -77,6 +56,7 @@ export const AddyChat: React.FC<AddyChatProps> = ({ initialSearch, onComplete })
     // Auto-focus input after messages update
     setTimeout(() => inputRef.current?.focus(), 100);
   }, [messages]);
+
 
   useEffect(() => {
     if (initialSearch) {
@@ -203,18 +183,23 @@ export const AddyChat: React.FC<AddyChatProps> = ({ initialSearch, onComplete })
   };
 
   return (
-    <div className="flex flex-col h-full max-h-[350px] bg-white rounded-lg shadow-lg overflow-hidden">
+    <div className="flex flex-col w-full min-h-[300px] max-h-[350px] bg-white overflow-hidden">
       {/* Chat Header */}
-      <div className="flex items-center justify-between p-3 border-b bg-gradient-to-r from-green-50 to-blue-50 rounded-t-lg flex-shrink-0">
-        <div>
-          <h3 className="font-semibold text-gray-900 text-xl">Addy</h3>
-          <p className="text-xs text-gray-500">Your Housing Assistant</p>
+      <div className="flex items-center justify-between p-4 border-b bg-gradient-to-r from-green-50 to-blue-50 flex-shrink-0">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white rounded-full flex items-center justify-center shadow-md">
+            <span className="text-white font-bold text-lg">A</span>
+          </div>
+          <div>
+            <h3 className="font-bold text-gray-900 text-lg">Addy</h3>
+            <p className="text-sm text-gray-600">Your Housing Assistant</p>
+          </div>
         </div>
         <Button
           variant="ghost"
           size="sm"
           onClick={handleSkipChat}
-          className="text-gray-500 hover:text-gray-700 text-xs"
+          className="text-gray-500 hover:text-green-600 hover:bg-green-50 text-sm font-medium px-4 py-2 rounded-lg transition-all duration-200"
         >
           Skip
         </Button>
@@ -222,24 +207,24 @@ export const AddyChat: React.FC<AddyChatProps> = ({ initialSearch, onComplete })
 
       {/* Quick Actions */}
       {messages.length <= 1 && !isLoading && (
-        <div className="p-3 border-b bg-gray-50 flex-shrink-0">
-          <p className="text-xs text-gray-600 mb-2 ml-8">Quick start:</p>
-          <div className="flex flex-wrap gap-1 ml-8">
+        <div className="p-4 border-b bg-gray-50 flex-shrink-0">
+          <p className="text-sm text-gray-600 mb-3 font-medium">Quick start:</p>
+          <div className="flex flex-wrap gap-2">
             <Button
               variant="outline"
               size="sm"
               onClick={() => handleQuickFilter('budget')}
-              className="text-xs h-6 px-2"
+              className="text-sm h-9 px-4 border border-gray-200 bg-white hover:bg-gradient-to-r hover:from-green-600   hover:to-emerald-600  text-white transition-all duration-200 rounded-lg font-medium"
             >
-              Budget-friendly
+              💰 Budget-friendly
             </Button>
             <Button
               variant="outline"
               size="sm"
               onClick={() => handleQuickFilter('pets')}
-              className="text-xs h-6 px-2"
+              className="text-sm h-9 px-4 border border-gray-200 bg-white hover:bg-green-50 hover:border-green-300 text-gray-700 hover:text-green-700 transition-all duration-200 rounded-lg font-medium"
             >
-              Pet-friendly
+              🐾 Pet-friendly
             </Button>
           </div>
         </div>
@@ -248,29 +233,32 @@ export const AddyChat: React.FC<AddyChatProps> = ({ initialSearch, onComplete })
       {/* Messages */}
       <div 
         ref={messagesContainerRef}
-        className="flex-1 overflow-y-auto p-3 space-y-2 min-h-[120px] max-h-[150px]"
+        className="flex-1 overflow-y-auto p-4 space-y-4 bg-white chat-scrollbar"
+        style={{
+          maxHeight: '300px',
+          scrollbarWidth: 'thin',
+          scrollbarColor: '#10b981 #f3f4f6'
+        }}
       >
         {messages.map((message) => (
           <div
             key={message.id}
             className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
           >
-            <div className="flex items-start space-x-2 max-w-[85%]">
+            <div className="flex items-start space-x-3 max-w-[60%]">
               {message.role === 'assistant' && (
-                <Avatar className="h-6 w-6 bg-green-100 flex-shrink-0">
-                  <AvatarFallback className="text-green-700 text-xs">A</AvatarFallback>
-                </Avatar>
+                <div className="w-8 h-8 bg-gradient-to-br from-green-500 to-blue-500 rounded-full flex items-center justify-center shadow-sm flex-shrink-0 mt-1">
+                  <span className="text-white font-bold text-sm">A</span>
+                </div>
               )}
-              <div>
-                <Card className={`${
+              <div className="flex flex-col">
+                <div className={`rounded-xl px-4 py-3 ${
                   message.role === 'user' 
-                    ? 'bg-blue-500 text-white' 
-                    : 'bg-gray-100 text-gray-900'
+                    ? 'bg-gradient-to-r from-green-500 to-blue-500 text-white shadow-sm' 
+                    : 'bg-gray-100 text-gray-800 border border-gray-200'
                 }`}>
-                  <CardContent className="p-2">
-                    <p className="text-sm whitespace-pre-wrap">{message.content}</p>
-                  </CardContent>
-                </Card>
+                  <p className="text-sm whitespace-pre-wrap leading-relaxed">{message.content}</p>
+                </div>
                 <p className="text-xs text-gray-400 mt-1 px-1">
                   {formatTime(message.timestamp)}
                 </p>
@@ -281,18 +269,16 @@ export const AddyChat: React.FC<AddyChatProps> = ({ initialSearch, onComplete })
         
         {isLoading && (
           <div className="flex justify-start">
-            <div className="flex items-start space-x-2">
-              <Avatar className="h-6 w-6 bg-green-100">
-                <AvatarFallback className="text-green-700 text-xs">A</AvatarFallback>
-              </Avatar>
-              <Card className="bg-gray-100">
-                <CardContent className="p-2">
-                  <div className="flex items-center space-x-2">
-                    <Loader2 className="h-3 w-3 animate-spin" />
-                    <span className="text-sm text-gray-600">Typing...</span>
-                  </div>
-                </CardContent>
-              </Card>
+            <div className="flex items-start space-x-3">
+              <div className="w-8 h-8 bg-gradient-to-br from-green-500 to-blue-500 rounded-full flex items-center justify-center shadow-sm flex-shrink-0 mt-1">
+                <span className="text-white font-bold text-sm">A</span>
+              </div>
+              <div className="bg-gray-100 border border-gray-200 rounded-xl px-4 py-3">
+                <div className="flex items-center space-x-2">
+                  <Loader2 className="h-4 w-4 animate-spin text-green-500" />
+                  <span className="text-sm text-gray-600">Addy is typing...</span>
+                </div>
+              </div>
             </div>
           </div>
         )}
@@ -301,31 +287,38 @@ export const AddyChat: React.FC<AddyChatProps> = ({ initialSearch, onComplete })
       </div>
 
       {/* Input */}
-      <form onSubmit={handleSubmit} className="p-3 border-t flex-shrink-0">
-        <div className="flex space-x-2">
-          <Input
-            ref={inputRef}
-            value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
-            placeholder="Type your message..."
-            disabled={isLoading}
-            className="flex-1 text-sm h-8"
-            autoFocus
-          />
+      <form onSubmit={handleSubmit} className="p-4 border-t bg-gray-50 flex-shrink-0">
+        <div className="flex space-x-3">
+          <div className="flex-1">
+            <Input
+              ref={inputRef}
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+              placeholder="Type your message..."
+              disabled={isLoading}
+              className="w-full text-sm h-11 px-4 border border-gray-300 rounded-lg   bg-white transition-all duration-200"
+              autoFocus
+            />
+          </div>
           <Button 
             type="submit" 
             disabled={!inputValue.trim() || isLoading}
-            className="bg-green-600 hover:bg-green-700 h-8 px-3"
+            className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-blue-700 h-11 px-6 rounded-lg shadow-sm hover:shadow-md  transition-all duration-200 disabled:opacity-50"
           >
-            <Send className="h-3 w-3" />
+            <Send className="h-4 w-4 text-white" />
           </Button>
         </div>
       </form>
 
-      {/* Progress Bar - Moved below input */}
-      <div className="px-3 py-2 bg-gray-50 flex-shrink-0 rounded-b-lg">
-        <Progress value={(currentStep / 4) * 100} className="h-1" />
+      {/* Progress Bar */}
+      <div className="px-4 py-3 bg-gray-50 flex-shrink-0">
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-xs text-gray-600 font-medium">Progress</span>
+          <span className="text-xs text-gray-500">{Math.round((currentStep / 4) * 100)}%</span>
+        </div>
+        <Progress value={(currentStep / 4) * 100} className="h-2" />
       </div>
-    </div>
+      </div>
+   
   );
 };

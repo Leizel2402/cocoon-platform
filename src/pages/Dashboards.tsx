@@ -145,6 +145,7 @@ const Dashboards = () => {
   const [selectedHomeTypes, setSelectedHomeTypes] = useState<string[]>([]);
   const [moveInDate, setMoveInDate] = useState<Date>();
   const [showAllFilters, setShowAllFilters] = useState(false);
+  
 
   // All possible filter options
   const bedOptions = ["Studio", "1", "2", "3", "4+"];

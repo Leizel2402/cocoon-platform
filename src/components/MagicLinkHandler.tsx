@@ -55,7 +55,7 @@ export function MagicLinkHandler() {
       
       switch (user.role) {
         case 'prospect':
-          navigate('/prospect-dashboard', { replace: true });
+          navigate('/property', { replace: true });
           break;
         case 'renter':
           navigate('/portal', { replace: true });
