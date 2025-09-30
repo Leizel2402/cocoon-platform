@@ -29,10 +29,6 @@ import {
 } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import heroImage from "../assets/images/hero-apartments.jpg";
-// import property1 from '@/assets/property-1.jpg';
-// import property2 from '@/assets/property-2.jpg';
-// import property3 from '@/assets/property-3.jpg';
-// import property4 from '@/assets/property-4.jpg';
 import QualifiedProperties from "../Prospect/QualifiedProperties";
 import ApplicationProcess from "../Prospect/ApplicationProcess";
 import UnitsComparison from "../components/rentar/unitSelecttion/UnitsComparison";
@@ -45,7 +41,7 @@ import UnitsComparison from "../components/rentar/unitSelecttion/UnitsComparison
 // import PropertyDetailsModal from '../renter/unit-selection/PropertyDetailsModal';
 // import ScheduleTourModal from '../renter/unit-selection/ScheduleTourModal';
 import DashboardMap from "../components/DashboardMap";
-// import SearchFilters from '../renter/search/SearchFilters';
+import SubmissionsDashboard from "../components/SubmissionsDashboard";
 // import AccountManagement from '../landlord/shared/AccountManagement';
 import { useToast } from "../hooks/use-toast";
 import { generateMockComparisonUnits } from "../lib/mockUnits";
@@ -55,7 +51,6 @@ import ScheduleTourModal from "../components/rentar/unitSelecttion/ScheduleTourM
 import { ModernPropertyCard } from "../components/ModernPropertyCard";
 import { CalendarPopover } from "../components/CalendarPopover";
 import SearchFilters from "../components/PropertyAllFilter";
-// const owlImg = "/lovable-uploads/730c12d2-40cf-4a50-85a4-355e34288dfd.png";
 
 const Dashboards = () => {
   const { user, loading, logout } = useAuth();
@@ -1703,6 +1698,18 @@ console.log("Selected Property", selectedProperty);
               This feature is currently under development.
             </p>
           </div>
+        )}
+
+        {/* Submissions Dashboard for Landlords and Staff */}
+        {(effectiveUserRole === "landlord" || effectiveUserRole === "staff" || effectiveUserRole === "employee") && (
+          <section className="bg-white border-t border-gray-200">
+            <div className="container mx-auto px-6 py-8">
+              <SubmissionsDashboard 
+                userRole={effectiveUserRole === "landlord" ? "landlord" : "staff"} 
+                userId={user?.uid}
+              />
+            </div>
+          </section>
         )}
       </main>
 

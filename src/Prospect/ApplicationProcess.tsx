@@ -38,6 +38,7 @@ import { useToast } from "../hooks/use-toast";
 import { format } from "date-fns";
 import { cn } from "../lib/utils";
 import { useAuth } from "../hooks/useAuth";
+import { submitApplicationWithDocuments } from "../services/submissionService";
 import {
   Shield,
   User,
@@ -56,9 +57,10 @@ import {
   ShieldAlert,
   AlertCircle,
 } from "lucide-react";
+import ProductSelection from "../components/ProductSelection";
+import LeaseTermSelection from "../components/rentar/LeaseTermSelection";
+import PaymentProcess from "../components/payment/PaymentProcess";
 // import QualifiedProperties from './QualifiedProperties';
-// import LeaseTermSelection from '../product-selection/LeaseTermSelection';
-// import ProductSelection from '../product-selection/ProductSelection';
 // import PaymentProcess from '../payment/PaymentProcess';
 
 interface ApplicationProcessProps {
@@ -149,6 +151,15 @@ const ApplicationProcess = ({
     vehicles: [],
     hasVehicles: undefined,
     additionalInfo: "",
+    // Documents
+    documents: {
+      id: [],
+      payStubs: [],
+      bankStatements: [],
+      taxReturns: [],
+      references: [],
+      other: []
+    },
     // Permissions
     backgroundCheckPermission: false,
     textMessagePermission: true,
@@ -200,6 +211,7 @@ const ApplicationProcess = ({
     { title: "Lease Holders & Guarantors", icon: Users },
     { title: "Additional Occupants", icon: User },
     { title: "Additional Info", icon: FileText },
+    { title: "Documents", icon: FileText },
     { title: "Review & Submit", icon: CheckCircle },
   ];
 
@@ -368,7 +380,9 @@ const ApplicationProcess = ({
           formData.middleInitial !== undefined &&
           formData.moveInDate
         );
-      case 6: // Review & Submit - require authorization
+      case 6: // Documents - require at least ID document
+        return formData.documents.id.length > 0;
+      case 7: // Review & Submit - require authorization
         return formData.backgroundCheckPermission;
       case 1: // Financial Info
         if (formData.employment === "unemployed") {
@@ -599,7 +613,7 @@ const ApplicationProcess = ({
     return state.toUpperCase();
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     console.log("🔥 SUBMIT BUTTON CLICKED - Starting SafeRent JSON capture...");
 
     // Validation: Check if citizenship status is missing for any applicant
@@ -1132,16 +1146,81 @@ const ApplicationProcess = ({
         "Application JSON now includes vehicles with year, emergency contact relation, validated addresses and employers, and clearer section layout. All DOB fields are normalized to YYYY-MM-DD format.",
     });
 
-    // Also alert with SafeRent JSON preview
-    alert(
-      `✅ SafeRent JSON captured for ${saferentData.FirstName} ${
-        saferentData.LastName
-      }\n\nOpen browser console (F12) to see full JSON object.\n\nSafeRent JSON starts with:\n${JSON.stringify(
-        saferentData,
-        null,
-        2
-      ).substring(0, 200)}...`
-    );
+    // Submit to Firebase
+    try {
+      const applicationData = {
+        // Personal Information
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        email: formData.email,
+        phone: formData.phone,
+        dateOfBirth: formData.dateOfBirth,
+        ssn: formData.ssn,
+        currentAddress: `${formData.currentStreet}, ${formData.currentCity}, ${formData.currentState} ${formData.currentZip}`,
+        city: formData.currentCity,
+        state: formData.currentState,
+        zipCode: formData.currentZip,
+        
+        // Employment Information
+        employer: formData.employers[0]?.name || '',
+        jobTitle: formData.employers[0]?.position || '',
+        employmentStatus: formData.employers[0]?.employmentStatus || '',
+        annualIncome: parseFloat(formData.employers[0]?.income?.replace(/[^0-9.]/g, '') || '0'),
+        employmentStartDate: formData.employers[0]?.startDate || '',
+        
+        // Rental History
+        previousLandlordName: formData.previousLandlordName || '',
+        previousLandlordPhone: formData.previousLandlordPhone || '',
+        previousRentAmount: parseFloat(formData.previousRentAmount?.replace(/[^0-9.]/g, '') || '0'),
+        rentalHistory: formData.rentalHistory || '',
+        
+        // References
+        reference1Name: formData.references?.[0]?.name || '',
+        reference1Phone: formData.references?.[0]?.phone || '',
+        reference1Relationship: formData.references?.[0]?.relationship || '',
+        reference2Name: formData.references?.[1]?.name || '',
+        reference2Phone: formData.references?.[1]?.phone || '',
+        reference2Relationship: formData.references?.[1]?.relationship || '',
+        
+        // Property Information
+        propertyId: property?.id || 'general-application',
+        propertyName: property?.name || 'General Application',
+        unitId: selectedUnit?.id || null,
+        unitNumber: selectedUnit?.unitNumber || null,
+        
+        // Additional fields
+        notes: formData.notes || '',
+        creditScore: formData.creditScore || 0,
+        hasPets: formData.hasPets || false,
+        petDetails: formData.pets?.map(pet => `${pet.type}: ${pet.name} (${pet.age} years, ${pet.weight} lbs)`).join(', ') || '',
+        emergencyContactName: formData.emergencyContact?.name || '',
+        emergencyContactPhone: formData.emergencyContact?.phone || '',
+        emergencyContactRelationship: formData.emergencyContact?.relation || '',
+        submittedBy: user?.uid || '',
+      };
+
+      const result = await submitApplicationWithDocuments(
+        applicationData,
+        formData.documents,
+        user?.uid || ''
+      );
+      
+      if (result.success) {
+        toast({
+          title: "Application Submitted Successfully",
+          description: `Your application has been submitted to Firebase with ${result.documentsUploaded || 0} documents uploaded.`,
+        });
+      } else {
+        throw new Error(result.error || 'Failed to submit application');
+      }
+    } catch (error) {
+      console.error('Error submitting application to Firebase:', error);
+      toast({
+        title: "Firebase Submission Failed",
+        description: "Application was formatted for SafeRent but failed to save to Firebase. Please try again.",
+        variant: "destructive"
+      });
+    }
 
     // Original submit logic
     toast({
@@ -1222,7 +1301,7 @@ const ApplicationProcess = ({
                     setFormData({ ...formData, firstName: e.target.value })
                   }
                   placeholder="Enter first name"
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/50 backdrop-blur-sm"
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none bg-white/50 backdrop-blur-sm"
                   required
                 />
               </div>
@@ -1240,7 +1319,7 @@ const ApplicationProcess = ({
                     setFormData({ ...formData, lastName: e.target.value })
                   }
                   placeholder="Enter last name"
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/50 backdrop-blur-sm"
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none bg-white/50 backdrop-blur-sm"
                   required
                 />
               </div>
@@ -1260,7 +1339,7 @@ const ApplicationProcess = ({
                 }
                 placeholder="M"
                 maxLength={1}
-                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/50 backdrop-blur-sm"
+                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring- bg-white/50 backdrop-blur-sm"
               />
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -1279,7 +1358,7 @@ const ApplicationProcess = ({
                     setFormData({ ...formData, email: e.target.value })
                   }
                   placeholder="Enter email"
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-gray-50/70 backdrop-blur-sm"
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring- bg-gray-50/70 backdrop-blur-sm"
                   required
                 />
               </div>
@@ -1299,7 +1378,7 @@ const ApplicationProcess = ({
                   }}
                   placeholder="(555) 123-4567"
                   maxLength={14}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/50 backdrop-blur-sm"
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring- bg-white/50 backdrop-blur-sm"
                   required
                 />
               </div>
@@ -1321,7 +1400,7 @@ const ApplicationProcess = ({
                   placeholder="MM/DD/YYYY"
                   maxLength={10}
                   required
-                  className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/50 backdrop-blur-sm ${
+                  className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring- bg-white/50 backdrop-blur-sm ${
                     dobError ? "border-red-500" : "border-gray-200"
                   }`}
                 />
@@ -1358,7 +1437,7 @@ const ApplicationProcess = ({
                   placeholder="XXX-XX-XXXX"
                   maxLength={11}
                   required
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/50 backdrop-blur-sm"
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring- bg-white/50 backdrop-blur-sm"
                 />
               </div>
             </div>
@@ -1430,10 +1509,10 @@ const ApplicationProcess = ({
                     }))
                   }
                 >
-                  <SelectTrigger className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/50 backdrop-blur-sm">
+                  <SelectTrigger className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring- bg-white/50 backdrop-blur-sm">
                     <SelectValue placeholder="Select lease term" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="z-[9999] max-h-60 overflow-y-auto">
                     {Array.from({ length: 15 }, (_, i) => i + 1).map(
                       (month) => (
                         <SelectItem key={month} value={month.toString()}>
@@ -1472,16 +1551,7 @@ const ApplicationProcess = ({
       case 1: // Financial Info
         return (
           <div className="space-y-6">
-            <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="flex items-center justify-center p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-100"
-            >
-              <Shield className="h-5 w-5 mr-2 text-blue-600" />
-              <span className="text-sm text-blue-700 font-medium">
-                All personal information is secure and encrypted
-              </span>
-            </motion.div>
+           
             <div>
               <Label
                 htmlFor="employment"
@@ -1498,7 +1568,7 @@ const ApplicationProcess = ({
                 <SelectTrigger>
                   <SelectValue placeholder="Select employment status" />
                 </SelectTrigger>
-                <SelectContent>
+                        <SelectContent className="z-[9999] max-h-60 overflow-y-auto">
                   <SelectItem value="full-time">Full-time</SelectItem>
                   <SelectItem value="part-time">Part-time</SelectItem>
                   <SelectItem value="contract">Contract</SelectItem>
@@ -1526,7 +1596,7 @@ const ApplicationProcess = ({
                       setFormData({ ...formData, employerName: e.target.value })
                     }
                     placeholder="Enter employer name"
-                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/50 backdrop-blur-sm"
+                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring- bg-white/50 backdrop-blur-sm"
                   />
                 </div>
 
@@ -1550,7 +1620,7 @@ const ApplicationProcess = ({
                         <SelectTrigger>
                           <SelectValue placeholder="Select industry" />
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent className="z-[9999] max-h-60 overflow-y-auto">
                           {industryOptions.map((industry) => (
                             <SelectItem
                               key={industry}
@@ -1580,7 +1650,7 @@ const ApplicationProcess = ({
                         <SelectTrigger>
                           <SelectValue placeholder="Select position" />
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent className="z-[9999] max-h-60 overflow-y-auto">
                           {positionOptions.map((position) => (
                             <SelectItem
                               key={position}
@@ -1611,7 +1681,7 @@ const ApplicationProcess = ({
                           }
                           onBlur={() => handleIncomeBlur(0)}
                           placeholder="20000"
-                          className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/50 backdrop-blur-sm pl-8"
+                          className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring- bg-white/50 backdrop-blur-sm pl-8"
                         />
                       </div>
                     </div>
@@ -1689,7 +1759,7 @@ const ApplicationProcess = ({
                             setFormData({ ...formData, employers: updated });
                           }}
                           placeholder="Company name"
-                          className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/50 backdrop-blur-sm"
+                          className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring- bg-white/50 backdrop-blur-sm"
                         />
                       </div>
                       <div>
@@ -1713,7 +1783,7 @@ const ApplicationProcess = ({
                           <SelectTrigger>
                             <SelectValue placeholder="Select status" />
                           </SelectTrigger>
-                          <SelectContent>
+                          <SelectContent className="z-[9999] max-h-60 overflow-y-auto">
                             <SelectItem value="full-time">Full-time</SelectItem>
                             <SelectItem value="part-time">Part-time</SelectItem>
                             <SelectItem value="contract">Contract</SelectItem>
@@ -1746,7 +1816,7 @@ const ApplicationProcess = ({
                           <SelectTrigger>
                             <SelectValue placeholder="Select industry" />
                           </SelectTrigger>
-                          <SelectContent>
+                          <SelectContent className="z-[9999] max-h-60 overflow-y-auto">
                             {industryOptions.map((industry) => (
                               <SelectItem
                                 key={industry}
@@ -1779,7 +1849,7 @@ const ApplicationProcess = ({
                           <SelectTrigger>
                             <SelectValue placeholder="Select position" />
                           </SelectTrigger>
-                          <SelectContent>
+                          <SelectContent className="z-[9999] max-h-60 overflow-y-auto">
                             {positionOptions.map((position) => (
                               <SelectItem
                                 key={position}
@@ -1810,7 +1880,7 @@ const ApplicationProcess = ({
                             }
                             onBlur={() => handleIncomeBlur(index + 1)}
                             placeholder="20000"
-                            className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/50 backdrop-blur-sm pl-8"
+                            className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring- bg-white/50 backdrop-blur-sm pl-8"
                           />
                         </div>
                       </div>
@@ -1851,7 +1921,7 @@ const ApplicationProcess = ({
                       })
                     }
                     placeholder="Describe your other income sources (e.g., investments, part-time work, etc.)"
-                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/50 backdrop-blur-sm"
+                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring- bg-white/50 backdrop-blur-sm"
                   />
                   <p className="text-xs text-muted-foreground">
                     Note: Documentation may be required to verify other sources
@@ -1869,16 +1939,7 @@ const ApplicationProcess = ({
             className="space-y-6 max-h-[60vh] overflow-y-auto"
             ref={(el) => el?.scrollTo(0, 0)}
           >
-            <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="flex items-center justify-center p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-100"
-            >
-              <Shield className="h-5 w-5 mr-2 text-blue-600" />
-              <span className="text-sm text-blue-700 font-medium">
-                All personal information is secure and encrypted
-              </span>
-            </motion.div>
+           
             {/* Current Address */}
             <div className="space-y-4">
               <div className="border-b pb-2">
@@ -1898,7 +1959,7 @@ const ApplicationProcess = ({
                     setFormData({ ...formData, currentStreet: e.target.value })
                   }
                   placeholder="123 Main Street, Apt 4B"
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/50 backdrop-blur-sm"
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring- bg-white/50 backdrop-blur-sm"
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">
@@ -1916,7 +1977,7 @@ const ApplicationProcess = ({
                       setFormData({ ...formData, currentCity: e.target.value })
                     }
                     placeholder="City"
-                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/50 backdrop-blur-sm"
+                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring- bg-white/50 backdrop-blur-sm"
                   />
                 </div>
                 <div>
@@ -1933,7 +1994,7 @@ const ApplicationProcess = ({
                       setFormData({ ...formData, currentState: e.target.value })
                     }
                     placeholder="State"
-                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/50 backdrop-blur-sm"
+                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring- bg-white/50 backdrop-blur-sm"
                   />
                 </div>
               </div>
@@ -1953,7 +2014,7 @@ const ApplicationProcess = ({
                   }}
                   placeholder="12345"
                   maxLength={5}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/50 backdrop-blur-sm"
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring- bg-white/50 backdrop-blur-sm"
                 />
               </div>
               <div className="w-64">
@@ -1972,7 +2033,7 @@ const ApplicationProcess = ({
                   <SelectTrigger>
                     <SelectValue placeholder="Select duration" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="z-[9999] max-h-60 overflow-y-auto">
                     <SelectItem value="0-2">Less than 2 years</SelectItem>
                     <SelectItem value="2+">More than 2 years</SelectItem>
                   </SelectContent>
@@ -2003,7 +2064,7 @@ const ApplicationProcess = ({
                       })
                     }
                     placeholder="Previous street address"
-                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/50 backdrop-blur-sm"
+                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring- bg-white/50 backdrop-blur-sm"
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
@@ -2024,7 +2085,7 @@ const ApplicationProcess = ({
                         })
                       }
                       placeholder="City"
-                      className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/50 backdrop-blur-sm"
+                      className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring- bg-white/50 backdrop-blur-sm"
                     />
                   </div>
                   <div>
@@ -2044,7 +2105,7 @@ const ApplicationProcess = ({
                         })
                       }
                       placeholder="State"
-                      className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/50 backdrop-blur-sm"
+                      className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring- bg-white/50 backdrop-blur-sm"
                     />
                   </div>
                 </div>
@@ -2066,7 +2127,7 @@ const ApplicationProcess = ({
                     }}
                     placeholder="12345"
                     maxLength={5}
-                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/50 backdrop-blur-sm"
+                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring- bg-white/50 backdrop-blur-sm"
                   />
                 </div>
               </div>
@@ -2077,16 +2138,7 @@ const ApplicationProcess = ({
       case 3: // Lease Holders & Guarantors (only for full application)
         return (
           <div className="space-y-6">
-            <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="flex items-center justify-center p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-100"
-            >
-              <Shield className="h-5 w-5 mr-2 text-blue-600" />
-              <span className="text-sm text-blue-700 font-medium">
-                All personal information is secure and encrypted
-              </span>
-            </motion.div>
+          
             {/* Lease Holders */}
             <div className="space-y-4">
               <div className="border-b pb-2">
@@ -2132,7 +2184,7 @@ const ApplicationProcess = ({
                           }}
                           placeholder="First name"
                           required
-                          className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/50 backdrop-blur-sm"
+                          className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring- bg-white/50 backdrop-blur-sm"
                         />
                       </div>
                       <div>
@@ -2155,7 +2207,7 @@ const ApplicationProcess = ({
                           }}
                           placeholder="M"
                           maxLength={1}
-                          className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/50 backdrop-blur-sm"
+                          className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring- bg-white/50 backdrop-blur-sm"
                         />
                       </div>
                       <div>
@@ -2178,7 +2230,7 @@ const ApplicationProcess = ({
                           }}
                           placeholder="Last name"
                           required
-                          className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/50 backdrop-blur-sm"
+                          className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring- bg-white/50 backdrop-blur-sm"
                         />
                       </div>
                     </div>
@@ -2203,7 +2255,7 @@ const ApplicationProcess = ({
                           placeholder="MM/DD/YYYY"
                           maxLength={10}
                           required
-                          className={`w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/50 backdrop-blur-sm ${
+                          className={`w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring- bg-white/50 backdrop-blur-sm ${
                             holderDobErrors[index] ? "border-destructive" : ""
                           }`}
                         />
@@ -2260,7 +2312,7 @@ const ApplicationProcess = ({
                           placeholder="XXX-XX-XXXX"
                           maxLength={11}
                           required
-                          className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/50 backdrop-blur-sm"
+                          className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring- bg-white/50 backdrop-blur-sm"
                         />
                       </div>
                     </div>
@@ -2286,7 +2338,7 @@ const ApplicationProcess = ({
                           }}
                           placeholder="Email address"
                           required
-                          className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/50 backdrop-blur-sm"
+                          className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring- bg-white/50 backdrop-blur-sm"
                         />
                       </div>
                       <div>
@@ -2309,7 +2361,7 @@ const ApplicationProcess = ({
                           }}
                           placeholder="Phone number"
                           required
-                          className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/50 backdrop-blur-sm"
+                          className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring- bg-white/50 backdrop-blur-sm"
                         />
                       </div>
                     </div>
@@ -2472,7 +2524,7 @@ const ApplicationProcess = ({
                               <SelectTrigger>
                                 <SelectValue placeholder="Select duration" />
                               </SelectTrigger>
-                              <SelectContent>
+                              <SelectContent className="z-[9999] max-h-60 overflow-y-auto">
                                 <SelectItem value="0-2">
                                   Less than 2 years
                                 </SelectItem>
@@ -2509,7 +2561,7 @@ const ApplicationProcess = ({
                           <SelectTrigger>
                             <SelectValue placeholder="Select status" />
                           </SelectTrigger>
-                          <SelectContent>
+                          <SelectContent className="z-[9999] max-h-60 overflow-y-auto">
                             <SelectItem value="full-time">Full-time</SelectItem>
                             <SelectItem value="part-time">Part-time</SelectItem>
                             <SelectItem value="contract">Contract</SelectItem>
@@ -2569,7 +2621,7 @@ const ApplicationProcess = ({
                             <SelectTrigger>
                               <SelectValue placeholder="Select industry" />
                             </SelectTrigger>
-                            <SelectContent>
+                            <SelectContent className="z-[9999] max-h-60 overflow-y-auto">
                               {industryOptions.map((industry) => (
                                 <SelectItem
                                   key={industry}
@@ -2607,7 +2659,7 @@ const ApplicationProcess = ({
                             <SelectTrigger>
                               <SelectValue placeholder="Select position" />
                             </SelectTrigger>
-                            <SelectContent>
+                            <SelectContent className="z-[9999] max-h-60 overflow-y-auto">
                               {positionOptions.map((position) => (
                                 <SelectItem
                                   key={position}
@@ -3084,7 +3136,7 @@ const ApplicationProcess = ({
                               <SelectTrigger>
                                 <SelectValue placeholder="Select duration" />
                               </SelectTrigger>
-                              <SelectContent>
+                              <SelectContent className="z-[9999] max-h-60 overflow-y-auto">
                                 <SelectItem value="0-2">
                                   Less than 2 years
                                 </SelectItem>
@@ -3139,7 +3191,7 @@ const ApplicationProcess = ({
                         <SelectTrigger>
                           <SelectValue placeholder="Select status" />
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent className="z-[9999] max-h-60 overflow-y-auto">
                           <SelectItem value="full-time">Full-time</SelectItem>
                           <SelectItem value="part-time">Part-time</SelectItem>
                           <SelectItem value="contract">Contract</SelectItem>
@@ -3190,7 +3242,7 @@ const ApplicationProcess = ({
                             <SelectTrigger>
                               <SelectValue placeholder="Select industry" />
                             </SelectTrigger>
-                            <SelectContent>
+                            <SelectContent className="z-[9999] max-h-60 overflow-y-auto">
                               {industryOptions.map((industry) => (
                                 <SelectItem
                                   key={industry}
@@ -3225,7 +3277,7 @@ const ApplicationProcess = ({
                             <SelectTrigger>
                               <SelectValue placeholder="Select position" />
                             </SelectTrigger>
-                            <SelectContent>
+                            <SelectContent className="z-[9999] max-h-60 overflow-y-auto">
                               {positionOptions.map((position) => (
                                 <SelectItem
                                   key={position}
@@ -3330,16 +3382,7 @@ const ApplicationProcess = ({
       case 4: // Additional Occupants (only for full application)
         return (
           <div className="min-h-[600px] space-y-6">
-            <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="flex items-center justify-center p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-100"
-            >
-              <Shield className="h-5 w-5 mr-2 text-blue-600" />
-              <span className="text-sm text-blue-700 font-medium">
-                All personal information is secure and encrypted
-              </span>
-            </motion.div>
+           
 
             <div className="space-y-6">
               <div className="bg-secondary/5 p-4 rounded-lg border-l-4 border-secondary">
@@ -3622,16 +3665,7 @@ const ApplicationProcess = ({
       case 5: // Additional Info (only for full application)
         return (
           <div className="space-y-6">
-            <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="flex items-center justify-center p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-100"
-            >
-              <Shield className="h-5 w-5 mr-2 text-blue-600" />
-              <span className="text-sm text-blue-700 font-medium">
-                All personal information is secure and encrypted
-              </span>
-            </motion.div>
+          
             {/* Pet Information */}
             <div className="space-y-4">
               <div className="border-b pb-2">
@@ -3722,7 +3756,7 @@ const ApplicationProcess = ({
                             <SelectTrigger>
                               <SelectValue placeholder="Select pet type" />
                             </SelectTrigger>
-                            <SelectContent>
+                            <SelectContent className="z-[9999] max-h-60 overflow-y-auto">
                               <SelectItem value="dog">Dog</SelectItem>
                               <SelectItem value="cat">Cat</SelectItem>
                               <SelectItem value="bird">Bird</SelectItem>
@@ -3934,7 +3968,7 @@ const ApplicationProcess = ({
                             <SelectTrigger>
                               <SelectValue placeholder="Select vehicle type" />
                             </SelectTrigger>
-                            <SelectContent>
+                            <SelectContent className="z-[9999] max-h-60 overflow-y-auto">
                               {vehicleTypes.map((type) => (
                                 <SelectItem
                                   key={type}
@@ -4146,7 +4180,7 @@ const ApplicationProcess = ({
                     <SelectTrigger>
                       <SelectValue placeholder="Select relation" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="z-[9999] max-h-60 overflow-y-auto">
                       <SelectItem value="Parent">Parent</SelectItem>
                       <SelectItem value="Partner">Partner</SelectItem>
                       <SelectItem value="Sibling">Sibling</SelectItem>
@@ -4182,19 +4216,277 @@ const ApplicationProcess = ({
           </div>
         );
 
-      case 6: // Review & Submit (only for full application)
+      case 6: // Documents Upload
         return (
           <div className="space-y-6">
             <motion.div
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
-              className="flex items-center justify-center p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-100"
+              className="flex items-center justify-center p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl border border-green-100"
             >
-              <Shield className="h-5 w-5 mr-2 text-blue-600" />
-              <span className="text-sm text-blue-700 font-medium">
-                All personal information is secure and encrypted
+              <Shield className="h-5 w-5 mr-2 text-green-600" />
+              <span className="text-sm text-green-700 font-medium">
+                All documents are secure and encrypted
               </span>
             </motion.div>
+
+            <div className="space-y-6">
+              <div className="text-center">
+                <h3 className="text-xl font-semibold text-gray-800 mb-2">Upload Required Documents</h3>
+                <p className="text-gray-600">Please upload the following documents to complete your application</p>
+              </div>
+
+              {/* ID Documents */}
+              <div className="bg-white rounded-xl p-6 border border-gray-200">
+                <h4 className="font-semibold text-lg mb-4 flex items-center">
+                  <FileText className="h-5 w-5 mr-2 text-green-600" />
+                  Government ID
+                </h4>
+                <p className="text-sm text-gray-600 mb-4">Upload a clear photo of your driver's license, passport, or state ID</p>
+                <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-green-400 transition-colors">
+                  <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                  <p className="text-gray-600 mb-2">Click to upload or drag and drop</p>
+                  <p className="text-xs text-gray-500">PNG, JPG, PDF up to 10MB</p>
+                  <input
+                    type="file"
+                    accept=".png,.jpg,.jpeg,.pdf"
+                    multiple
+                    className="hidden"
+                    id="id-upload"
+                    onChange={(e) => {
+                      const files = Array.from(e.target.files || []);
+                      setFormData({
+                        ...formData,
+                        documents: {
+                          ...formData.documents,
+                          id: [...formData.documents.id, ...files]
+                        }
+                      });
+                    }}
+                  />
+                  <label
+                    htmlFor="id-upload"
+                    className="inline-block mt-4 px-4 py-2 bg-green-600 text-white rounded-lg cursor-pointer hover:bg-green-700 transition-colors"
+                  >
+                    Choose Files
+                  </label>
+                </div>
+                {formData.documents.id.length > 0 && (
+                  <div className="mt-4">
+                    <p className="text-sm font-medium text-gray-700 mb-2">Uploaded files:</p>
+                    <div className="space-y-2">
+                      {formData.documents.id.map((file, index) => (
+                        <div key={index} className="flex items-center justify-between bg-gray-50 p-2 rounded">
+                          <span className="text-sm text-gray-700">{file.name}</span>
+                          <button
+                            onClick={() => {
+                              const newFiles = formData.documents.id.filter((_, i) => i !== index);
+                              setFormData({
+                                ...formData,
+                                documents: { ...formData.documents, id: newFiles }
+                              });
+                            }}
+                            className="text-red-500 hover:text-red-700"
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Pay Stubs */}
+              <div className="bg-white rounded-xl p-6 border border-gray-200">
+                <h4 className="font-semibold text-lg mb-4 flex items-center">
+                  <DollarSign className="h-5 w-5 mr-2 text-green-600" />
+                  Pay Stubs (Last 2 months)
+                </h4>
+                <p className="text-sm text-gray-600 mb-4">Upload your most recent pay stubs or income verification</p>
+                <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-green-400 transition-colors">
+                  <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                  <p className="text-gray-600 mb-2">Click to upload or drag and drop</p>
+                  <p className="text-xs text-gray-500">PNG, JPG, PDF up to 10MB</p>
+                  <input
+                    type="file"
+                    accept=".png,.jpg,.jpeg,.pdf"
+                    multiple
+                    className="hidden"
+                    id="paystubs-upload"
+                    onChange={(e) => {
+                      const files = Array.from(e.target.files || []);
+                      setFormData({
+                        ...formData,
+                        documents: {
+                          ...formData.documents,
+                          payStubs: [...formData.documents.payStubs, ...files]
+                        }
+                      });
+                    }}
+                  />
+                  <label
+                    htmlFor="paystubs-upload"
+                    className="inline-block mt-4 px-4 py-2 bg-green-600 text-white rounded-lg cursor-pointer hover:bg-green-700 transition-colors"
+                  >
+                    Choose Files
+                  </label>
+                </div>
+                {formData.documents.payStubs.length > 0 && (
+                  <div className="mt-4">
+                    <p className="text-sm font-medium text-gray-700 mb-2">Uploaded files:</p>
+                    <div className="space-y-2">
+                      {formData.documents.payStubs.map((file, index) => (
+                        <div key={index} className="flex items-center justify-between bg-gray-50 p-2 rounded">
+                          <span className="text-sm text-gray-700">{file.name}</span>
+                          <button
+                            onClick={() => {
+                              const newFiles = formData.documents.payStubs.filter((_, i) => i !== index);
+                              setFormData({
+                                ...formData,
+                                documents: { ...formData.documents, payStubs: newFiles }
+                              });
+                            }}
+                            className="text-red-500 hover:text-red-700"
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Bank Statements */}
+              <div className="bg-white rounded-xl p-6 border border-gray-200">
+                <h4 className="font-semibold text-lg mb-4 flex items-center">
+                  <DollarSign className="h-5 w-5 mr-2 text-green-600" />
+                  Bank Statements (Last 2 months)
+                </h4>
+                <p className="text-sm text-gray-600 mb-4">Upload your most recent bank statements</p>
+                <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-green-400 transition-colors">
+                  <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                  <p className="text-gray-600 mb-2">Click to upload or drag and drop</p>
+                  <p className="text-xs text-gray-500">PNG, JPG, PDF up to 10MB</p>
+                  <input
+                    type="file"
+                    accept=".png,.jpg,.jpeg,.pdf"
+                    multiple
+                    className="hidden"
+                    id="bankstatements-upload"
+                    onChange={(e) => {
+                      const files = Array.from(e.target.files || []);
+                      setFormData({
+                        ...formData,
+                        documents: {
+                          ...formData.documents,
+                          bankStatements: [...formData.documents.bankStatements, ...files]
+                        }
+                      });
+                    }}
+                  />
+                  <label
+                    htmlFor="bankstatements-upload"
+                    className="inline-block mt-4 px-4 py-2 bg-green-600 text-white rounded-lg cursor-pointer hover:bg-green-700 transition-colors"
+                  >
+                    Choose Files
+                  </label>
+                </div>
+                {formData.documents.bankStatements.length > 0 && (
+                  <div className="mt-4">
+                    <p className="text-sm font-medium text-gray-700 mb-2">Uploaded files:</p>
+                    <div className="space-y-2">
+                      {formData.documents.bankStatements.map((file, index) => (
+                        <div key={index} className="flex items-center justify-between bg-gray-50 p-2 rounded">
+                          <span className="text-sm text-gray-700">{file.name}</span>
+                          <button
+                            onClick={() => {
+                              const newFiles = formData.documents.bankStatements.filter((_, i) => i !== index);
+                              setFormData({
+                                ...formData,
+                                documents: { ...formData.documents, bankStatements: newFiles }
+                              });
+                            }}
+                            className="text-red-500 hover:text-red-700"
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Optional Documents */}
+              <div className="bg-white rounded-xl p-6 border border-gray-200">
+                <h4 className="font-semibold text-lg mb-4 flex items-center">
+                  <FileText className="h-5 w-5 mr-2 text-green-600" />
+                  Additional Documents (Optional)
+                </h4>
+                <p className="text-sm text-gray-600 mb-4">Upload any additional documents that may help with your application</p>
+                <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-green-400 transition-colors">
+                  <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                  <p className="text-gray-600 mb-2">Click to upload or drag and drop</p>
+                  <p className="text-xs text-gray-500">PNG, JPG, PDF up to 10MB</p>
+                  <input
+                    type="file"
+                    accept=".png,.jpg,.jpeg,.pdf"
+                    multiple
+                    className="hidden"
+                    id="other-upload"
+                    onChange={(e) => {
+                      const files = Array.from(e.target.files || []);
+                      setFormData({
+                        ...formData,
+                        documents: {
+                          ...formData.documents,
+                          other: [...formData.documents.other, ...files]
+                        }
+                      });
+                    }}
+                  />
+                  <label
+                    htmlFor="other-upload"
+                    className="inline-block mt-4 px-4 py-2 bg-green-600 text-white rounded-lg cursor-pointer hover:bg-green-700 transition-colors"
+                  >
+                    Choose Files
+                  </label>
+                </div>
+                {formData.documents.other.length > 0 && (
+                  <div className="mt-4">
+                    <p className="text-sm font-medium text-gray-700 mb-2">Uploaded files:</p>
+                    <div className="space-y-2">
+                      {formData.documents.other.map((file, index) => (
+                        <div key={index} className="flex items-center justify-between bg-gray-50 p-2 rounded">
+                          <span className="text-sm text-gray-700">{file.name}</span>
+                          <button
+                            onClick={() => {
+                              const newFiles = formData.documents.other.filter((_, i) => i !== index);
+                              setFormData({
+                                ...formData,
+                                documents: { ...formData.documents, other: newFiles }
+                              });
+                            }}
+                            className="text-red-500 hover:text-red-700"
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        );
+
+      case 7: // Review & Submit (only for full application)
+        return (
+          <div className="space-y-6">
+         
             <div className="text-center space-y-2">
               <FileText className="h-16 w-16 text-primary mx-auto" />
               <h3 className="text-lg font-semibold">Review Your Application</h3>
@@ -4948,8 +5240,8 @@ const ApplicationProcess = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-5xl max-h-[90vh] flex flex-col p-0 bg-gradient-to-br from-blue-50 to-indigo-100">
-        <DialogHeader className="flex-shrink-0 bg-gradient-to-r from-blue-600 to-purple-600 px-6 py-6">
+      <DialogContent className="max-w-5xl max-h-[90vh] flex flex-col p-0 bg-gradient-to-br from-green-50 to-blue-50">
+        <DialogHeader className="flex-shrink-0 bg-gradient-to-r from-green-600 via-emerald-600 to-green-600 px-6 py-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center">
               <div className="bg-white/20 backdrop-blur-sm p-2 rounded-xl mr-4">
@@ -4963,7 +5255,7 @@ const ApplicationProcess = ({
               ? "Get Pre-Qualified"
               : "Rental Application"}
           </DialogTitle>
-                <p className="text-blue-100 text-lg">
+                <p className="text-green-100 text-lg">
                   Fill out the form below to apply for your dream home
                 </p>
               </div>
@@ -4983,7 +5275,7 @@ const ApplicationProcess = ({
                       index === currentStep
                         ? "bg-blue-600 text-white shadow-lg"
                         : index < currentStep
-                        ? "bg-green-100 text-green-700"
+                        ? "bg-blue-100 text-blue-700"
                         : "bg-gray-100 text-gray-500"
                     }`}
                   >
@@ -5003,7 +5295,7 @@ const ApplicationProcess = ({
                   </span>
                   </div>
                   {index < steps.length - 1 && (
-                    <div className="w-2 h-0.5 bg-gray-300 mx-1 flex-shrink-0" />
+                    <div className="w-2 h-0.5 bg-blue-300 mx-1 flex-shrink-0" />
                   )}
                 </div>
               ))}
@@ -5168,7 +5460,7 @@ const ApplicationProcess = ({
                 variant="outline"
                 onClick={handlePrev}
                 disabled={currentStep === 0}
-                className="flex items-center space-x-2 px-6 py-3 border border-gray-200 rounded-xl hover:bg-gray-50"
+                className="flex items-center space-x-2 px-6 py-3 border border-green-200 rounded-xl hover:bg-green-50 text-green-700"
               >
                 <ArrowLeft className="h-4 w-4" />
                 <span>Previous</span>
@@ -5178,7 +5470,7 @@ const ApplicationProcess = ({
                 <Button 
                   onClick={handleNext} 
                   disabled={!isStepValid()}
-                  className="flex items-center space-x-2 px-8 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-xl hover:from-blue-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-lg hover:shadow-xl"
+                  className="flex items-center space-x-2 px-8 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white font-semibold rounded-xl hover:from-green-700 hover:to-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2  disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-lg hover:shadow-xl"
                 >
                   <span>Next</span>
                   <ArrowRight className="h-4 w-4" />
@@ -5187,7 +5479,7 @@ const ApplicationProcess = ({
                 <Button 
                   onClick={handleSubmit} 
                   disabled={!isStepValid()}
-                  className="flex items-center space-x-2 px-8 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-xl hover:from-blue-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-lg hover:shadow-xl"
+                  className="flex items-center space-x-2 px-8 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white font-semibold rounded-xl hover:from-green-700 hover:to-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2  disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-lg hover:shadow-xl"
                 >
                   <span>Submit {type === "prequalify" ? "Pre-qualification" : "Application"}</span>
                   <CheckCircle className="h-4 w-4" />

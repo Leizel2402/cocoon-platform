@@ -8,6 +8,7 @@ import { SignIn, SignUp } from './pages/auth';
 import { MagicLinkHandler } from './components/MagicLinkHandler';
 import { Apply } from './pages/Apply';
 import { Dashboard } from './pages/Dashboard';
+import LandlordDashboard from './pages/LandlordDashboard';
 import Dashboards from './pages/Dashboards';
 import { MyApplications } from './pages/MyApplications';
 import { UserPortal } from './pages/UserPortal';
@@ -104,7 +105,7 @@ function App() {
             path="/landlord-dashboard"
             element={
               <ProtectedRoute requiredRoles={['landlord_admin', 'landlord_employee']}>
-                <Dashboard />
+                <LandlordDashboard />
               </ProtectedRoute>
             }
           />
@@ -122,7 +123,7 @@ function App() {
             path="/cocoon-dashboard"
             element={
               <ProtectedRoute requiredRoles={['cocoon_admin', 'cocoon_employee']}>
-                <Dashboard />
+                <LandlordDashboard />
               </ProtectedRoute>
             }
           />

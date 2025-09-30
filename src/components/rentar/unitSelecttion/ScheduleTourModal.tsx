@@ -7,6 +7,8 @@ import { Textarea } from '../../ui/textarea';
 import { Calendar, CheckCircle, MapPin, Bed, Bath, DollarSign, Home, Shield, Clock, User, Mail, Phone, Square, Building } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useToast } from '../../../hooks/use-toast';
+import { useAuth } from '../../../hooks/useAuth';
+import { submitTourBooking } from '../../../services/submissionService';
 
 interface LeaseTerm {
   months: number;
@@ -59,6 +61,7 @@ interface ScheduleTourModalProps {
 
 const ScheduleTourModal = ({ property, unit, isOpen, onClose }: ScheduleTourModalProps) => {
   const { toast } = useToast();
+  const { user } = useAuth();
   console.log("property", property);
   console.log("unit", unit);
   
@@ -75,6 +78,7 @@ const ScheduleTourModal = ({ property, unit, isOpen, onClose }: ScheduleTourModa
     moveInDate: today
   });
   const [showSuccess, setShowSuccess] = useState(false);
+  const [submissionId, setSubmissionId] = useState<string | null>(null);
 
   const formatPhone = (value: string) => {
     const numbers = value.replace(/\D/g, '');
@@ -93,7 +97,7 @@ const ScheduleTourModal = ({ property, unit, isOpen, onClose }: ScheduleTourModa
            formData.moveInDate;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!isFormValid()) {
       toast({
@@ -104,13 +108,51 @@ const ScheduleTourModal = ({ property, unit, isOpen, onClose }: ScheduleTourModa
       return;
     }
 
-    // Show success message
-    setShowSuccess(true);
-    
-    toast({
-      title: "Tour Request Submitted!",
-      description: "We'll contact you soon to confirm your appointment.",
-    });
+    if (!user) {
+      toast({
+        title: "Authentication Required",
+        description: "Please sign in to submit a tour request.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      const tourData = {
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        email: formData.email,
+        phone: formData.phone,
+        preferredDate: formData.preferredDate,
+        apartmentPreferences: formData.apartmentPreferences,
+        moveInDate: formData.moveInDate,
+        propertyId: property?.id || 'general-tour',
+        propertyName: property?.name || 'General Tour Request',
+        unitId: unit?.id || null,
+        unitNumber: unit?.unitNumber || null,
+        submittedBy: user.uid,
+      };
+
+      const result = await submitTourBooking(tourData);
+      
+      if (result.success) {
+        setSubmissionId(result.id);
+        setShowSuccess(true);
+        toast({
+          title: "Tour Request Submitted Successfully!",
+          description: "Your tour request has been sent to the property management team. You'll receive a confirmation within 24 hours.",
+        });
+      } else {
+        throw new Error(result.error || 'Failed to submit tour request');
+      }
+    } catch (error) {
+      console.error('Error submitting tour booking:', error);
+      toast({
+        title: "Submission Failed",
+        description: "There was an error submitting your tour request. Please try again.",
+        variant: "destructive"
+      });
+    }
   };
 
   const handleClose = () => {
@@ -124,6 +166,7 @@ const ScheduleTourModal = ({ property, unit, isOpen, onClose }: ScheduleTourModa
       moveInDate: today
     });
     setShowSuccess(false);
+    setSubmissionId(null);
     onClose();
   };
 
@@ -214,10 +257,15 @@ const ScheduleTourModal = ({ property, unit, isOpen, onClose }: ScheduleTourModa
               </div>
 
               <div className="space-y-4">
-                <div className="bg-blue-50 rounded-xl p-4 max-w-2xl mx-auto">
-                  <p className="text-sm text-blue-800">
-                    <strong>Note:</strong> This is a placeholder integration. In production, this would connect 
-                    directly to the landlord's calendar system for real-time scheduling.
+                <div className="bg-green-50 rounded-xl p-4 max-w-2xl mx-auto">
+                  <p className="text-sm text-green-800">
+                    <strong>Next Steps:</strong> Your tour request has been submitted to the property management team. 
+                    They will contact you within 24 hours to confirm your appointment and provide tour details.
+                    {submissionId && (
+                      <span className="block mt-2 text-xs text-green-700">
+                        <strong>Reference ID:</strong> {submissionId}
+                      </span>
+                    )}
                   </p>
                 </div>
               

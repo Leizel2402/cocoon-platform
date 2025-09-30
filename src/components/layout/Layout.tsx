@@ -26,12 +26,10 @@ export function Layout({ children }: LayoutProps) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const [searchLocation, setSearchLocation] = useState("");
   const [selectedLanguage, setSelectedLanguage] = useState<
     "EN" | "ES" | "FR" | "DE"
   >("EN");
   const [langOpen, setLangOpen] = useState(false);
-  const [showAddyChat, setShowAddyChat] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { t } = useTranslation(selectedLanguage);
 
@@ -90,22 +88,36 @@ export function Layout({ children }: LayoutProps) {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex justify-between items-center h-16">
               <Link to="/" className="flex items-center space-x-3">
-                <div className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white p-3 rounded-lg shadow-xl">
-                  <Home className="h-7 w-7 text-white" />
+                <div className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white p-2 sm:p-3 rounded-lg shadow-xl">
+                  <Home className="h-5 w-5 sm:h-7 sm:w-7 text-white" />
                 </div>
 
-                <span className="text-3xl hidden sm:flex font-bold bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 bg-clip-text text-transparent">
+                <span className="text-xl sm:text-2xl lg:text-3xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 bg-clip-text text-transparent">
                   Cocoon
                 </span>
               </Link>
-              <Button 
+              
+              {/* Desktop Navigation - Hidden on tablet and mobile */}
+              <div className="hidden xl:flex items-center space-x-4">
+                <Button 
                   variant="ghost" 
                   className="text-gray-700 hover:bg-muted"
                   onClick={() => navigate('/property-search')}
                 >
                   Property Search
                 </Button>
-              <nav className="hidden lg:flex items-center space-x-8">
+              </div>
+              
+              {/* Get Prequalified button - hidden on mobile/tablet, visible on desktop */}
+              <div className="hidden xl:flex items-center">
+                <Button 
+                  className="bg-green-600 hover:bg-green-700 text-white px-4 sm:px-6 py-2 font-semibold text-sm sm:text-base"
+                >
+                  Get Prequalified
+                </Button>
+              </div>
+              
+              <nav className="hidden xl:flex items-center space-x-8">
                 {!user ? (
                   ""
                 ) : (
@@ -257,17 +269,18 @@ export function Layout({ children }: LayoutProps) {
                   </>
                 )}
               </nav>
-              <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-2 sm:space-x-4">
                 {/* Mobile menu button - visible on tablet/mobile */}
 
                 {user ? (
-                  <div className="flex items-center space-x-4">
-                    <div className="hidden sm:flex items-center space-x-2">
+                  <div className="flex items-center space-x-2 sm:space-x-4">
+                    {/* User profile - responsive sizing */}
+                    <div className="hidden md:flex items-center space-x-2">
                       <div className="bg-gradient-to-r from-blue-100 to-purple-100 p-2 rounded-full">
                         <User className="h-4 w-4 text-blue-600" />
                       </div>
-                      <div>
-                        <span className="text-sm font-medium text-gray-700">
+                      <div className="hidden xl:block">
+                        <span className="text-sm font-medium text-gray-700 truncate max-w-32">
                           {user.email}
                         </span>
                         <span className="block text-xs bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent font-medium">
@@ -285,130 +298,154 @@ export function Layout({ children }: LayoutProps) {
                         </span>
                       </div>
                     </div>
+                    
+                    {/* Desktop logout button */}
                     <motion.button
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
                       onClick={handleLogout}
-                      className="hidden lg:inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-red-500 to-red-600 rounded-lg hover:from-red-600 hover:to-red-700 transition-all duration-200 shadow-md hover:shadow-lg"
+                      className="hidden xl:inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-red-500 to-red-600 rounded-lg hover:from-red-600 hover:to-red-700 transition-all duration-200 shadow-md hover:shadow-lg"
                     >
                       <LogOut className="h-4 w-4 mr-2" />
                       Sign Out
                     </motion.button>
                   </div>
                 ) : (
-                  <div className="flex items-center space-x-4">
-                      <Popover open={langOpen} onOpenChange={setLangOpen}>
-                  <PopoverTrigger asChild>
-                    <Button variant="ghost" size="sm" className="text-gray-500 px-2">
-                      <Globe className="h-4 w-4 mr-1" />
-                      {selectedLanguage}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-32 p-2 bg-white border shadow-lg z-[60]">
-                    <div className="space-y-1">
-                      {(['EN', 'ES', 'FR', 'DE'] as const).map((lang) => (
+                  <div className="flex items-center space-x-2 sm:space-x-4">
+                      {/* Language selector - hidden on small screens */}
+                      <div className="hidden sm:block">
+                        <Popover open={langOpen} onOpenChange={setLangOpen}>
+                          <PopoverTrigger asChild>
+                            <Button variant="ghost" size="sm" className="text-gray-500 px-2">
+                              <Globe className="h-4 w-4 mr-1" />
+                              {selectedLanguage}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-32 p-2 bg-white border shadow-lg z-[60]">
+                            <div className="space-y-1">
+                              {(['EN', 'ES', 'FR', 'DE'] as const).map((lang) => (
+                                <Button
+                                  key={lang}
+                                  variant="ghost"
+                                  size="sm"
+                                  className="w-full justify-start text-left hover:bg-gray-100"
+                                  onClick={() => {
+                                    setSelectedLanguage(lang);
+                                    setLangOpen(false);
+                                  }}
+                                >
+                                  {lang === 'EN' && t('english')}
+                                  {lang === 'ES' && t('spanish')}
+                                  {lang === 'FR' && t('french')}
+                                  {lang === 'DE' && t('german')}
+                                </Button>
+                              ))}
+                            </div>
+                          </PopoverContent>
+                        </Popover>
+                      </div>
+
+                    {/* Desktop navigation buttons - hidden on tablet and mobile */}
+                    <div className="hidden xl:flex items-center space-x-2">
                         <Button
-                          key={lang}
                           variant="ghost"
-                          size="sm"
-                          className="w-full justify-start text-left hover:bg-gray-100"
+                          className="text-gray-700 hover:bg-muted text-sm"
                           onClick={() => {
-                            setSelectedLanguage(lang);
-                            setLangOpen(false);
+                            localStorage.setItem("portal_context", "manager");
+                            navigate("/signin");
                           }}
                         >
-                          {lang === 'EN' && t('english')}
-                          {lang === 'ES' && t('spanish')}
-                          {lang === 'FR' && t('french')}
-                          {lang === 'DE' && t('german')}
+                          Manager Portal
                         </Button>
-                      ))}
-                    </div>
-                  </PopoverContent>
-                </Popover>
 
-                    <Button
-                      variant="ghost"
-                      className="text-gray-700 hover:bg-muted"
-                      onClick={() => {
-                        localStorage.setItem("portal_context", "manager");
-                        navigate("/signin");
-                      }}
-                    >
-                      Manager Portal
-                    </Button>
+                        <Button
+                          variant="ghost"
+                          className="text-gray-700 hover:bg-muted text-sm"
+                          onClick={() => {
+                            localStorage.setItem("portal_context", "renter");
+                            navigate("/auth");
+                          }}
+                        >
+                          Renter Portal
+                        </Button>
 
-                    <Button
-                      variant="ghost"
-                      className="text-gray-700 hover:bg-muted"
-                      onClick={() => {
-                        localStorage.setItem("portal_context", "renter");
-                        navigate("/auth");
-                      }}
-                    >
-                      Renter Portal
-                    </Button>
+                        <Button
+                          variant="ghost"
+                          className="text-gray-700 hover:bg-muted text-sm"
+                          onClick={() => navigate("/faq")}
+                        >
+                          FAQs
+                        </Button>
+                      </div>
 
-                    <Button
-                      variant="ghost"
-                      className="text-gray-700 hover:bg-muted"
-                      onClick={() => navigate("/faq")}
-                    >
-                      FAQs
-                    </Button>
-                    <motion.div
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                    >
-                      <button
-                        onClick={() => navigate("/signin")}
-                        className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors px-4 py-2 rounded-lg hover:bg-gray-50"
-                      >
-                        Sign In
-                      </button>
-                    </motion.div>
-                    <motion.div
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                    >
-                      <button
-                        onClick={() => navigate("/signup")}
-                        className="inline-flex items-center px-6 py-2 text-sm font-medium bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 rounded-lg text-white transition-all duration-200 shadow-md hover:shadow-lg"
-                      >
-                        Sign Up
-                      </button>
-                    </motion.div>
+                      {/* Auth buttons - responsive sizing */}
+                      <div className="flex items-center space-x-2">
+                        <motion.div
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                        >
+                          <button
+                            onClick={() => navigate("/signin")}
+                            className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors px-3 py-2 rounded-lg hover:bg-gray-50"
+                          >
+                            <span className="hidden sm:inline">Sign In</span>
+                            <span className="sm:hidden">Login</span>
+                          </button>
+                        </motion.div>
+                        <motion.div
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                        >
+                          <button
+                            onClick={() => navigate("/signup")}
+                            className="inline-flex items-center px-4 sm:px-6 py-2 text-sm font-medium bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 rounded-lg text-white transition-all duration-200 shadow-md hover:shadow-lg"
+                          >
+                            <span className="hidden sm:inline">Sign Up</span>
+                            <span className="sm:hidden">Join</span>
+                          </button>
+                        </motion.div>
+                      </div>
                   </div>
                 )}
-                {user && (
-                  <button
-                    onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                    className="lg:hidden p-2 rounded-lg text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-colors"
-                  >
-                    {isMobileMenuOpen ? (
-                      <X className="h-6 w-6" />
-                    ) : (
-                      <Menu className="h-6 w-6" />
-                    )}
-                  </button>
-                )}
+                {/* Mobile menu toggle - visible on tablet and mobile (below 1280px) */}
+                <button
+                  onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                  className="xl:hidden p-2 rounded-lg text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-colors"
+                >
+                  {isMobileMenuOpen ? (
+                    <X className="h-6 w-6" />
+                  ) : (
+                    <Menu className="h-6 w-6" />
+                  )}
+                </button>
               </div>
             </div>
           </div>
         </header>
       )}
       {/* Mobile Navigation - Hidden on auth pages, toggleable on tablet/mobile */}
-      {!hideHeader && user && isMobileMenuOpen && (
-        <motion.div
-          initial={{ x: "100%" }}
-          animate={{ x: 0 }}
-          exit={{ x: "100%" }}
-          transition={{ type: "spring", stiffness: 100, damping: 20 }}
-          className="fixed top-0 right-0 h-full w-3/4 sm:w-1/3 bg-white/90 backdrop-blur-xl shadow-2xl z-50 flex flex-col"
-        >
+      {!hideHeader && isMobileMenuOpen && (
+        <>
+          {/* Backdrop overlay */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setIsMobileMenuOpen(false)}
+            className="fixed inset-0 bg-black/20 backdrop-blur-sm z-40"
+          />
+          
+          {/* Mobile menu */}
+          <motion.div
+            initial={{ x: "100%" }}
+            animate={{ x: 0 }}
+            exit={{ x: "100%" }}
+            transition={{ type: "spring", stiffness: 100, damping: 20 }}
+            className="fixed top-0 right-0 h-full w-4/6 sm:w-2/5 md:w-1/3 bg-white/95 backdrop-blur-xl shadow-2xl z-50 flex flex-col"
+          >
           {/* Header inside menu */}
           <div className="flex justify-between items-center p-4 border-b border-gray-200">
-            <span className="text-lg  font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+            <span className="text-lg font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
               Cocoon
             </span>
             <button
@@ -420,13 +457,17 @@ export function Layout({ children }: LayoutProps) {
           </div>
 
           {/* Menu Items */}
-          <nav className="flex flex-col p-4 space-y-3">
+          <nav className="flex flex-col p-4 space-y-3 flex-1">
+            {/* Home button - always visible */}
             <motion.div whileTap={{ scale: 0.95 }}>
               <button
-                onClick={() => navigate("/")}
+                onClick={() => {
+                  navigate("/");
+                  setIsMobileMenuOpen(false);
+                }}
                 className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all w-full ${
                   isActive("/")
-                    ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-md"
+                    ? "bg-gradient-to-r from-green-600 to-emerald-600 text-white shadow-md"
                     : "text-gray-700 hover:bg-gray-100"
                 }`}
               >
@@ -434,6 +475,93 @@ export function Layout({ children }: LayoutProps) {
                 Home
               </button>
             </motion.div>
+
+            {/* Non-authenticated user menu items */}
+            {!user && (
+              <>
+                <motion.div whileTap={{ scale: 0.95 }}>
+                  <button
+                    onClick={() => {
+                      navigate("/property-search");
+                      setIsMobileMenuOpen(false);
+                    }}
+                    className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all w-full text-gray-700 hover:bg-gray-100"
+                  >
+                    <Home className="h-5 w-5" />
+                    Property Search
+                  </button>
+                </motion.div>
+
+                <motion.div whileTap={{ scale: 0.95 }}>
+                  <button
+                    onClick={() => {
+                      localStorage.setItem("portal_context", "manager");
+                      navigate("/signin");
+                      setIsMobileMenuOpen(false);
+                    }}
+                    className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all w-full text-gray-700 hover:bg-gray-100"
+                  >
+                    <User className="h-5 w-5" />
+                    Manager Portal
+                  </button>
+                </motion.div>
+
+                <motion.div whileTap={{ scale: 0.95 }}>
+                  <button
+                    onClick={() => {
+                      localStorage.setItem("portal_context", "renter");
+                      navigate("/auth");
+                      setIsMobileMenuOpen(false);
+                    }}
+                    className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all w-full text-gray-700 hover:bg-gray-100"
+                  >
+                    <UserCircle className="h-5 w-5" />
+                    Renter Portal
+                  </button>
+                </motion.div>
+
+                <motion.div whileTap={{ scale: 0.95 }}>
+                  <button
+                    onClick={() => {
+                      navigate("/faq");
+                      setIsMobileMenuOpen(false);
+                    }}
+                    className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all w-full text-gray-700 hover:bg-gray-100"
+                  >
+                    <MessageCircle className="h-5 w-5" />
+                    FAQs
+                  </button>
+                </motion.div>
+
+                {/* Language selector for mobile */}
+                <div className="px-4 py-3">
+                  <div className="space-y-2">
+                    <span className="text-sm font-medium text-gray-700">Language</span>
+                    <div className="grid grid-cols-2 gap-2">
+                      {(['EN', 'ES', 'FR', 'DE'] as const).map((lang) => (
+                        <motion.button
+                          key={lang}
+                          whileTap={{ scale: 0.95 }}
+                          onClick={() => {
+                            setSelectedLanguage(lang);
+                          }}
+                          className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                            selectedLanguage === lang
+                              ? "bg-gradient-to-r from-green-600 to-emerald-600 text-white shadow-md"
+                              : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                          }`}
+                        >
+                          {lang === 'EN' && t('english')}
+                          {lang === 'ES' && t('spanish')}
+                          {lang === 'FR' && t('french')}
+                          {lang === 'DE' && t('german')}
+                        </motion.button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </>
+            )}
 
             {user?.role === "prospect" && (
               <>
@@ -643,15 +771,54 @@ export function Layout({ children }: LayoutProps) {
 
           {/* Footer */}
           <div className="mt-auto border-t border-gray-200 p-4">
-            <button
-              onClick={handleLogout}
-              className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-gradient-to-r from-red-500 to-red-600 text-white font-medium shadow-md hover:from-red-600 hover:to-red-700 transition"
-            >
-              <LogOut className="h-5 w-5" />
-              Sign Out
-            </button>
+            {user ? (
+              <button
+                onClick={handleLogout}
+                className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-gradient-to-r from-red-500 to-red-600 text-white font-medium shadow-md hover:from-red-600 hover:to-red-700 transition"
+              >
+                <LogOut className="h-5 w-5" />
+                Sign Out
+              </button>
+            ) : (
+              <div className="space-y-3">
+                <motion.button
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => {
+                    navigate("/signin");
+                    setIsMobileMenuOpen(false);
+                  }}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 text-white font-medium shadow-md hover:from-blue-600 hover:to-blue-700 transition"
+                >
+                  <User className="h-5 w-5" />
+                  Sign In
+                </motion.button>
+                <motion.button
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => {
+                    navigate("/signup");
+                    setIsMobileMenuOpen(false);
+                  }}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-gradient-to-r from-green-500 to-green-600 text-white font-medium shadow-md hover:from-green-600 hover:to-green-700 transition"
+                >
+                  <UserCircle className="h-5 w-5" />
+                  Sign Up
+                </motion.button>
+                <motion.button
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => {
+                    // Navigate to prequalification page
+                    setIsMobileMenuOpen(false);
+                  }}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 text-white font-medium shadow-md hover:from-emerald-600 hover:to-emerald-700 transition"
+                >
+                  <FileText className="h-5 w-5" />
+                  Get Prequalified
+                </motion.button>
+              </div>
+            )}
           </div>
-        </motion.div>
+          </motion.div>
+        </>
       )}
 
       {/* Main Content */}

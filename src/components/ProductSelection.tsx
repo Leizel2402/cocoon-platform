@@ -287,17 +287,17 @@ const ProductSelection = ({
   };
 
   return (
-    <div className="max-w-5xl mx-auto p-4">
+    <div className="max-w-5xl mx-auto p-4 bg-gradient-to-br from-green-50 to-blue-50 min-h-screen">
       {/* Header */}
       <div className="mb-4">
         <div className="flex items-center gap-4 mb-2">
-          <Button variant="outline" size="sm" onClick={onBack} className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={onBack} className="flex items-center gap-2 border-green-200 text-green-700 hover:bg-green-50">
             <ArrowLeft className="h-4 w-4" />
             Back
           </Button>
           <div>
-            <h1 className="text-2xl font-bold text-primary">Customize Your Move-in Package</h1>
-            <p className="text-sm text-muted-foreground">{property.name} - Unit {unit.unitNumber}</p>
+            <h1 className="text-2xl font-bold text-green-600">Customize Your Move-in Package</h1>
+            <p className="text-sm text-gray-600">{property.name} - Unit {unit.unitNumber}</p>
           </div>
         </div>
       </div>
@@ -599,7 +599,7 @@ const ProductSelection = ({
 
               <Button 
                 onClick={processPayment} 
-                className="w-full"
+                className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-200"
                 size="lg"
               >
                 Pay Now

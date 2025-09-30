@@ -350,11 +350,11 @@ export function Home() {
             padding: 20px 0 60px 0;
           }
           .testimonials-swiper-pagination-bullet {
-            width: 12px;
-            height: 12px;
+            width: 8px;
+            height: 8px;
             background: #d1d5db;
             opacity: 1;
-            margin: 0 6px;
+            margin: 0 4px;
             transition: all 0.3s ease;
           }
           .testimonials-swiper-pagination-bullet-active {
@@ -366,9 +366,22 @@ export function Home() {
           }
           .testimonials-swiper-button-prev,
           .testimonials-swiper-button-next {
-            width: 48px;
-            height: 48px;
-            margin-top: -24px;
+            width: 40px;
+            height: 40px;
+            margin-top: -20px;
+          }
+          @media (min-width: 640px) {
+            .testimonials-swiper-pagination-bullet {
+              width: 12px;
+              height: 12px;
+              margin: 0 6px;
+            }
+            .testimonials-swiper-button-prev,
+            .testimonials-swiper-button-next {
+              width: 48px;
+              height: 48px;
+              margin-top: -24px;
+            }
           }
           .testimonials-swiper-button-prev:after,
           .testimonials-swiper-button-next:after {
@@ -379,7 +392,7 @@ export function Home() {
       <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50">
         {/* Hero Section */}
 
-        <div className="relative  overflow-hidden">
+        <div className="relative min-h-[60vh] sm:min-h-[70vh] overflow-hidden">
           <img
             src={heroImage}
             alt="Beautiful apartment buildings"
@@ -396,8 +409,8 @@ export function Home() {
                 transition={{ duration: 0.8 }}
               >
               {/* Hero Content */}
-              <div className="relative z-10 flex flex-col items-center text-center px-4 py-16 pb-4">
-                <h1 className="text-4xl sm:text-6xl font-bold mb-6 text-white">
+              <div className="relative z-10 flex flex-col items-center text-center px-4 py-8 sm:py-12 lg:py-16 pb-4">
+                <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-4 sm:mb-6 text-white leading-tight">
                 Forget everything you know
                   <span className="block text-green-600 my-1"> about Renting</span>
                 </h1>
@@ -414,8 +427,8 @@ export function Home() {
             </motion.div>
                   </div>
 
-          <div className="relative  z-20">
-            <div className="max-w-4xl mx-auto px-4 ">
+          <div className="relative z-20">
+            <div className="max-w-4xl mx-auto px-3 sm:px-4">
               {!showAddyChat ? (
                 <>
                   <AddySearchBox
@@ -424,19 +437,20 @@ export function Home() {
                       setShowAddyChat(true);
                     }}
                   />
-                 <div className="mb-16 mt-6 text-center">
+                 <div className="mb-8 sm:mb-12 lg:mb-16 mt-4 sm:mt-6 text-center">
                   <Button
                       variant="ghost"
                       onClick={() => navigate("/property")}
-                      className="text-white hover:text-green-600 text-[16px] hover:underline font-normal  px-6 py-2 rounded-lg"
+                      className="text-white hover:text-green-600 text-sm sm:text-base hover:underline font-normal px-4 sm:px-6 py-2 rounded-lg"
                     >
-                      Skip questions - Browse properties directly
+                      <span className="hidden sm:inline">Skip questions - Browse properties directly</span>
+                      <span className="sm:hidden">Browse Properties</span>
                   </Button>
                   </div>
                 </>
               ) : (
                 <>
-                  <div className="bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden">
+                  <div className="bg-white rounded-xl sm:rounded-2xl shadow-2xl border border-gray-100 overflow-hidden">
                     <AddyChat
                       initialSearch={chatQuery}
                       onComplete={(filters) => {
@@ -448,13 +462,14 @@ export function Home() {
                       }}
                     />
                   </div>
-                  <div className="mb-16 mt-6 text-center">
+                  <div className="mb-8 sm:mb-12 lg:mb-16 mt-4 sm:mt-6 text-center">
                   <Button
                       variant="ghost"
                       onClick={() => navigate("/property")}
-                      className="text-white text-[16px] font-normal hover:underline  px-6 py-2 rounded-lg"
+                      className="text-white text-sm sm:text-base font-normal hover:underline px-4 sm:px-6 py-2 rounded-lg"
                   >
-                      Skip remaining questions - Browse properties now
+                      <span className="hidden sm:inline">Skip remaining questions - Browse properties now</span>
+                      <span className="sm:hidden">Browse Properties</span>
                   </Button>
                   </div>
                 </>
@@ -502,33 +517,21 @@ export function Home() {
         </div> */}
 
         {/* Search and Results */}
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
-          {/* <SearchFiltersComponent
-            filters={filters}
-            onFiltersChange={setFilters}
-            onSearch={handleSearch}
-
-          /> */}
-
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-12 sm:py-16 lg:py-20">
           {/* Results Header */}
-          <div className="flex items-center flex-col gap-2 mb-6">
-            {/* <div className="flex items-center justify-center flex-col"> */}
-              {/* <div className="bg-gradient-to-r from-green-100 to-blue-100 p-2 rounded-lg mr-3">
-                <Search className="h-5 w-5 text-green-600" />
-              </div> */}
-              <h2 className="text-5xl font-bold text-gray-900">
+          <div className="flex items-center flex-col gap-2 mb-6 sm:mb-8">
+              <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-gray-900 text-center">
                 Featured Properties
               </h2>
-              <div className="text-gray-600 text-xl">
+              <div className="text-gray-600 text-lg sm:text-xl text-center max-w-2xl">
                 Discover amazing places to call home
             </div>
-            {/* </div> */}
           </div>
 
           {/* Property Grid */}
           {filteredProperties.length > 0 ? (
             <>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
                 {propertiesToDisplay.map((property, index) => (
                   <PropertyCard
                     key={property.id}
@@ -540,14 +543,15 @@ export function Home() {
 
               {/* Show More / Show Less Button */}
               {hasMoreProperties && (
-                <div className="flex justify-center mt-12">
+                <div className="flex justify-center mt-8 sm:mt-12">
                   <motion.button
                     whileTap={{ scale: 0.95 }}
                     whileHover={{ scale: 1.02 }}
                     onClick={() => navigate("/property")}
-                    className="inline-flex items-center px-8 py-4 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl hover:from-green-700 hover:to-emerald-700 transition-all duration-200 font-semibold shadow-lg hover:shadow-xl"
+                    className="inline-flex items-center px-6 sm:px-8 py-3 sm:py-4 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg sm:rounded-xl hover:from-green-700 hover:to-emerald-700 transition-all duration-200 font-semibold shadow-lg hover:shadow-xl text-sm sm:text-base"
                   >
-                    Browse More properties
+                    <span className="hidden sm:inline">Browse More Properties</span>
+                    <span className="sm:hidden">Browse More</span>
                   </motion.button>
                 </div>
               )}
@@ -557,16 +561,16 @@ export function Home() {
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.5 }}
-              className="text-center py-16"
+              className="text-center py-12 sm:py-16"
             >
-              <div className="bg-white rounded-3xl shadow-xl p-12 max-w-md mx-auto">
-                <div className="bg-gray-100 rounded-full w-24 h-24 flex items-center justify-center mx-auto mb-6">
-                  <Search className="h-12 w-12 text-gray-400" />
+              <div className="bg-white rounded-2xl sm:rounded-3xl shadow-xl p-6 sm:p-8 lg:p-12 max-w-md mx-auto">
+                <div className="bg-gray-100 rounded-full w-16 h-16 sm:w-20 sm:h-20 lg:w-24 lg:h-24 flex items-center justify-center mx-auto mb-4 sm:mb-6">
+                  <Search className="h-8 w-8 sm:h-10 sm:w-10 lg:h-12 lg:w-12 text-gray-400" />
                 </div>
-                <h3 className="text-2xl font-bold text-gray-900 mb-4">
+                <h3 className="text-xl sm:text-2xl font-bold text-gray-900 mb-3 sm:mb-4">
                   No Properties Found
                 </h3>
-                <p className="text-gray-600 max-w-md mx-auto mb-8">
+                <p className="text-gray-600 max-w-md mx-auto mb-6 sm:mb-8 text-sm sm:text-base">
                   Try adjusting your search filters to find more rental
                   properties.
                 </p>
@@ -581,7 +585,7 @@ export function Home() {
                     });
                     handleSearch();
                   }}
-                  className="px-8 py-4 bg-gradient-to-r from-green-600 to-blue-600 text-white rounded-xl hover:from-green-700 hover:to-blue-700 transition-all duration-200 font-semibold shadow-lg hover:shadow-xl"
+                  className="px-6 sm:px-8 py-3 sm:py-4 bg-gradient-to-r from-green-600 to-blue-600 text-white rounded-lg sm:rounded-xl hover:from-green-700 hover:to-blue-700 transition-all duration-200 font-semibold shadow-lg hover:shadow-xl text-sm sm:text-base"
                 >
                   Reset Filters
                 </motion.button>
@@ -596,37 +600,37 @@ export function Home() {
        
 
         {/* Features Section */}
-        <div className="py-20 bg-white">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="py-12 sm:py-16 lg:py-20 bg-white">
+          <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6 }}
-              className="text-center mb-16"
+              className="text-center mb-12 sm:mb-16"
             >
-              <h2 className="text-4xl font-bold text-gray-900 mb-4">
+              <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-3 sm:mb-4">
                 Why Choose Our Platform?
               </h2>
-              <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+              <p className="text-lg sm:text-xl text-gray-600 max-w-3xl mx-auto">
                 We make finding your perfect rental home simple, fast, and
                 stress-free
               </p>
             </motion.div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6, delay: 0.1 }}
-                className="text-center p-8 rounded-2xl bg-gradient-to-br from-green-50 to-green-100 border border-green-200"
+                className="text-center p-6 sm:p-8 rounded-xl sm:rounded-2xl bg-gradient-to-br from-green-50 to-green-100 border border-green-200"
               >
-                <div className="w-16 h-16 bg-gradient-to-r from-green-500 to-green-600 rounded-full flex items-center justify-center mx-auto mb-6">
-                  <HomeIcon className="h-8 w-8 text-white" />
+                <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-r from-green-500 to-green-600 rounded-full flex items-center justify-center mx-auto mb-4 sm:mb-6">
+                  <HomeIcon className="h-6 w-6 sm:h-8 sm:w-8 text-white" />
                 </div>
-                <h3 className="text-2xl font-bold text-gray-900 mb-4">
+                <h3 className="text-xl sm:text-2xl font-bold text-gray-900 mb-3 sm:mb-4">
                   Smart Matching
                 </h3>
-                <p className="text-gray-600 leading-relaxed">
+                <p className="text-gray-600 leading-relaxed text-sm sm:text-base">
                   Our AI-powered system matches you with properties that fit
                   your budget, lifestyle, and preferences perfectly.
                 </p>
@@ -636,15 +640,15 @@ export function Home() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6, delay: 0.2 }}
-                className="text-center p-8 rounded-2xl bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200"
+                className="text-center p-6 sm:p-8 rounded-xl sm:rounded-2xl bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200"
               >
-                <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-blue-600 rounded-full flex items-center justify-center mx-auto mb-6">
-                  <Users className="h-8 w-8 text-white" />
+                <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-r from-blue-500 to-blue-600 rounded-full flex items-center justify-center mx-auto mb-4 sm:mb-6">
+                  <Users className="h-6 w-6 sm:h-8 sm:w-8 text-white" />
                   </div>
-                <h3 className="text-2xl font-bold text-gray-900 mb-4">
+                <h3 className="text-xl sm:text-2xl font-bold text-gray-900 mb-3 sm:mb-4">
                   Expert Support
                 </h3>
-                <p className="text-gray-600 leading-relaxed">
+                <p className="text-gray-600 leading-relaxed text-sm sm:text-base">
                   Get personalized assistance from our team of rental experts
                   who understand your local market.
                 </p>
@@ -654,22 +658,22 @@ export function Home() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6, delay: 0.3 }}
-                className="text-center p-8 rounded-2xl bg-gradient-to-br from-purple-50 to-purple-100 border border-purple-200"
+                className="text-center p-6 sm:p-8 rounded-xl sm:rounded-2xl bg-gradient-to-br from-purple-50 to-purple-100 border border-purple-200 sm:col-span-2 lg:col-span-1"
               >
-                <div className="w-16 h-16 bg-gradient-to-r from-purple-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-6">
-                  <Shield className="h-8 w-8 text-white" />
+                <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-r from-purple-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4 sm:mb-6">
+                  <Shield className="h-6 w-6 sm:h-8 sm:w-8 text-white" />
                 </div>
-                <h3 className="text-2xl font-bold text-gray-900 mb-4">
+                <h3 className="text-xl sm:text-2xl font-bold text-gray-900 mb-3 sm:mb-4">
                   Secure & Safe
                 </h3>
-                <p className="text-gray-600 leading-relaxed">
+                <p className="text-gray-600 leading-relaxed text-sm sm:text-base">
                   Your data is protected with bank-level security. Apply safely
                   and securely to multiple properties.
                 </p>
               </motion.div>
             </div>
-          </div>
-        </div>
+                  </div>
+                </div>
 
        
         {/* FAQ Section */}
@@ -682,21 +686,21 @@ export function Home() {
           }}
         />
         {/* Testimonials Section */}
-        <div className="py-20 bg-white">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="py-12 sm:py-16 lg:py-20 bg-white">
+          <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6 }}
-              className="text-center mb-16"
+              className="text-center mb-12 sm:mb-16"
             >
-              <h2 className="text-4xl font-bold text-gray-900 mb-4">
+              <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-3 sm:mb-4">
                 What Our Renters Say
               </h2>
-              <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+              <p className="text-lg sm:text-xl text-gray-600 max-w-3xl mx-auto">
                 Real stories from real people who found their perfect home
               </p>
-            </motion.div>
+              </motion.div>
 
             <div className="relative">
               <Swiper
@@ -743,11 +747,11 @@ export function Home() {
               </Swiper>
 
               {/* Custom Navigation Buttons */}
-              <button className="testimonials-swiper-button-prev absolute left-0 top-1/2 transform -translate-y-1/2 z-10 bg-white rounded-full p-3 shadow-lg hover:shadow-xl transition-all duration-200 border border-gray-200 hover:border-green-500 group">
-                <ChevronLeft className="h-6 w-6 text-gray-600 group-hover:text-green-600" />
+              <button className="testimonials-swiper-button-prev absolute left-0 sm:-left-4 top-1/2 transform -translate-y-1/2 z-10 bg-white rounded-full p-2 sm:p-3 shadow-lg hover:shadow-xl transition-all duration-200 border border-gray-200 hover:border-green-500 group hidden sm:flex">
+                <ChevronLeft className="h-4 w-4 sm:h-6 sm:w-6 text-gray-600 group-hover:text-green-600" />
               </button>
-              <button className="testimonials-swiper-button-next absolute right-0 top-1/2 transform -translate-y-1/2 z-10 bg-white rounded-full p-3 shadow-lg hover:shadow-xl transition-all duration-200 border border-gray-200 hover:border-green-500 group">
-                <ChevronRight className="h-6 w-6 text-gray-600 group-hover:text-green-600" />
+              <button className="testimonials-swiper-button-next absolute right-0 sm:-right-4 top-1/2 transform -translate-y-1/2 z-10 bg-white rounded-full p-2 sm:p-3 shadow-lg hover:shadow-xl transition-all duration-200 border border-gray-200 hover:border-green-500 group hidden sm:flex">
+                <ChevronRight className="h-4 w-4 sm:h-6 sm:w-6 text-gray-600 group-hover:text-green-600" />
               </button>
             </div>
           </div>

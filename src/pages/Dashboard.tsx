@@ -25,6 +25,7 @@ import {
   Bar,
 } from "recharts";
 import { Pagination } from "../components/Pagination";
+import SubmissionsDashboard from "../components/SubmissionsDashboard";
 
 export function Dashboard() {
   const [applications, setApplications] = useState<Application[]>([]);
@@ -40,9 +41,9 @@ export function Dashboard() {
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
 
-  // Redirect non-owners to home
+  // Redirect non-authorized users to home
   useEffect(() => {
-    if (user && user.role !== "owner") {
+    if (user && !["owner", "landlord_admin", "landlord_employee", "cocoon_admin", "cocoon_employee"].includes(user.role)) {
       navigate("/", { replace: true });
       return;
     }
@@ -683,6 +684,18 @@ export function Dashboard() {
               ))}
             </div>
           </motion.div>
+        )}
+
+        {/* Submissions Dashboard for Landlords and Staff */}
+        {(user?.role === "landlord_admin" || user?.role === "landlord_employee" || user?.role === "cocoon_admin" || user?.role === "cocoon_employee") && (
+          <section className="bg-white border-t border-gray-200 mt-8">
+            <div className="container mx-auto px-6 py-8">
+              <SubmissionsDashboard 
+                userRole={user.role === "landlord_admin" || user.role === "landlord_employee" ? "landlord" : "staff"} 
+                userId={user?.uid}
+              />
+            </div>
+          </section>
         )}
       </div>
     </div>
