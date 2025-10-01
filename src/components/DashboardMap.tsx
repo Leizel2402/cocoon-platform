@@ -2,6 +2,9 @@ import React, { useEffect, useState } from 'react';
 import { X, Bed, Bath, Heart, Share, MapPin } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import PropertyDetailsModal from '../components/rentar/unitSelecttion/PropertyDetailsModal';
+import { useAuth } from '../hooks/useAuth';
+import { useToast } from '../hooks/use-toast';
+import { saveProperty, isPropertySaved, removeSavedProperty, SavePropertyData } from '../services/savedPropertiesService';
 
 // React Leaflet imports
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
@@ -235,6 +238,13 @@ const DashboardMap: React.FC<PropertyMapProps> = ({
   const mapRef = React.useRef<any>(null);
   const [showPropertyDetails, setShowPropertyDetails] = useState(false);
   const [selectedPropertyForDetails, setSelectedPropertyForDetails] = useState<Property | null>(null);
+  
+  // Save property functionality
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const [savedProperties, setSavedProperties] = useState<Set<string>>(new Set());
+  const [savedPropertyIds, setSavedPropertyIds] = useState<Map<string, string>>(new Map());
+  const [savingProperties, setSavingProperties] = useState<Set<string>>(new Set());
 
   const handleViewDetails = (property: Property) => {
     setSelectedPropertyForDetails(property);
@@ -244,6 +254,142 @@ const DashboardMap: React.FC<PropertyMapProps> = ({
   const handleClosePropertyDetails = () => {
     setShowPropertyDetails(false);
     setSelectedPropertyForDetails(null);
+  };
+
+  // Check which properties are saved
+  useEffect(() => {
+    const checkSavedProperties = async () => {
+      if (!user?.uid || properties.length === 0) return;
+      
+      const savedSet = new Set<string>();
+      const savedIdsMap = new Map<string, string>();
+      
+      for (const property of properties) {
+        try {
+          const result = await isPropertySaved(user.uid, property.id.toString());
+          if (result.success && result.isSaved && result.savedPropertyId) {
+            savedSet.add(property.id.toString());
+            savedIdsMap.set(property.id.toString(), result.savedPropertyId);
+          }
+        } catch (error) {
+          console.error('Error checking if property is saved:', error);
+        }
+      }
+      setSavedProperties(savedSet);
+      setSavedPropertyIds(savedIdsMap);
+    };
+
+    checkSavedProperties();
+  }, [user?.uid, properties]);
+
+  // Handle save/unsave property toggle
+  const handleSaveProperty = async (property: Property) => {
+    if (!user?.uid) {
+      toast({
+        title: "Please sign in",
+        description: "You need to be signed in to save properties.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const propertyId = property.id.toString();
+    
+    try {
+      setSavingProperties(prev => new Set(prev).add(propertyId));
+      
+      if (savedProperties.has(propertyId)) {
+        // Unsave property - remove from saved list
+        const savedPropertyId = savedPropertyIds.get(propertyId);
+        if (savedPropertyId) {
+          const result = await removeSavedProperty(savedPropertyId);
+          
+          if (result.success) {
+            setSavedProperties(prev => {
+              const newSet = new Set(prev);
+              newSet.delete(propertyId);
+              return newSet;
+            });
+            setSavedPropertyIds(prev => {
+              const newMap = new Map(prev);
+              newMap.delete(propertyId);
+              return newMap;
+            });
+            toast({
+              title: "Property removed",
+              description: "Property has been removed from your saved list.",
+            });
+          } else {
+            toast({
+              title: "Error removing property",
+              description: result.error || "Failed to remove property",
+              variant: "destructive"
+            });
+          }
+        }
+      } else {
+        // Save property - add to saved list
+        const formatBedrooms = () => {
+          if (property.bedrooms) return property.bedrooms;
+          const bedMatch = property.beds?.match(/(\d+)/);
+          return bedMatch ? parseInt(bedMatch[1]) : 1;
+        };
+
+        const formatBathrooms = () => {
+          return property.bathrooms || 1;
+        };
+
+        const formatSqft = () => {
+          return property.sqft || 900; // Default fallback
+        };
+
+        const propertyData: SavePropertyData = {
+          propertyId: propertyId,
+          propertyName: property.name,
+          propertyAddress: property.address,
+          propertyPrice: property.priceRange || (property.rent_amount ? `$${property.rent_amount.toLocaleString()}/month` : 'Price on request'),
+          propertyBeds: formatBedrooms(),
+          propertyBaths: formatBathrooms(),
+          propertySqft: formatSqft(),
+          propertyRating: property.rating,
+          propertyImage: property.image || '',
+          propertyType: property.propertyType || 'Property',
+          propertyAmenities: property.amenities || []
+        };
+
+        const result = await saveProperty(user.uid, propertyData);
+        
+        if (result.success) {
+          setSavedProperties(prev => new Set(prev).add(propertyId));
+          if (result.id) {
+            setSavedPropertyIds(prev => new Map(prev).set(propertyId, result.id));
+          }
+          toast({
+            title: "Property saved",
+            description: "Property has been added to your saved list.",
+          });
+        } else {
+          toast({
+            title: "Error saving property",
+            description: result.error || "Failed to save property",
+            variant: "destructive"
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error toggling property save:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update property status",
+        variant: "destructive"
+      });
+    } finally {
+      setSavingProperties(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(propertyId);
+        return newSet;
+      });
+    }
   };
 
   // Function to fit all properties in view
@@ -504,10 +650,29 @@ const DashboardMap: React.FC<PropertyMapProps> = ({
                         {property.propertyType || 'Property'}
                       </div>
                       
-                      {/* Heart Icon */}
-                      <div className="absolute top-2 right-2 w-8 h-8 bg-white bg-opacity-90 rounded-full flex items-center justify-center cursor-pointer transition-all duration-200">
-                        <Heart size={16} color="#ef4444" fill="none" />
-                      </div>
+                      {/* Heart Icon - Save Property */}
+                      <motion.div 
+                        className={`absolute top-2 right-2 w-8 h-8 rounded-full flex items-center justify-center cursor-pointer transition-all duration-300 ${
+                          savedProperties.has(property.id.toString())
+                            ? 'bg-gradient-to-r from-green-500 to-emerald-500 shadow-lg shadow-green-200'
+                            : 'bg-white bg-opacity-90 hover:bg-opacity-100'
+                        }`}
+                        whileHover={{ scale: 1.1 }}
+                        whileTap={{ scale: 0.9 }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleSaveProperty(property);
+                        }}
+                      >
+                        <Heart 
+                          size={16} 
+                          color={savedProperties.has(property.id.toString()) ? "#ffffff" : "#ef4444"} 
+                          fill={savedProperties.has(property.id.toString()) ? "#ffffff" : "none"}
+                          className={`transition-all duration-300 ${
+                            savingProperties.has(property.id.toString()) ? 'animate-pulse' : ''
+                          }`}
+                        />
+                      </motion.div>
                     </div>
                     
                     {/* Content */}
@@ -550,15 +715,18 @@ const DashboardMap: React.FC<PropertyMapProps> = ({
                       <div className="border-t border-gray-100 my-2"></div>
                       
                       {/* Action Button */}
-                      <button
+                      <motion.button
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
                         onClick={(e) => {
                           e.stopPropagation();
                           handleViewDetails(property);
                         }}
-                        className="w-full py-2 px-3 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white border-none rounded-lg text-sm font-semibold cursor-pointer transition-all duration-200"
+                        className="relative w-full py-2 px-3 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white border-none rounded-lg text-sm font-semibold cursor-pointer transition-all duration-300 overflow-hidden group"
                       >
-                        View Details
-                      </button>
+                        <div className="absolute inset-0 bg-gradient-to-r from-green-700 to-emerald-700 opacity-0 group-hover:opacity-100 transition-all duration-300" />
+                        <span className="relative">View Details</span>
+                      </motion.button>
                     </div>
                   </div>
                 </Popup>

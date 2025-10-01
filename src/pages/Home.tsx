@@ -5,8 +5,6 @@ import { Property, SearchFilters } from "../types";
 import { motion } from "framer-motion";
 import {
   Search,
-  ChevronDown,
-  ChevronUp,
   Home as HomeIcon,
   Users,
   Shield,

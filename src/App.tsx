@@ -16,8 +16,11 @@ import { PropertyManagement } from './pages/PropertyManagement';
 import { Property } from './pages/Property';
 import { AddyChat } from './pages/AddyChat';
 import { ProspectApplication } from './pages/ProspectApplication';
-import PropertySearch from './Prospect/PropertySearch';
-// import ApplicationProcess from './Prospect/ApplicationProcess';
+import ApplicationProcess from './Prospect/ApplicationProcess';
+import { SavedProperties } from './pages/SavedProperties';
+import { MaintenanceRequests } from './pages/MaintenanceRequests';
+import { LearningCenter } from './pages/LearningCenter';
+import { Subscriptions } from './pages/Subscriptions';
 
  
 function App() {
@@ -30,31 +33,32 @@ function App() {
           <Route path="/signin" element={<SignIn />} />
           <Route path="/signup" element={<SignUp />} />
           <Route path="/magic-link-verify" element={<MagicLinkHandler />} />
-          
+          <Route path="/property" element={<Dashboards />} />
           {/* Prospect routes */}
-          <Route
+          {/* <Route
             path="/property"
             element={
-              <ProtectedRoute requiredRole="prospect">
+              <ProtectedRoute requiredRoles={['prospect', 'renter']}> 
                 <Dashboards />
-                {/* <Home /> */}
-                {/* <PropertySearch/> */}
               </ProtectedRoute>
             }
-          />
+          /> */}
           <Route
             path="/prequalify"
             element={
-              <ProtectedRoute requiredRole="prospect">
-                {/* <ApplicationProcess /> */}
-                <div>Prequalification coming soon...</div>
+              <ProtectedRoute requiredRoles={['prospect', 'renter']}>
+                <ApplicationProcess 
+                  isOpen={true} 
+                  type="prequalify"
+                  onClose={() => window.history.back()}
+                />
               </ProtectedRoute>
             }
           />
           
-          {/* Property routes */}
+          {/* Property details route */}
           <Route
-            path="/property"
+            path="/property-details/:id"
             element={<Property />}
           />
           <Route
@@ -65,11 +69,40 @@ function App() {
               </ProtectedRoute>
             }
           />
-          <Route
+          {/* <Route
             path="/prospect-application"
             element={
               <ProtectedRoute requiredRoles={['prospect']}>
                 <ProspectApplication />
+              </ProtectedRoute>
+            }
+          /> */}
+          
+          {/* Saved Properties route */}
+          <Route
+            path="/saved-properties"
+            element={
+              <ProtectedRoute requiredRoles={['prospect', 'renter']}>
+                <SavedProperties />
+              </ProtectedRoute>
+            }
+          />
+          
+          {/* Property Comparison route */}
+          <Route
+            path="/property-comparison"
+            element={
+              <ProtectedRoute requiredRoles={['prospect', 'renter']}>
+                <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100 p-8">
+                  <div className="max-w-6xl mx-auto">
+                    <h1 className="text-3xl font-bold text-gray-900 mb-8">Property Comparison</h1>
+                    <div className="bg-white rounded-xl p-8 shadow-lg">
+                      <p className="text-gray-600 text-center py-12">
+                        Compare properties side by side. This feature is coming soon!
+                      </p>
+                    </div>
+                  </div>
+                </div>
               </ProtectedRoute>
             }
           />
@@ -96,6 +129,30 @@ function App() {
             element={
               <ProtectedRoute requiredRole="renter">
                 <UserPortal />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/maintenance"
+            element={
+              <ProtectedRoute requiredRole="renter">
+                <MaintenanceRequests />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/learning-center"
+            element={
+              <ProtectedRoute requiredRole="renter">
+                <LearningCenter />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/subscriptions"
+            element={
+              <ProtectedRoute requiredRole="renter">
+                <Subscriptions />
               </ProtectedRoute>
             }
           />

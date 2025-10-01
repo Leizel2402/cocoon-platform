@@ -1,9 +1,7 @@
 import { Property } from '../types';
 import { Bed, Bath, Square, MapPin } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
 import { useState } from 'react';
-import { useAuth } from '../hooks/useAuth';
 
 interface PropertyCardProps {
   property: Property;
@@ -11,13 +9,12 @@ interface PropertyCardProps {
 }
 
 export function PropertyCard({ property, index }: PropertyCardProps) {
-    const { user } = useAuth();
-    const navigate = useNavigate();
+    const [showAllAmenities, setShowAllAmenities] = useState(false);
 
-   const [showAllAmenities, setShowAllAmenities] = useState(false);
-   const displayedAmenities = showAllAmenities
-    ? property.amenities
-    : property.amenities.slice(0, 3);
+    const displayedAmenities = showAllAmenities
+      ? (property.amenities || [])
+      : (property.amenities || []).slice(0, 3);
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -33,7 +30,9 @@ export function PropertyCard({ property, index }: PropertyCardProps) {
           alt={property.title}
           className="w-full h-48 sm:h-56 object-cover transition-transform duration-300 group-hover:scale-105"
         />
-        <div className="absolute top-4 right-4">
+        
+        {/* Available Badge */}
+        <div className="absolute top-4 left-4">
           <motion.span
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
@@ -47,6 +46,8 @@ export function PropertyCard({ property, index }: PropertyCardProps) {
             {property.available ? 'Available' : 'Unavailable'}
           </motion.span>
         </div>
+        
+        
         <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
       </div>
 
@@ -99,16 +100,16 @@ export function PropertyCard({ property, index }: PropertyCardProps) {
           </span>
         ))}
 
-        {property.amenities.length > 3 && !showAllAmenities && (
+        {(property.amenities || []).length > 3 && !showAllAmenities && (
           <button
             onClick={() => setShowAllAmenities(true)}
             className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 hover:bg-gray-200 transition-colors"
           >
-            +{property.amenities.length - 3} more
+            +{(property.amenities || []).length - 3} more
           </button>
         )}
 
-        {showAllAmenities && property.amenities.length > 3 && (
+        {showAllAmenities && (property.amenities || []).length > 3 && (
           <button
             onClick={() => setShowAllAmenities(false)}
             className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 hover:bg-gray-200 transition-colors"

@@ -12,12 +12,9 @@ import {
 import { Checkbox } from "../components/ui/checkbox";
 // import {Slider}  from '../components/ui/slider';
 import {
-  LogOut,
   Search,
   MapPin,
   ChevronDown,
-  ArrowLeft,
-  Home,
   DollarSign,
 } from "lucide-react";
 import { useTranslation } from "../hooks/useTranslations";
@@ -51,9 +48,11 @@ import ScheduleTourModal from "../components/rentar/unitSelecttion/ScheduleTourM
 import { ModernPropertyCard } from "../components/ModernPropertyCard";
 import { CalendarPopover } from "../components/CalendarPopover";
 import SearchFilters from "../components/PropertyAllFilter";
+import ProductSelection from "../components/ProductSelection";
+import PaymentPage from "../components/payment/PaymentPage";
 
 const Dashboards = () => {
-  const { user, loading, logout } = useAuth();
+  const { user, loading } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
   const bypassRole =
@@ -89,10 +88,10 @@ const Dashboards = () => {
   const [applicationStep, setApplicationStep] = useState<number | null>(null);
   const [comparisonUnits, setComparisonUnits] = useState<any[]>([]);
   const [selectedProperty, setSelectedProperty] = useState<any>(null);
-  // const [selectedUnit, setSelectedUnit] = useState<any>(null);
-  // const [selectedLeaseTerm, setSelectedLeaseTerm] = useState<any>(null);
-  // const [paymentData, setPaymentData] = useState<any>(null);
-  // const [editingProperty, setEditingProperty] = useState<any>(null);
+  const [selectedUnit, setSelectedUnit] = useState<any>(null);
+  const [selectedLeaseTerm, setSelectedLeaseTerm] = useState<any>(null);
+  const [paymentData, setPaymentData] = useState<any>(null);
+  const [editingProperty, setEditingProperty] = useState<any>(null);
   const [scheduleTourModalOpen, setScheduleTourModalOpen] = useState(false);
   const [selectedPropertyForTour, setSelectedPropertyForTour] =
     useState<any>(null);
@@ -779,9 +778,9 @@ console.log("Selected Property", selectedProperty);
       effectiveUserRole
     );
 
-    if (!loading && !user && !devBypass) {
-      navigate("/signin");
-    }
+    // if (!loading && !user && !devBypass) {
+    //   navigate("/signin");
+    // }
     // Remove auto-redirect logic that was causing bouncing
   }, [user, loading, devBypass, navigate]);
 
@@ -808,31 +807,11 @@ console.log("Selected Property", selectedProperty);
     }
   }, [toast]);
 
-  const handleSignOut = async () => {
-    await logout();
-    localStorage.removeItem("dev_auth_bypass");
-    localStorage.removeItem("dev_auth_bypass_role");
-    navigate("/");
-  };
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background">
-        {/* Stable header skeleton */}
-        <div className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-          <div className="container flex h-14 items-center">
-            <div className="flex items-center space-x-2">
-              <div className="h-6 w-6 bg-muted animate-pulse rounded"></div>
-              <div className="h-6 w-20 bg-muted animate-pulse rounded"></div>
-            </div>
-            <div className="flex flex-1 items-center justify-end space-x-4">
-              <div className="h-8 w-16 bg-muted animate-pulse rounded"></div>
-              <div className="h-8 w-8 bg-muted animate-pulse rounded-full"></div>
-            </div>
-          </div>
-        </div>
-
-        {/* Stable content skeleton */}
+      <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100">
+        {/* Content skeleton */}
         <div className="container mx-auto px-4 py-6">
           <div className="space-y-6">
             <div className="h-8 w-48 bg-muted animate-pulse rounded"></div>
@@ -850,43 +829,14 @@ console.log("Selected Property", selectedProperty);
     );
   }
 
-  if (!user && !devBypass) {
-    return null;
-  }
+  // if (!user && !devBypass) {
+  //   return null;
+  // }
 
   if (effectiveUserRole === "landlord" && currentView !== "dashboard") {
     // Keep existing landlord functionality for non-dashboard views
     return (
       <div className="min-h-screen bg-gradient-to-br from-background to-muted">
-        {/* Header */}
-        <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-          <div className="container mx-auto px-4 py-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <span className="text-xl font-bold">Cocoon</span>
-                <span className="text-sm text-muted-foreground">
-                  Landlord Portal
-                </span>
-              </div>
-              <div className="flex items-center space-x-3">
-                <span className="text-sm text-muted-foreground">
-                  Welcome,{" "}
-                  {user?.displayName || (devBypass ? "Test User" : "User")}!
-                </span>
-                <Button
-                  variant="outline"
-                  onClick={() => setCurrentView("dashboard")}
-                >
-                  ← Back to Dashboard
-                </Button>
-                <Button variant="outline" onClick={handleSignOut}>
-                  <LogOut className="h-4 w-4 mr-2" />
-                  Sign Out
-                </Button>
-              </div>
-            </div>
-          </div>
-        </header>
         <main className="container mx-auto px-4 py-8">
           {currentView === "properties-list" ? (
             <></>
@@ -928,70 +878,6 @@ console.log("Selected Property", selectedProperty);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100">
-
-      {/* Modern Header */}
-      <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-gray-200 shadow-lg">
-        <div className="container mx-auto px-6 py-4">
-          <div className="grid grid-cols-3 items-center">
-            <div className="flex items-center space-x-4">
-              <Button
-                variant="ghost"
-                onClick={() => {
-                  if (currentView !== "dashboard") {
-                    handleBack();
-                  } else {
-                    navigate(-1);
-                  }
-                }}
-                className="text-gray-700 hover:bg-green-50 px-3 py-2 rounded-lg transition-all duration-200"
-              >
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                {t("back")}
-              </Button>
-              <div className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white p-3 rounded-lg shadow-xl">
-                <Home className="h-7 w-7 text-white" />
-              </div>
-              <span className="text-3xl hidden sm:flex font-bold bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 bg-clip-text text-transparent">
-                Cocoon
-              </span>
-            </div>
-
-            {/* Centered PreQualified Button */}
-            <div className="justify-self-center">
-              <Button
-                onClick={() => {
-                  setCurrentView("application-process");
-                  setIsPrequalified(true);
-                }}
-                className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white px-8 py-3 font-semibold rounded-lg shadow-lg hover:shadow-xl transition-all duration-200"
-              >
-                Get PreQualified
-              </Button>
-            </div>
-
-            <div className="flex items-center justify-end space-x-3">
-              {user && (
-                <div className="flex items-center space-x-3">
-                  <div className="text-sm text-gray-600 bg-gray-50 px-3 py-2 rounded-lg">
-                    <span className="font-medium">{user.email}</span>
-                    <span className="text-gray-400 ml-2">({user.role})</span>
-                  </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleSignOut}
-                    className="text-red-600 border-red-200 hover:bg-red-50 px-4 py-2 rounded-lg transition-all duration-200"
-                  >
-                    <LogOut className="h-4 w-4 mr-2" />
-                    Sign Out
-                  </Button>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      </header>
-
       <main>
         {(() => {
           console.log(
@@ -1436,15 +1322,7 @@ console.log("Selected Property", selectedProperty);
             <section className="flex" style={{ height: "calc(100vh - 140px)" }}>
               {/* Map Section - Left Side */}
               <div className="w-[60%] bg-gradient-to-br from-gray-50 to-gray-100 relative">
-                {/* <DashboardMapWrapper
-                  properties={filteredProperties} // Your Firebase property data
-                  isPrequalified={isPrequalified}
-                  language={selectedLanguage}
-                  onPropertySelect={(property) => {
-                    console.log("Selected property from map:", property);
-                    setCurrentView("unit-selection");
-                  }}
-                /> */}
+             
                 <DashboardMap 
                   properties={filteredProperties} 
                   isPrequalified={isPrequalified}
@@ -1461,7 +1339,7 @@ console.log("Selected Property", selectedProperty);
                 <div className="py-6 px-4">
                   <div className="flex items-center justify-between mb-6">
                     <div>
-                      <h2 className="text-2xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
+                      <h2 className="text-2xl font-bold ">
                         {t("apartmentsForRent")} {userLocation}
                       </h2>
                       <p className="text-lg text-gray-600 mt-1">
@@ -1539,7 +1417,8 @@ console.log("Selected Property", selectedProperty);
           </div>
         ) : currentView === "prequalification-info" ? (
           <></>
-        ) : // <PrequalificationInfo onBack={() => setCurrentView('dashboard')} />
+        ) : 
+        // <PrequalificationInfo onBack={() => setCurrentView('dashboard')} />
         currentView === "unit-selection" ? (
           <QualifiedProperties
             onUnitSelect={(property, unit) => {
@@ -1621,38 +1500,37 @@ console.log("Selected Property", selectedProperty);
             }}
           />
         ) : currentView === "product-selection" ? (
-          <></>
-        ) : //   <ProductSelection
-        //     property={selectedProperty}
-        //     unit={selectedUnit}
-        //     selectedLeaseTerm={selectedLeaseTerm?.months || 12}
-        //     selectedLeaseTermRent={selectedLeaseTerm?.rent}
-        //     applicantData={{
-        //       unitType: `${selectedUnit?.bedrooms} bedroom`,
-        //       petDescription: '', // This should come from application data
-        //       petName: '',
-        //       petBreed: '',
-        //       petWeight: '',
-        //       creditScore: 720,
-        //       applicationId: null // This should be the actual application ID
-        //     }}
-        //     onBack={() => setCurrentView('unit-comparison')}
-        //     onPaymentProcess={(data) => {
-        //       setPaymentData(data);
-        //       setCurrentView('payment-page');
-        //     }}
-        //   />
-        // ) : currentView === 'payment-page' ? (
-        //   <PaymentPage
-        //     totalAmount={paymentData?.totals?.total || 0}
-        //     paymentType={paymentData?.annualPayment ? 'annual' : 'monthly'}
-        //     onBack={() => setCurrentView('product-selection')}
-        //     onPaymentComplete={() => {
-        //       console.log('Payment completed successfully');
-        //       setCurrentView('dashboard');
-        //     }}
-        //   />
-        currentView === "property-details" ? (
+          <ProductSelection
+            property={selectedProperty}
+            unit={selectedUnit}
+            selectedLeaseTerm={selectedLeaseTerm?.months || 12}
+            selectedLeaseTermRent={selectedLeaseTerm?.rent}
+            applicantData={{
+              unitType: `${selectedUnit?.bedrooms} bedroom`,
+              petDescription: '', // This should come from application data
+              petName: '',
+              petBreed: '',
+              petWeight: '',
+              creditScore: 720,
+              applicationId: null // This should be the actual application ID
+            }}
+            onBack={() => setCurrentView('unit-comparison')}
+            onPaymentProcess={(data) => {
+              setPaymentData(data);
+              setCurrentView('payment-page');
+            }}
+          />
+        ) : currentView === 'payment-page' ? (
+          <PaymentPage
+            totalAmount={paymentData?.totals?.total || 0}
+            paymentType={paymentData?.annualPayment ? 'annual' : 'monthly'}
+            onBack={() => setCurrentView('product-selection')}
+            onPaymentComplete={() => {
+              console.log('Payment completed successfully');
+              setCurrentView('dashboard');
+            }}
+          />
+        ) : currentView === "property-details" ? (
           <PropertyDetailsModal
             property={selectedProperty}
             isOpen={true}
@@ -1701,11 +1579,11 @@ console.log("Selected Property", selectedProperty);
         )}
 
         {/* Submissions Dashboard for Landlords and Staff */}
-        {(effectiveUserRole === "landlord" || effectiveUserRole === "staff" || effectiveUserRole === "employee") && (
+        {(effectiveUserRole === "landlord_admin" || effectiveUserRole === "landlord_employee" || effectiveUserRole === "cocoon_admin" || effectiveUserRole === "cocoon_employee") && (
           <section className="bg-white border-t border-gray-200">
             <div className="container mx-auto px-6 py-8">
               <SubmissionsDashboard 
-                userRole={effectiveUserRole === "landlord" ? "landlord" : "staff"} 
+                userRole={effectiveUserRole?.includes("landlord") ? "landlord" : "staff"} 
                 userId={user?.uid}
               />
             </div>

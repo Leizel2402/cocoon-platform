@@ -9,9 +9,13 @@ import {
   DollarSign,
   Bed,
   Bath,
-  Square
+  Square,
+  Heart
 } from 'lucide-react';
 import { Property, Listing } from '../../types';
+import { useAuth } from '../../hooks/useAuth';
+import { useToast } from '../../hooks/use-toast';
+import { saveProperty, isPropertySaved, removeSavedProperty, SavePropertyData } from '../../services/savedPropertiesService';
 
 interface PropertyMapProps {
   properties: Property[];
@@ -34,9 +38,138 @@ export function PropertyMap({
   onCenterChange,
   onZoomChange
 }: PropertyMapProps) {
+  
+  // Save property functionality
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const [savedProperties, setSavedProperties] = useState<Set<string>>(new Set());
+  const [savedPropertyIds, setSavedPropertyIds] = useState<Map<string, string>>(new Map());
+  const [savingProperties, setSavingProperties] = useState<Set<string>>(new Set());
   const [mapType, setMapType] = useState<'map' | 'satellite' | 'terrain'>('map');
   const [showSchools, setShowSchools] = useState(false);
   const [showTransit, setShowTransit] = useState(false);
+
+  // Check which properties are saved
+  useEffect(() => {
+    const checkSavedProperties = async () => {
+      if (!user?.uid || properties.length === 0) return;
+      
+      const savedSet = new Set<string>();
+      const savedIdsMap = new Map<string, string>();
+      
+      for (const property of properties) {
+        try {
+          const result = await isPropertySaved(user.uid, property.id.toString());
+          if (result.success && result.isSaved && result.savedPropertyId) {
+            savedSet.add(property.id.toString());
+            savedIdsMap.set(property.id.toString(), result.savedPropertyId);
+          }
+        } catch (error) {
+          console.error('Error checking if property is saved:', error);
+        }
+      }
+      setSavedProperties(savedSet);
+      setSavedPropertyIds(savedIdsMap);
+    };
+
+    checkSavedProperties();
+  }, [user?.uid, properties]);
+
+  // Handle save/unsave property toggle
+  const handleSaveProperty = async (property: Property) => {
+    if (!user?.uid) {
+      toast({
+        title: "Please sign in",
+        description: "You need to be signed in to save properties.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const propertyId = property.id.toString();
+    
+    try {
+      setSavingProperties(prev => new Set(prev).add(propertyId));
+      
+      if (savedProperties.has(propertyId)) {
+        // Unsave property - remove from saved list
+        const savedPropertyId = savedPropertyIds.get(propertyId);
+        if (savedPropertyId) {
+          const result = await removeSavedProperty(savedPropertyId);
+          
+          if (result.success) {
+            setSavedProperties(prev => {
+              const newSet = new Set(prev);
+              newSet.delete(propertyId);
+              return newSet;
+            });
+            setSavedPropertyIds(prev => {
+              const newMap = new Map(prev);
+              newMap.delete(propertyId);
+              return newMap;
+            });
+            toast({
+              title: "Property removed",
+              description: "Property has been removed from your saved list.",
+            });
+          } else {
+            toast({
+              title: "Error removing property",
+              description: result.error || "Failed to remove property",
+              variant: "destructive"
+            });
+          }
+        }
+      } else {
+        // Save property - add to saved list
+        const propertyData: SavePropertyData = {
+          propertyId: propertyId,
+          propertyName: property.title,
+          propertyAddress: `${property.address}, ${property.city}, ${property.state}`,
+          propertyPrice: `$${property.rent.toLocaleString()}/month`,
+          propertyBeds: property.beds || 1,
+          propertyBaths: property.baths || 1,
+          propertySqft: property.sqft || 900,
+          propertyRating: property.rating || 4.0,
+          propertyImage: property.image || '',
+          propertyType: 'Property',
+          propertyAmenities: property.amenities || []
+        };
+
+        const result = await saveProperty(user.uid, propertyData);
+        
+        if (result.success) {
+          setSavedProperties(prev => new Set(prev).add(propertyId));
+          if (result.id) {
+            setSavedPropertyIds(prev => new Map(prev).set(propertyId, result.id));
+          }
+          toast({
+            title: "Property saved",
+            description: "Property has been added to your saved list.",
+          });
+        } else {
+          toast({
+            title: "Error saving property",
+            description: result.error || "Failed to save property",
+            variant: "destructive"
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error toggling property save:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update property status",
+        variant: "destructive"
+      });
+    } finally {
+      setSavingProperties(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(propertyId);
+        return newSet;
+      });
+    }
+  };
 
   // Generate mock coordinates for properties
   const getPropertyCoordinates = (property: Property, index: number) => {
@@ -155,10 +288,10 @@ export function PropertyMap({
                 >
                   <div className="space-y-2">
                     <h3 className="font-semibold text-gray-900 text-sm truncate">
-                      {property.name}
+                      {property.title}
                     </h3>
                     <p className="text-xs text-gray-600 truncate">
-                      {property.address.city}, {property.address.region}
+                      {property.city}, {property.state}
                     </p>
                     
                     <div className="flex items-center gap-3 text-xs text-gray-600">
@@ -179,6 +312,58 @@ export function PropertyMap({
                     <div className="text-lg font-bold text-gray-900">
                       ${listing.rent.toLocaleString()}/mo
                     </div>
+                    
+                    {/* Save Property Button */}
+                    <motion.button
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleSaveProperty(property);
+                      }}
+                      className={`w-full py-2 px-3 rounded-lg text-sm font-semibold transition-all duration-300 flex items-center justify-center gap-2 ${
+                        savedProperties.has(property.id.toString())
+                          ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-lg shadow-green-200'
+                          : 'bg-gradient-to-r from-blue-50 to-green-50 text-gray-700 border-2 border-transparent hover:border-green-200 hover:shadow-md hover:shadow-green-100 hover:from-blue-100 hover:to-green-100'
+                      } ${savingProperties.has(property.id.toString()) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    >
+                      <Heart 
+                        size={14} 
+                        color={savedProperties.has(property.id.toString()) ? "#ffffff" : "#ef4444"} 
+                        fill={savedProperties.has(property.id.toString()) ? "#ffffff" : "none"}
+                        className={`transition-all duration-300 ${
+                          savingProperties.has(property.id.toString()) ? 'animate-pulse' : ''
+                        }`}
+                      />
+                      <span>
+                        {savingProperties.has(property.id.toString()) 
+                          ? 'Saving...' 
+                          : savedProperties.has(property.id.toString()) 
+                            ? 'Saved' 
+                            : 'Save Property'
+                        }
+                      </span>
+                      {savedProperties.has(property.id.toString()) && (
+                        <motion.div
+                          initial={{ scale: 0, opacity: 0 }}
+                          animate={{ scale: 1, opacity: 1 }}
+                          transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
+                          className="w-3 h-3 bg-green-600 rounded-full flex items-center justify-center"
+                        >
+                          <motion.svg
+                            initial={{ pathLength: 0 }}
+                            animate={{ pathLength: 1 }}
+                            transition={{ delay: 0.3, duration: 0.5 }}
+                            className="w-2 h-2 text-white"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                          </motion.svg>
+                        </motion.div>
+                      )}
+                    </motion.button>
                   </div>
                   
                   {/* Arrow pointing to marker */}

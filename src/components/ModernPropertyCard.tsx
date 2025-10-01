@@ -1,6 +1,9 @@
-import { Star, MapPin, Bed, Bath, Square } from 'lucide-react';
+import { Star, MapPin, Bed, Bath, Square, Heart } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useAuth } from '../hooks/useAuth';
+import { useToast } from '../hooks/use-toast';
+import { saveProperty, isPropertySaved, removeSavedProperty, SavePropertyData } from '../services/savedPropertiesService';
 
 interface ModernPropertyCardProps {
   property: {
@@ -30,6 +33,115 @@ export function ModernPropertyCard({
   onViewUnits 
 }: ModernPropertyCardProps) {
   const [showAllAmenities, setShowAllAmenities] = useState(false);
+  const [isSaved, setIsSaved] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [savedPropertyId, setSavedPropertyId] = useState<string | null>(null);
+  const { user } = useAuth();
+  const { toast } = useToast();
+
+  // Check if property is saved
+  useEffect(() => {
+    const checkIfSaved = async () => {
+      if (!user?.uid) return;
+      
+      try {
+        const result = await isPropertySaved(user.uid, property.id.toString());
+        if (result.success) {
+          setIsSaved(result.isSaved || false);
+          setSavedPropertyId(result.savedPropertyId || null);
+        }
+      } catch (error) {
+        console.error('Error checking if property is saved:', error);
+      }
+    };
+
+    checkIfSaved();
+  }, [user?.uid, property.id]);
+
+  // Handle save/unsave property toggle
+  const handleSaveProperty = async () => {
+    if (!user?.uid) {
+      toast({
+        title: "Please sign in",
+        description: "You need to be signed in to save properties.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      setSaving(true);
+      
+      if (isSaved) {
+        // Unsave property - remove from saved list
+        if (!savedPropertyId) {
+          toast({
+            title: "Error",
+            description: "Cannot remove property - no saved property ID found.",
+            variant: "destructive"
+          });
+          return;
+        }
+        const result = await removeSavedProperty(savedPropertyId);
+        
+        if (result.success) {
+          setIsSaved(false);
+          setSavedPropertyId(null);
+          toast({
+            title: "Property removed",
+            description: "Property has been removed from your saved list.",
+          });
+        } else {
+          toast({
+            title: "Error removing property",
+            description: result.error || "Failed to remove property",
+            variant: "destructive"
+          });
+        }
+      } else {
+        // Save property - add to saved list
+        const propertyData: SavePropertyData = {
+          propertyId: property.id.toString(),
+          propertyName: property.name,
+          propertyAddress: property.address,
+          propertyPrice: property.priceRange,
+          propertyBeds: formatBedrooms(),
+          propertyBaths: formatBathrooms(),
+          propertySqft: formatSquareFootage(),
+          propertyRating: property.rating,
+          propertyImage: property.image,
+          propertyType: property.propertyType,
+          propertyAmenities: property.amenities || []
+        };
+
+        const result = await saveProperty(user.uid, propertyData);
+        
+        if (result.success) {
+          setIsSaved(true);
+          setSavedPropertyId(result.id || null);
+          toast({
+            title: "Property saved",
+            description: "Property has been added to your saved list.",
+          });
+        } else {
+          toast({
+            title: "Error saving property",
+            description: result.error || "Failed to save property",
+            variant: "destructive"
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error toggling property save:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update property status",
+        variant: "destructive"
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
   
   // Format price display
   const formatPrice = () => {
@@ -85,7 +197,9 @@ export function ModernPropertyCard({
             alt={property.name}
             className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
           />
-          <div className="absolute top-4 right-4">
+          
+          {/* Available Badge */}
+          <div className="absolute top-4 left-4">
             <motion.span
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
@@ -95,6 +209,31 @@ export function ModernPropertyCard({
               Available
             </motion.span>
           </div>
+          
+          {/* Heart Icon - Save Property */}
+          <motion.div 
+            className={`absolute top-4 right-4 w-7 h-7 rounded-full flex items-center justify-center cursor-pointer transition-all duration-300 ${
+              isSaved
+                ? 'bg-gradient-to-r from-green-500 to-emerald-500 shadow-lg shadow-green-200'
+                : 'bg-white bg-opacity-90 hover:bg-opacity-100'
+            }`}
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
+            onClick={(e) => {
+              e.stopPropagation();
+              handleSaveProperty();
+            }}
+          >
+            <Heart 
+              size={16} 
+              color={isSaved ? "#ffffff" : "#ef4444"} 
+              fill={isSaved ? "#ffffff" : "none"}
+              className={`transition-all duration-300 ${
+                saving ? 'animate-pulse' : ''
+              }`}
+            />
+         
+          </motion.div>
           
           {/* RentWise Network Badge */}
           {/* {property.isRentWiseNetwork && (
@@ -181,26 +320,38 @@ export function ModernPropertyCard({
         </div>
 
         {/* Action Buttons */}
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-3">
           <motion.button
-            whileTap={{ scale: 0.98 }}
+            whileTap={{ scale: 0.95 }}
+            whileHover={{ scale: 1.02 }}
             onClick={(e) => {
               e.stopPropagation();
               onViewDetails?.(property);
             }}
-            className="text-sm text-gray-600 hover:text-gray-800 font-medium px-6 py-3 border-gray-200 border rounded-lg hover:bg-gray-50 transition-colors"
+            className="relative px-4 py-3 rounded-xl font-semibold transition-all duration-300 flex items-center
+             justify-center overflow-hidden group bg-gray-50 border border-gray-200 text-gray-700 
+            hover:bg-gradient-to-r  hover:text-white hover:from-green-600 hover:to-emerald-600 flex-1"
           >
-            View Details
+            {/* <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-blue-500 to-blue-500 opacity-0 group-hover:opacity-10 transition-all duration-300" /> */}
+            <span className="relative transition-all duration-300 group-hover:text-white-700">
+              View Details
+            </span>
           </motion.button>
+          
+          
           <motion.button
-            whileTap={{ scale: 0.98 }}
+            whileTap={{ scale: 0.95 }}
+            whileHover={{ scale: 1.02 }}
             onClick={(e) => {
               e.stopPropagation();
               onViewUnits?.(property);
             }}
-            className="bg-gradient-to-r from-green-600 to-green-600 text-white py-3 px-6 rounded-xl font-semibold shadow-lg transition-all duration-200 hover:from-green-700 hover:to-green-600 hover:shadow-xl"
+            className="relative px-3 py-3 rounded-xl font-semibold transition-all duration-300 flex items-center justify-center overflow-hidden group bg-gradient-to-r from-blue-600 to-blue-600 text-white  flex-1"
           >
-            Available Units
+            <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-blue-700 to-blue-700 opacity-0 group-hover:opacity-100 transition-all duration-300" />
+            <span className="relative transition-all duration-300">
+              Available Units
+            </span>
           </motion.button>
         </div>
         </div>
