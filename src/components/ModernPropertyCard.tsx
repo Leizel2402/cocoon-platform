@@ -1,9 +1,11 @@
-import { Star, MapPin, Bed, Bath, Square, Heart } from 'lucide-react';
+import { Star, MapPin, Bed, Bath, Square, Heart, Share2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { useToast } from '../hooks/use-toast';
 import { saveProperty, isPropertySaved, removeSavedProperty, SavePropertyData } from '../services/savedPropertiesService';
+import SharePropertyModal from './SharePropertyModal';
 
 interface ModernPropertyCardProps {
   property: {
@@ -22,22 +24,22 @@ interface ModernPropertyCardProps {
     isRentWiseNetwork?: boolean;
   };
   index: number;
-  onViewDetails?: (property: any) => void;
-  onViewUnits?: (property: any) => void;
+  onViewUnits?: (property: ModernPropertyCardProps['property']) => void;
 }
 
 export function ModernPropertyCard({ 
   property, 
   index, 
-  onViewDetails, 
   onViewUnits 
 }: ModernPropertyCardProps) {
   const [showAllAmenities, setShowAllAmenities] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
   const [saving, setSaving] = useState(false);
   const [savedPropertyId, setSavedPropertyId] = useState<string | null>(null);
+  const [showShareModal, setShowShareModal] = useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   // Check if property is saved
   useEffect(() => {
@@ -210,30 +212,53 @@ export function ModernPropertyCard({
             </motion.span>
           </div>
           
-          {/* Heart Icon - Save Property */}
-          <motion.div 
-            className={`absolute top-4 right-4 w-7 h-7 rounded-full flex items-center justify-center cursor-pointer transition-all duration-300 ${
-              isSaved
-                ? 'bg-gradient-to-r from-green-500 to-emerald-500 shadow-lg shadow-green-200'
-                : 'bg-white bg-opacity-90 hover:bg-opacity-100'
-            }`}
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
-            onClick={(e) => {
-              e.stopPropagation();
-              handleSaveProperty();
-            }}
-          >
-            <Heart 
-              size={16} 
-              color={isSaved ? "#ffffff" : "#ef4444"} 
-              fill={isSaved ? "#ffffff" : "none"}
-              className={`transition-all duration-300 ${
-                saving ? 'animate-pulse' : ''
+          {/* Action Buttons */}
+          <div className="absolute top-4 right-4 flex gap-2 z-10">
+            {/* Share Button */}
+            <motion.div 
+              className="w-7 h-7 rounded-full flex items-center justify-center cursor-pointer transition-all duration-300 bg-white bg-opacity-90 hover:bg-opacity-100 shadow-lg"
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowShareModal(true);
+              }}
+              style={{ pointerEvents: 'auto' }}
+            >
+              <Share2 
+                size={16} 
+                color="#6b7280" 
+                className="transition-all duration-300"
+              />
+            </motion.div>
+
+            {/* Heart Icon - Save Property */}
+            <motion.div 
+              className={`w-7 h-7 rounded-full flex items-center justify-center cursor-pointer transition-all duration-300 ${
+                isSaved
+                  ? 'bg-gradient-to-r from-green-500 to-emerald-500 shadow-lg shadow-green-200'
+                  : 'bg-white bg-opacity-90 hover:bg-opacity-100 hover:shadow-md'
               }`}
-            />
-         
-          </motion.div>
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+              onClick={(e) => {
+                e.stopPropagation();
+                if (!saving) {
+                  handleSaveProperty();
+                }
+              }}
+              style={{ pointerEvents: 'auto' }}
+            >
+              <Heart 
+                size={17} 
+                color={isSaved ? "#ffffff" : "#ef4444"} 
+                fill={isSaved ? "#ffffff" : "none"}
+                className={`transition-all duration-300 ${
+                  saving ? 'animate-pulse' : ''
+                }`}
+              />
+            </motion.div>
+          </div>
           
           {/* RentWise Network Badge */}
           {/* {property.isRentWiseNetwork && (
@@ -326,7 +351,8 @@ export function ModernPropertyCard({
             whileHover={{ scale: 1.02 }}
             onClick={(e) => {
               e.stopPropagation();
-              onViewDetails?.(property);
+              // Navigate to property details URL which will open the modal
+              navigate(`/property-details/${property.id}`);
             }}
             className="relative px-4 py-3 rounded-xl font-semibold transition-all duration-300 flex items-center
              justify-center overflow-hidden group bg-gray-50 border border-gray-200 text-gray-700 
@@ -356,6 +382,13 @@ export function ModernPropertyCard({
         </div>
         </div>
       </div>
+
+      {/* Share Property Modal */}
+      <SharePropertyModal
+        property={property}
+        isOpen={showShareModal}
+        onClose={() => setShowShareModal(false)}
+      />
     </motion.div>
   );
 }

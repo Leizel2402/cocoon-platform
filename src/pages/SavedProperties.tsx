@@ -7,40 +7,40 @@ import {
   Bed, 
   Bath, 
   Square, 
-  DollarSign, 
   Star,
-  Trash2,
-  Eye,
   Calendar,
-  Filter,
-  Search,
-  X,
-  Edit3,
-  Save
+  Search
 } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/input';
-import { Textarea } from '../components/ui/textarea';
 import { Badge } from '../components/ui/badge';
 import { useToast } from '../hooks/use-toast';
 import { 
   getSavedProperties, 
   removeSavedProperty, 
-  updateSavedPropertyNotes,
   SavedProperty 
 } from '../services/savedPropertiesService';
-
-// Using SavedProperty interface from savedPropertiesService
+import PropertyDetailsModal from '../components/rentar/unitSelecttion/PropertyDetailsModal';
+import ScheduleTourModal from '../components/rentar/unitSelecttion/ScheduleTourModal';
+import { useNavigate } from 'react-router-dom';
+import { collection, query, getDocs } from 'firebase/firestore';
+import { db } from '../lib/firebase';
 
 export function SavedProperties() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const { toast } = useToast();
+  
   const [savedProperties, setSavedProperties] = useState<SavedProperty[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState<'all' | 'recent' | 'favorites'>('all');
-  const [editingNotes, setEditingNotes] = useState<string | null>(null);
-  const [notesText, setNotesText] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [selectedPropertyForDetails, setSelectedPropertyForDetails] = useState<any | null>(null);
+  const [showPropertyDetails, setShowPropertyDetails] = useState(false);
+  const [selectedPropertyForTour, setSelectedPropertyForTour] = useState<any | null>(null);
+  const [scheduleTourModalOpen, setScheduleTourModalOpen] = useState(false);
+  const [unitsData, setUnitsData] = useState<any[]>([]);
 
   // Load saved properties from Firebase
   useEffect(() => {
@@ -79,6 +79,82 @@ export function SavedProperties() {
     loadSavedProperties();
   }, [user?.uid, toast]);
 
+  // Load units for a specific property
+  const loadUnitsForProperty = async (propertyId: string) => {
+    try {
+      console.log("Loading units for property ID:", propertyId);
+      const unitsQuery = query(collection(db, "units"));
+      const querySnapshot = await getDocs(unitsQuery);
+
+      if (querySnapshot.empty) {
+        console.log("No units found in Firebase");
+        return [];
+      }
+
+      // Filter units for the specific property and transform
+      const propertyUnits = querySnapshot.docs
+        .filter((doc) => {
+          const unit = doc.data();
+          return unit.propertyId === propertyId;
+        })
+        .map((doc) => {
+          const unit = doc.data();
+
+          return {
+            id: doc.id,
+            unitNumber: unit.unitNumber || `Unit ${doc.id.slice(-4)}`,
+            bedrooms: unit.bedrooms || 1,
+            bathrooms: unit.bathrooms || 1,
+            sqft: unit.squareFeet || unit.sqft || 1000,
+            available: unit.available !== false,
+            availableDate: unit.availableDate || new Date().toISOString(),
+            floorPlan: unit.floorPlan || "Open Floor Plan",
+            rent: unit.rent || unit.rentAmount || 2000,
+            deposit: unit.deposit || Math.round((unit.rent || unit.rentAmount || 2000) * 1.5),
+            amenities: unit.amenities || ["Pool", "Gym", "Pet Friendly"],
+            images: unit.images || [],
+            description: unit.description || "",
+            propertyId: unit.propertyId || "",
+            floor: unit.floor || Math.floor(Math.random() * 10) + 1,
+            view: unit.view || "City View",
+            parkingIncluded: unit.amenities?.includes("Garage") || unit.amenities?.includes("Parking") || false,
+            petFriendly: unit.amenities?.some((amenity: string) => amenity.toLowerCase().includes("pet") || amenity.toLowerCase().includes("dog")) || false,
+            furnished: unit.furnished || false,
+            leaseTerms: [
+              {
+                months: 6,
+                rent: Math.round((unit.rent || unit.rentAmount || 2000) * 1.1),
+                popular: false,
+                savings: null,
+                concession: null,
+              },
+              {
+                months: 12,
+                rent: unit.rent || unit.rentAmount || 2000,
+                popular: true,
+                savings: null,
+                concession: "2 weeks free rent",
+              },
+              {
+                months: 18,
+                rent: Math.round((unit.rent || unit.rentAmount || 2000) * 0.95),
+                popular: false,
+                savings: 100,
+                concession: "1 month free rent",
+              },
+            ],
+          };
+        });
+
+      console.log(`Loaded ${propertyUnits.length} units for property ${propertyId}`);
+      setUnitsData(propertyUnits);
+      return propertyUnits;
+    } catch (error) {
+      console.error("Error loading units for property:", error);
+      return [];
+    }
+  };
+
   const filteredProperties = savedProperties.filter(property => {
     const matchesSearch = property.propertyName.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          property.propertyAddress.toLowerCase().includes(searchTerm.toLowerCase());
@@ -94,6 +170,7 @@ export function SavedProperties() {
 
   const handleRemoveProperty = async (savedPropertyId: string) => {
     try {
+      setSaving(true);
       const result = await removeSavedProperty(savedPropertyId);
       
       if (result.success) {
@@ -116,58 +193,69 @@ export function SavedProperties() {
         description: "Failed to remove property",
         variant: "destructive"
       });
+    } finally {
+      setSaving(false);
     }
   };
 
-  const handleViewProperty = (property: SavedProperty) => {
-    // Navigate to property details
-    toast({
-      title: "Viewing property",
-      description: `Opening details for ${property.propertyName}`,
-    });
+  const handleViewDetails = (property: SavedProperty) => {
+    // Convert SavedProperty to format expected by PropertyDetailsModal
+    const propertyForModal = {
+      id: property.propertyId,
+      name: property.propertyName,
+      address: property.propertyAddress,
+      priceRange: property.propertyPrice,
+      beds: `${property.propertyBeds} Bed${property.propertyBeds !== 1 ? 's' : ''}`,
+      bedrooms: property.propertyBeds,
+      bathrooms: property.propertyBaths,
+      rating: property.propertyRating,
+      amenities: property.propertyAmenities,
+      image: property.propertyImage,
+      propertyType: property.propertyType,
+      coordinates: [0, 0] as [number, number], // Default coordinates
+    };
+    
+    setSelectedPropertyForDetails(propertyForModal);
+    setShowPropertyDetails(true);
   };
 
-  const handleEditNotes = (property: SavedProperty) => {
-    setEditingNotes(property.id);
-    setNotesText(property.notes || '');
+  const handleViewUnits = async (property: SavedProperty) => {
+    // Convert SavedProperty to format expected by navigation
+    const propertyForNav = {
+      id: property.propertyId,
+      name: property.propertyName,
+      address: property.propertyAddress,
+      priceRange: property.propertyPrice,
+      beds: `${property.propertyBeds} Bed${property.propertyBeds !== 1 ? 's' : ''}`,
+      bedrooms: property.propertyBeds,
+      bathrooms: property.propertyBaths,
+      rating: property.propertyRating,
+      amenities: property.propertyAmenities,
+      image: property.propertyImage,
+      propertyType: property.propertyType,
+    };
+
+    // Load units for this property
+    await loadUnitsForProperty(property.propertyId);
+    
+    // Navigate to dashboard with propertyId parameter to open unit selection
+    navigate(`/dashboard?propertyId=${property.propertyId}`);
   };
 
-  const handleSaveNotes = async (savedPropertyId: string) => {
-    try {
-      const result = await updateSavedPropertyNotes(savedPropertyId, notesText);
-      
-      if (result.success) {
-        setSavedProperties(prev => prev.map(p => 
-          p.id === savedPropertyId 
-            ? { ...p, notes: notesText }
-            : p
-        ));
-        setEditingNotes(null);
-        setNotesText('');
-        toast({
-          title: "Notes updated",
-          description: "Your notes have been saved successfully.",
-        });
-      } else {
-        toast({
-          title: "Error updating notes",
-          description: result.error || "Failed to update notes",
-          variant: "destructive"
-        });
-      }
-    } catch (error) {
-      console.error('Error updating notes:', error);
-      toast({
-        title: "Error updating notes",
-        description: "Failed to update notes",
-        variant: "destructive"
-      });
-    }
-  };
-
-  const handleCancelEdit = () => {
-    setEditingNotes(null);
-    setNotesText('');
+  const handleScheduleTour = (property: SavedProperty) => {
+    const propertyForModal = {
+      id: property.propertyId,
+      name: property.propertyName,
+      address: property.propertyAddress,
+      priceRange: property.propertyPrice,
+      beds: `${property.propertyBeds} Bed${property.propertyBeds !== 1 ? 's' : ''}`,
+      rating: property.propertyRating,
+      amenities: property.propertyAmenities,
+      image: property.propertyImage,
+    };
+    
+    setSelectedPropertyForTour(propertyForModal);
+    setScheduleTourModalOpen(true);
   };
 
   if (loading) {
@@ -184,7 +272,7 @@ export function SavedProperties() {
   }
 
   return (
-    <div className="min-h-screen ">
+    <div className="min-h-screen">
       {/* Header */}
       <div className="bg-white shadow-sm border-b">
         <div className="max-w-6xl mx-auto px-6 py-8">
@@ -211,7 +299,6 @@ export function SavedProperties() {
       <div className="max-w-6xl mx-auto px-6 py-6">
         <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
           <div className="flex flex-col md:flex-row gap-4">
-            {/* Search */}
             <div className="flex-1">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -224,21 +311,19 @@ export function SavedProperties() {
               </div>
             </div>
 
-            {/* Filter Buttons */}
             <div className="flex gap-2">
               {[
                 { key: 'all', label: 'All Properties' },
                 { key: 'recent', label: 'Recent' },
-                { key: 'favorites', label: 'Favorites' }
               ].map((filter) => (
                 <Button
                   key={filter.key}
                   variant={filterType === filter.key ? "default" : "outline"}
                   size="sm"
-                  onClick={() => setFilterType(filter.key as any)}
+                  onClick={() => setFilterType(filter.key as 'all' | 'recent' | 'favorites')}
                   className={filterType === filter.key 
-                    ? "bg-green-600 hover:bg-green-700" 
-                    : "border-gray-200 hover:bg-green-50"
+                    ? "bg-blue-600 hover:bg-blue-700 text-white" 
+                    : "border-gray-200 hover:bg-blue-50"
                   }
                 >
                   {filter.label}
@@ -267,7 +352,7 @@ export function SavedProperties() {
             </p>
             {!searchTerm && (
               <Button 
-                onClick={() => window.history.back()}
+                onClick={() => navigate('/dashboard')}
                 className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
               >
                 Browse Properties
@@ -291,24 +376,25 @@ export function SavedProperties() {
                     alt={property.propertyName}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                   />
-                  <div className="absolute top-3 right-3 flex gap-2">
-                    <Button
-                      size="sm"
-                      variant="secondary"
-                      className="bg-white/90 hover:bg-white backdrop-blur-sm"
-                      onClick={() => handleViewProperty(property)}
-                    >
-                      <Eye className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="destructive"
-                      className="bg-red-500/90 hover:bg-red-600 backdrop-blur-sm"
-                      onClick={() => handleRemoveProperty(property.id)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
+                  <motion.div 
+                    className="absolute top-4 right-4 w-7 h-7 rounded-full flex items-center justify-center cursor-pointer transition-all duration-300 z-10 bg-gradient-to-r from-green-500 to-emerald-500 shadow-lg shadow-green-200"
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.9 }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (!saving) {
+                        handleRemoveProperty(property.id);
+                      }
+                    }}
+                    style={{ pointerEvents: 'auto' }}
+                  >
+                    <Heart 
+                      size={17} 
+                      color="#ffffff" 
+                      fill="#ffffff"
+                      className={`transition-all duration-300 ${saving ? 'animate-pulse' : ''}`}
+                    />
+                  </motion.div>
                   <div className="absolute bottom-3 left-3">
                     <Badge className="bg-green-600 text-white">
                       <Heart className="h-3 w-3 mr-1" />
@@ -354,88 +440,28 @@ export function SavedProperties() {
                     </div>
                   </div>
 
-                  {/* Notes Section */}
-                  <div className="mb-4">
-                    {editingNotes === property.id ? (
-                      <div className="space-y-2">
-                        <Textarea
-                          value={notesText}
-                          onChange={(e) => setNotesText(e.target.value)}
-                          placeholder="Add your notes about this property..."
-                          className="text-sm"
-                          rows={2}
-                        />
-                        <div className="flex gap-2">
-                          <Button
-                            size="sm"
-                            onClick={() => handleSaveNotes(property.id)}
-                            className="bg-green-600 hover:bg-green-700"
-                          >
-                            <Save className="h-3 w-3 mr-1" />
-                            Save
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={handleCancelEdit}
-                          >
-                            Cancel
-                          </Button>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="p-3 bg-gray-50 rounded-lg">
-                        {property.notes ? (
-                          <div className="flex items-start justify-between">
-                            <p className="text-sm text-gray-700 italic flex-1">"{property.notes}"</p>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => handleEditNotes(property)}
-                              className="ml-2 text-gray-500 hover:text-gray-700"
-                            >
-                              <Edit3 className="h-3 w-3" />
-                            </Button>
-                          </div>
-                        ) : (
-                          <div className="flex items-center justify-between">
-                            <p className="text-sm text-gray-500 italic">No notes added</p>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => handleEditNotes(property)}
-                              className="text-gray-500 hover:text-gray-700"
-                            >
-                              <Edit3 className="h-3 w-3 mr-1" />
-                              Add Note
-                            </Button>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="flex items-center justify-between text-xs text-gray-500">
+                  <div className="flex items-center justify-between text-xs text-gray-500 mb-4">
                     <div className="flex items-center">
                       <Calendar className="h-3 w-3 mr-1" />
                       <span>Saved {property.savedAt.toLocaleDateString()}</span>
                     </div>
                   </div>
 
-                  <div className="mt-4 flex gap-2">
+                  <div className="flex gap-2">
                     <Button
                       variant="outline"
                       size="sm"
-                      className="flex-1 border-green-200 text-green-700 hover:bg-green-50"
-                      onClick={() => handleViewProperty(property)}
+                      className="flex-1 hover:text-white border-green-200 text-green-700 hover:bg-green-700"
+                      onClick={() => handleViewDetails(property)}
                     >
                       View Details
                     </Button>
                     <Button
                       size="sm"
-                      className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
+                      className="flex-1 text-white bg-gradient-to-r from-blue-600 to-blue-600 hover:from-blue-700 hover:to-blue-700"
+                      onClick={() => handleViewUnits(property)}
                     >
-                      Apply Now
+                      See Available Units
                     </Button>
                   </div>
                 </div>
@@ -444,6 +470,40 @@ export function SavedProperties() {
           </div>
         )}
       </div>
+
+      {/* Property Details Modal */}
+      {showPropertyDetails && selectedPropertyForDetails && (
+        <PropertyDetailsModal
+          property={selectedPropertyForDetails}
+          isOpen={showPropertyDetails}
+          onClose={() => {
+            setShowPropertyDetails(false);
+            setSelectedPropertyForDetails(null);
+          }}
+          onScheduleTour={() => {
+            setShowPropertyDetails(false);
+            handleScheduleTour(selectedPropertyForDetails);
+          }}
+          onApplyNow={() => {
+            setShowPropertyDetails(false);
+            handleViewUnits(selectedPropertyForDetails);
+          }}
+          onViewUnits={async (property) => {
+            setShowPropertyDetails(false);
+            await handleViewUnits(property);
+          }}
+        />
+      )}
+
+      {/* Schedule Tour Modal */}
+      <ScheduleTourModal
+        property={selectedPropertyForTour}
+        isOpen={scheduleTourModalOpen}
+        onClose={() => {
+          setScheduleTourModalOpen(false);
+          setSelectedPropertyForTour(null);
+        }}
+      />
     </div>
   );
 }

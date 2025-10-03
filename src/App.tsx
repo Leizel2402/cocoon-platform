@@ -1,5 +1,5 @@
 import 'leaflet/dist/leaflet.css';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useParams } from 'react-router-dom';
 import { Layout } from './components/layout';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { DataMigration } from './components/DataMigration';
@@ -13,16 +13,19 @@ import Dashboards from './pages/Dashboards';
 import { MyApplications } from './pages/MyApplications';
 import { UserPortal } from './pages/UserPortal';
 import { PropertyManagement } from './pages/PropertyManagement';
-import { Property } from './pages/Property';
 import { AddyChat } from './pages/AddyChat';
-import { ProspectApplication } from './pages/ProspectApplication';
 import ApplicationProcess from './Prospect/ApplicationProcess';
 import { SavedProperties } from './pages/SavedProperties';
 import { MaintenanceRequests } from './pages/MaintenanceRequests';
 import { LearningCenter } from './pages/LearningCenter';
 import { Subscriptions } from './pages/Subscriptions';
 
- 
+// Component to handle property details redirect
+function PropertyDetailsRedirect() {
+  const { id } = useParams<{ id: string }>();
+  return <Navigate to={`/property?propertyId=${id}`} replace />;
+}
+
 function App() {
   return (
     <Router>
@@ -56,10 +59,10 @@ function App() {
             }
           />
           
-          {/* Property details route */}
+          {/* Property details route - redirect to property page with property ID */}
           <Route
             path="/property-details/:id"
-            element={<Property />}
+            element={<PropertyDetailsRedirect />}
           />
           <Route
             path="/addy-chat"

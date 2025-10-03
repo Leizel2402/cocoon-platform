@@ -65,6 +65,7 @@ interface PropertyDetailsModalProps {
   onClose: () => void;
   onScheduleTour?: (property?: PropertyDetailsModalProps['property']) => void;
   onApplyNow?: (property?: PropertyDetailsModalProps['property']) => void;
+  onViewUnits?: (property: PropertyDetailsModalProps['property']) => void;
 }
 
 const PropertyDetailsModal: React.FC<PropertyDetailsModalProps> = ({
@@ -72,7 +73,8 @@ const PropertyDetailsModal: React.FC<PropertyDetailsModalProps> = ({
   isOpen,
   onClose,
   onScheduleTour,
-  onApplyNow
+  onApplyNow,
+  onViewUnits
 }) => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   
@@ -126,6 +128,7 @@ const PropertyDetailsModal: React.FC<PropertyDetailsModalProps> = ({
     'Dog Park': <PawPrint className="h-4 w-4 text-orange-500" />,
     'Modern': <Building className="h-4 w-4 text-gray-700" />
   };
+console.log("properties ",property );
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -521,10 +524,7 @@ const PropertyDetailsModal: React.FC<PropertyDetailsModalProps> = ({
                 About This Property
               </h3>
               <p className="text-gray-600 leading-relaxed text-base">
-                {property.description || `Experience luxury living at ${property.name}. This modern apartment community offers 
-                premium amenities and spacious floor plans. With easy access 
-              to downtown and major highways, you'll enjoy the perfect blend of urban convenience 
-                and residential comfort.`}
+                {property.description}
             </p>
             </div>
           </div>
@@ -545,11 +545,14 @@ const PropertyDetailsModal: React.FC<PropertyDetailsModalProps> = ({
             </motion.div>
             <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="flex-1">
             <Button 
-              onClick={() => onApplyNow?.(property)}
+             onClick={(e) => {
+              e.stopPropagation();
+              onViewUnits?.(property);
+            }}
                 className="w-full h-12 text-base font-semibold bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-200"
             >
                 <FileText className="h-4 w-4 mr-2" />
-              Apply Now
+                See Available Units
             </Button>
             </motion.div>
           </div>

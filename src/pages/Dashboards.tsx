@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import { Button } from "../components/ui/Button";
 // import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
@@ -55,6 +55,7 @@ const Dashboards = () => {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const [searchParams] = useSearchParams();
   const bypassRole =
     typeof window !== "undefined"
       ? (localStorage.getItem("dev_auth_bypass_role") as
@@ -363,6 +364,33 @@ console.log("Selected Property", selectedProperty);
 
     loadProperties();
   }, []);
+
+  // Handle propertyId from URL parameter
+  useEffect(() => {
+    const propertyId = searchParams.get('propertyId');
+    console.log('Dashboards: propertyId from URL =', propertyId);
+    console.log('Dashboards: databaseProperties.length =', databaseProperties.length);
+    
+    if (propertyId && databaseProperties.length > 0) {
+      // Find the property by ID
+      const foundProperty = databaseProperties.find(p => p.id === propertyId);
+      console.log('Dashboards: foundProperty =', foundProperty);
+      
+      if (foundProperty) {
+        console.log('Found property from URL:', foundProperty);
+        setSelectedProperty(foundProperty);
+        setCurrentView('property-details');
+      } else {
+        console.log('Property not found for ID:', propertyId);
+        console.log('Available property IDs:', databaseProperties.map(p => p.id));
+        toast({
+          title: "Property not found",
+          description: "The requested property could not be found.",
+          variant: "destructive"
+        });
+      }
+    }
+  }, [searchParams, databaseProperties, toast]);
 
   // Load units data from Firebase
   const loadUnitsData = async () => {
@@ -1387,10 +1415,6 @@ console.log("Selected Property", selectedProperty);
                             key={property.id}
                             property={property}
                             index={index}
-                            onViewDetails={(property) => {
-                                      setSelectedProperty(property);
-                                      setCurrentView("property-details");
-                                    }}
                             onViewUnits={async (property) => {
                                       setSelectedProperty(property);
                                       // Load units for this specific property
@@ -1542,6 +1566,21 @@ console.log("Selected Property", selectedProperty);
             onApplyNow={() => {
               setCurrentView("unit-selection");
             }}
+            onViewUnits={async (property) => {
+              setSelectedProperty(property);
+              // Load units for this specific property
+              console.log(
+                "Loading units for property:",
+                property.id
+              );
+              const loadedUnits =
+                await loadUnitsForProperty(property.id);
+              console.log(
+                "Units loaded, setting view to unit-selection. Units count:",
+                loadedUnits.length
+              );
+              setCurrentView("unit-selection");
+            }}
           />
         ) : currentView === "account-management" ? (
           <></>
@@ -1579,7 +1618,7 @@ console.log("Selected Property", selectedProperty);
         )}
 
         {/* Submissions Dashboard for Landlords and Staff */}
-        {(effectiveUserRole === "landlord_admin" || effectiveUserRole === "landlord_employee" || effectiveUserRole === "cocoon_admin" || effectiveUserRole === "cocoon_employee") && (
+        {/* {(effectiveUserRole === "landlord_admin" || effectiveUserRole === "landlord_employee" || effectiveUserRole === "cocoon_admin" || effectiveUserRole === "cocoon_employee") && (
           <section className="bg-white border-t border-gray-200">
             <div className="container mx-auto px-6 py-8">
               <SubmissionsDashboard 
@@ -1588,7 +1627,7 @@ console.log("Selected Property", selectedProperty);
               />
             </div>
           </section>
-        )}
+        )} */}
       </main>
 
       {/* Schedule Tour Modal */}
