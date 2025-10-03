@@ -40,7 +40,6 @@ export function SavedProperties() {
   const [showPropertyDetails, setShowPropertyDetails] = useState(false);
   const [selectedPropertyForTour, setSelectedPropertyForTour] = useState<any | null>(null);
   const [scheduleTourModalOpen, setScheduleTourModalOpen] = useState(false);
-  const [unitsData, setUnitsData] = useState<any[]>([]);
 
   // Load saved properties from Firebase
   useEffect(() => {
@@ -146,9 +145,8 @@ export function SavedProperties() {
           };
         });
 
-      console.log(`Loaded ${propertyUnits.length} units for property ${propertyId}`);
-      setUnitsData(propertyUnits);
-      return propertyUnits;
+       console.log(`Loaded ${propertyUnits.length} units for property ${propertyId}`);
+       return propertyUnits;
     } catch (error) {
       console.error("Error loading units for property:", error);
       return [];
@@ -220,21 +218,6 @@ export function SavedProperties() {
   };
 
   const handleViewUnits = async (property: SavedProperty) => {
-    // Convert SavedProperty to format expected by navigation
-    const propertyForNav = {
-      id: property.propertyId,
-      name: property.propertyName,
-      address: property.propertyAddress,
-      priceRange: property.propertyPrice,
-      beds: `${property.propertyBeds} Bed${property.propertyBeds !== 1 ? 's' : ''}`,
-      bedrooms: property.propertyBeds,
-      bathrooms: property.propertyBaths,
-      rating: property.propertyRating,
-      amenities: property.propertyAmenities,
-      image: property.propertyImage,
-      propertyType: property.propertyType,
-    };
-
     // Load units for this property
     await loadUnitsForProperty(property.propertyId);
     
@@ -242,21 +225,6 @@ export function SavedProperties() {
     navigate(`/dashboard?propertyId=${property.propertyId}`);
   };
 
-  const handleScheduleTour = (property: SavedProperty) => {
-    const propertyForModal = {
-      id: property.propertyId,
-      name: property.propertyName,
-      address: property.propertyAddress,
-      priceRange: property.propertyPrice,
-      beds: `${property.propertyBeds} Bed${property.propertyBeds !== 1 ? 's' : ''}`,
-      rating: property.propertyRating,
-      amenities: property.propertyAmenities,
-      image: property.propertyImage,
-    };
-    
-    setSelectedPropertyForTour(propertyForModal);
-    setScheduleTourModalOpen(true);
-  };
 
   if (loading) {
     return (
@@ -476,34 +444,41 @@ export function SavedProperties() {
         <PropertyDetailsModal
           property={selectedPropertyForDetails}
           isOpen={showPropertyDetails}
-          onClose={() => {
-            setShowPropertyDetails(false);
-            setSelectedPropertyForDetails(null);
-          }}
+           onClose={() => {
+             setShowPropertyDetails(false);
+             setSelectedPropertyForDetails(null);
+             // Clear URL parameters when closing modal
+             navigate('/saved-properties', { replace: true });
+           }}
           onScheduleTour={() => {
             setShowPropertyDetails(false);
-            handleScheduleTour(selectedPropertyForDetails);
+            setSelectedPropertyForTour(selectedPropertyForDetails);
+            setScheduleTourModalOpen(true);
           }}
           onApplyNow={() => {
             setShowPropertyDetails(false);
-            handleViewUnits(selectedPropertyForDetails);
+            // Navigate to dashboard with propertyId parameter to open unit selection
+            navigate(`/dashboard?propertyId=${selectedPropertyForDetails.id}`);
           }}
           onViewUnits={async (property) => {
             setShowPropertyDetails(false);
-            await handleViewUnits(property);
+            // Navigate to dashboard with propertyId parameter to open unit selection
+            navigate(`/dashboard?propertyId=${property.id}`);
           }}
         />
       )}
 
       {/* Schedule Tour Modal */}
-      <ScheduleTourModal
-        property={selectedPropertyForTour}
-        isOpen={scheduleTourModalOpen}
-        onClose={() => {
-          setScheduleTourModalOpen(false);
-          setSelectedPropertyForTour(null);
-        }}
-      />
+       <ScheduleTourModal
+         property={selectedPropertyForTour}
+         isOpen={scheduleTourModalOpen}
+         onClose={() => {
+           setScheduleTourModalOpen(false);
+           setSelectedPropertyForTour(null);
+           // Clear URL parameters when closing modal
+           navigate('/saved-properties', { replace: true });
+         }}
+       />
     </div>
   );
 }

@@ -409,8 +409,8 @@ export function Home() {
               {/* Hero Content */}
               <div className="relative z-10 flex flex-col items-center text-center px-4 py-8 sm:py-12 lg:py-16 pb-4">
                 <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-4 sm:mb-6 text-white leading-tight">
-                Forget everything you know
-                  <span className="block text-green-600 my-1"> about Renting</span>
+                Forget everything you know about
+                  <span className="block text-green-600 my-1"> Renting</span>
                 </h1>
                 {/* <p className="text-xl sm:text-2xl text-blue-100 max-w-3xl mx-auto mb-8">
                 Forget everything you know about renting

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import { Button } from "../components/ui/Button";
 // import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
@@ -963,7 +963,7 @@ console.log("Selected Property", selectedProperty);
 
             {/* Modern Search Filters Bar */}
             <section className="bg-white/95 backdrop-blur-md border-b border-gray-200 shadow-lg py-4 sticky top-16 z-40">
-              <div className="container mx-auto px-6">
+              <div className="container mx-auto  px-auto">
                 <div className="flex items-center space-x-4 flex-wrap">
                   <Input
                     placeholder="City, neighborhood..."
@@ -1265,7 +1265,6 @@ console.log("Selected Property", selectedProperty);
                   >
                     All Filters
                   </Button>
-
                   <div className="flex items-center space-x-2 flex-shrink-0">
                     <Button
                       variant="outline"
@@ -1310,8 +1309,18 @@ console.log("Selected Property", selectedProperty);
                       Search
                     </Button>
                   </div>
-                </div>
 
+                  <a
+                      href="/saved-properties"
+                     
+                      // onClick={() => navigate('/saved-properties')}
+                      className=" font-medium text-md -600 hover:underline  px-6 py-3 "
+                    >
+                    
+                      Saved Homes
+                    </a>
+                </div>
+                
                 {/* Refine Search Expanded Section */}
                 {showAllFilters && (
                   <div className="mt-4">
@@ -1359,6 +1368,21 @@ console.log("Selected Property", selectedProperty);
                     console.log('Selected property from map:', property);
                     setCurrentView('unit-selection');
                   }}
+                  // onViewUnits={async (property) => {
+                  //   setSelectedProperty(property);
+                  //   // Load units for this specific property
+                  //   console.log(
+                  //     "Loading units for property:",
+                  //     property.id
+                  //   );
+                  //   const loadedUnits =
+                  //     await loadUnitsForProperty(property.id);
+                  //   console.log(
+                  //     "Units loaded, setting view to unit-selection. Units count:",
+                  //     loadedUnits.length
+                  //   );
+                  //   setCurrentView("unit-selection");
+                  // }}
                 />
               </div>
 
@@ -1375,6 +1399,7 @@ console.log("Selected Property", selectedProperty);
                         matched homes for you
                       </p>
                     </div>
+                   
                     {/* <div className="flex items-center space-x-3">
                       <span className="text-sm text-gray-600 font-medium">{t('sort')}</span>
                       <Button variant="outline" size="sm" className="rounded-xl px-4 py-2 border-gray-200 hover:bg-green-50">{t('default')} ▼</Button>
@@ -1558,7 +1583,11 @@ console.log("Selected Property", selectedProperty);
           <PropertyDetailsModal
             property={selectedProperty}
             isOpen={true}
-            onClose={() => setCurrentView("dashboard")}
+            onClose={() => {
+              setCurrentView("dashboard");
+              // Clear URL parameters when closing modal
+              navigate('/property', { replace: true });
+            }}
             onScheduleTour={() => {
               setSelectedPropertyForTour(selectedProperty);
               setScheduleTourModalOpen(true);
@@ -1634,7 +1663,11 @@ console.log("Selected Property", selectedProperty);
       <ScheduleTourModal
         property={selectedPropertyForTour}
         isOpen={scheduleTourModalOpen}
-        onClose={() => setScheduleTourModalOpen(false)}
+        onClose={() => {
+          setScheduleTourModalOpen(false);
+          // Clear URL parameters when closing modal
+          navigate('/property', { replace: true });
+        }}
       />
     </div>
     

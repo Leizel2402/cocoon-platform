@@ -21,6 +21,7 @@ try {
 
 // Import CSS
 import 'leaflet/dist/leaflet.css';
+import { useNavigate } from 'react-router-dom';
 
 interface Property {
   id: string | number;
@@ -230,7 +231,7 @@ const DashboardMap: React.FC<PropertyMapProps> = ({
   properties, 
   onPropertySelect
 }) => {
-  
+  const navigate = useNavigate();
   const [selectedProperty, setSelectedProperty] = useState<Property | null>(null);
   const [mapCenter, setMapCenter] = useState<[number, number]>([30.2672, -97.7431]); // Austin, TX
   const [zoom, setZoom] = useState(12);
@@ -707,9 +708,9 @@ const DashboardMap: React.FC<PropertyMapProps> = ({
                       </div>
                       
                       {/* Debug info - temporary */}
-                      <div className="text-xs text-blue-600 mt-1">
+                      {/* <div className="text-xs text-blue-600 mt-1">
                         Coords: [{lat.toFixed(4)}, {lng.toFixed(4)}]
-                      </div>
+                      </div> */}
                       
                       {/* Divider */}
                       <div className="border-t border-gray-100 my-2"></div>
@@ -720,8 +721,13 @@ const DashboardMap: React.FC<PropertyMapProps> = ({
                         whileTap={{ scale: 0.98 }}
                         onClick={(e) => {
                           e.stopPropagation();
-                          handleViewDetails(property);
+                          // Navigate to property details URL which will open the modal
+                          navigate(`/property-details/${property.id}`);
                         }}
+                        // onClick={(e) => {
+                        //   e.stopPropagation();
+                        //   handleViewDetails(property);
+                        // }}
                         className="relative w-full py-2 px-3 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white border-none rounded-lg text-sm font-semibold cursor-pointer transition-all duration-300 overflow-hidden group"
                       >
                         <div className="absolute inset-0 bg-gradient-to-r from-green-700 to-emerald-700 opacity-0 group-hover:opacity-100 transition-all duration-300" />

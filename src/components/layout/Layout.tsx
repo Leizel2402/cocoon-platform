@@ -92,9 +92,9 @@ export function Layout({ children }: LayoutProps) {
                   <Home className="h-5 w-5 sm:h-7 sm:w-7 text-white" />
                 </div>
 
-                <span className="text-xl sm:text-2xl lg:text-3xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 bg-clip-text text-transparent">
+                {/* <span className="text-xl sm:text-2xl lg:text-3xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 bg-clip-text text-transparent">
                   Cocoon
-                </span>
+                </span> */}
               </Link>
 
               {/* Desktop Navigation - Clean design */}
