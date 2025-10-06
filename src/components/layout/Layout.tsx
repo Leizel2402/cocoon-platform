@@ -6,7 +6,6 @@ import {
   FileText,
   BarChart3,
   LogOut,
-  User,
   UserCircle,
   Clock,
   Menu,
@@ -15,10 +14,12 @@ import {
   Globe,
   Heart,
   DollarSign,
+  Search,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { Button } from "../ui/Button";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
+import { Toaster } from "../ui/toaster";
 
 import { useTranslation } from "../../hooks/useTranslations";
 interface LayoutProps {
@@ -112,7 +113,7 @@ export function Layout({ children }: LayoutProps) {
                   user?.role === "prospect" ||
                   !user) && (
                   <Button
-                    className="bg-green-600 hover:bg-green-700 text-white px-4 sm:px-6 py-2 font-semibold text-sm sm:text-base"
+                    className="bg-green-600 hover:bg-green-700 text-white px-4 rounded-[8px] sm:px-6 py-2 font-semibold text-sm sm:text-base"
                     onClick={() => navigate("/prequalify")}
                   >
                     Get Prequalified
@@ -246,10 +247,18 @@ export function Layout({ children }: LayoutProps) {
                                 <Heart className="h-4 w-4 mr-3 text-green-600" />
                                 Saved Properties
                               </button>
+                              
+                              <button
+                                onClick={() => navigate("/saved-searches")}
+                                className="w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-green-50 hover:text-green-700 transition-colors flex items-center"
+                              >
+                                <Search className="h-4 w-4 mr-3 text-green-600" />
+                                Saved Searches
+                              </button>
                           
                               <button
                                 onClick={() => navigate("/prequalify")}
-                                className="w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-green-50 hover:text-green-700 transition-colors flex items-center"
+                                className="w-full text-left px-4 py-3 rounded-[8px] text-sm text-gray-700 hover:bg-green-50 hover:text-green-700 transition-colors flex items-center"
                               >
                                 <FileText className="h-4 w-4 mr-3 text-green-600" />
                                 Get Prequalified
@@ -265,6 +274,14 @@ export function Layout({ children }: LayoutProps) {
                               >
                                 <Heart className="h-4 w-4 mr-3 text-green-600" />
                                 Saved Properties
+                              </button>
+                              
+                              <button
+                                onClick={() => navigate("/saved-searches")}
+                                className="w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-green-50 hover:text-green-700 transition-colors flex items-center"
+                              >
+                                <Search className="h-4 w-4 mr-3 text-green-600" />
+                                Saved Searches
                               </button>
                               <button
                                 onClick={() => navigate("/learning-center")}
@@ -741,6 +758,9 @@ export function Layout({ children }: LayoutProps) {
       >
         {children}
       </motion.main>
+
+      {/* Toast Notifications */}
+      <Toaster />
     </div>
   );
 }

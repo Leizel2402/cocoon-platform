@@ -22,6 +22,16 @@ interface ModernPropertyCardProps {
     amenities: string[];
     image: string;
     isRentWiseNetwork?: boolean;
+    square_feet?: number;
+    sqft?: number;
+    available?: boolean;
+    available_date?: string;
+    description?: string;
+    pet_friendly?: boolean;
+    parkingIncluded?: boolean;
+    furnished?: boolean;
+    floor?: number;
+    view?: string;
   };
   index: number;
   onViewUnits?: (property: ModernPropertyCardProps['property']) => void;
@@ -101,7 +111,7 @@ export function ModernPropertyCard({
           });
         }
       } else {
-        // Save property - add to saved list
+        // Save property - add to saved list with dynamic data
         const propertyData: SavePropertyData = {
           propertyId: property.id.toString(),
           propertyName: property.name,
@@ -113,7 +123,8 @@ export function ModernPropertyCard({
           propertyRating: property.rating,
           propertyImage: property.image,
           propertyType: property.propertyType,
-          propertyAmenities: property.amenities || []
+          propertyAmenities: property.amenities || [],
+          notes: property.description || `Available: ${property.available !== false ? 'Yes' : 'No'}${property.pet_friendly ? ' | Pet Friendly' : ''}${property.parkingIncluded ? ' | Parking Included' : ''}${property.furnished ? ' | Furnished' : ''}`
         };
 
         const result = await saveProperty(user.uid, propertyData);
@@ -173,10 +184,17 @@ export function ModernPropertyCard({
     return 1; // Default fallback
   };
 
-  // Format square footage (mock data for now)
+  // Format square footage from Firebase data
   const formatSquareFootage = () => {
-    // This would come from property data in a real implementation
-    return 900;
+    if (property.square_feet) {
+      return property.square_feet;
+    }
+    if (property.sqft) {
+      return property.sqft;
+    }
+    // Generate reasonable square footage based on bedrooms if no data available
+    const bedrooms = formatBedrooms();
+    return bedrooms === 0 ? 500 : bedrooms * 400 + 200; // Studio: 500, 1BR: 600, 2BR: 1000, etc.
   };
 
   const displayedAmenities = showAllAmenities
@@ -200,15 +218,19 @@ export function ModernPropertyCard({
             className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
           />
           
-          {/* Available Badge */}
+          {/* Available Badge - Dynamic from Firebase data */}
           <div className="absolute top-4 left-4">
             <motion.span
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
               transition={{ delay: index * 0.1 + 0.3 }}
-              className="px-3 py-1 rounded-full text-sm font-semibold shadow-lg backdrop-blur-sm bg-gradient-to-r from-green-500 to-green-600 text-white"
+              className={`px-3 py-1 rounded-full text-sm font-semibold shadow-lg backdrop-blur-sm ${
+                property.available === false 
+                  ? 'bg-gradient-to-r from-red-500 to-red-600 text-white'
+                  : 'bg-gradient-to-r from-green-500 to-green-600 text-white'
+              }`}
             >
-              Available
+              {property.available === false ? 'Unavailable' : 'Available'}
             </motion.span>
           </div>
           
@@ -238,9 +260,9 @@ export function ModernPropertyCard({
                 isSaved
                   ? 'bg-gradient-to-r from-green-500 to-emerald-500 shadow-lg shadow-green-200'
                   : 'bg-white bg-opacity-90 hover:bg-opacity-100 hover:shadow-md'
-              }`}
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.9 }}
+              } ${saving ? 'opacity-75 cursor-not-allowed' : ''}`}
+              whileHover={{ scale: saving ? 1 : 1.1 }}
+              whileTap={{ scale: saving ? 1 : 0.9 }}
               onClick={(e) => {
                 e.stopPropagation();
                 if (!saving) {
@@ -260,12 +282,12 @@ export function ModernPropertyCard({
             </motion.div>
           </div>
           
-          {/* RentWise Network Badge */}
-          {/* {property.isRentWiseNetwork && (
+          {/* RentWise Network Badge - Dynamic from Firebase data */}
+          {property.isRentWiseNetwork && (
             <div className="absolute bottom-4 left-4 bg-blue-600 text-white text-xs px-2 py-1 rounded font-medium">
               RentWise Network
             </div>
-          )} */}
+          )}
           
           <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
         </div>
@@ -298,11 +320,13 @@ export function ModernPropertyCard({
           </div>
         </div>
 
-        {/* Beds, Baths, Sqft */}
+        {/* Beds, Baths, Sqft - Dynamic from Firebase data */}
         <div className="flex items-center justify-between text-gray-600 mb-4 bg-gray-50 rounded-xl p-3">
           <div className="flex items-center">
             <Bed className="h-4 w-4 mr-1 text-blue-600" />
-            <span className="text-sm">{formatBedrooms()} bed{formatBedrooms() !== 1 ? 's' : ''}</span>
+            <span className="text-sm">
+              {formatBedrooms() === 0 ? 'Studio' : `${formatBedrooms()} bed${formatBedrooms() !== 1 ? 's' : ''}`}
+            </span>
           </div>
           <div className="flex items-center">
             <Bath className="h-4 w-4 mr-1 text-green-600" />
@@ -310,9 +334,30 @@ export function ModernPropertyCard({
           </div>
           <div className="flex items-center">
             <Square className="h-4 w-4 mr-1 text-purple-600" />
-            <span className="text-sm">{formatSquareFootage()} sqft</span>
+            <span className="text-sm">{formatSquareFootage().toLocaleString()} sqft</span>
           </div>
         </div>
+
+        {/* Additional Property Features - Dynamic from Firebase data */}
+        {(property.pet_friendly || property.parkingIncluded || property.furnished) && (
+          <div className="flex flex-wrap gap-2 mb-4">
+            {property.pet_friendly && (
+              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 border border-green-200">
+                🐾 Pet Friendly
+              </span>
+            )}
+            {property.parkingIncluded && (
+              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 border border-blue-200">
+                🚗 Parking
+              </span>
+            )}
+            {property.furnished && (
+              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800 border border-purple-200">
+                🛋️ Furnished
+              </span>
+            )}
+          </div>
+        )}
 
         {/* Amenities */}
         <div className="flex flex-wrap gap-2 mb-4">
@@ -344,7 +389,7 @@ export function ModernPropertyCard({
           )}
         </div>
 
-        {/* Action Buttons */}
+        {/* Enhanced Action Buttons */}
         <div className="flex items-center justify-between gap-3">
           <motion.button
             whileTap={{ scale: 0.95 }}
@@ -352,18 +397,16 @@ export function ModernPropertyCard({
             onClick={(e) => {
               e.stopPropagation();
               // Navigate to property details URL which will open the modal
-              navigate(`/property-details/${property.id}`);
+              navigate(`/property-details/${property.id.toString()}`);
             }}
-            className="relative px-4 py-3 rounded-xl font-semibold transition-all duration-300 flex items-center
-             justify-center overflow-hidden group bg-gray-50 border border-gray-200 text-gray-700 
-            hover:bg-gradient-to-r  hover:text-white hover:from-green-600 hover:to-emerald-600 flex-1"
+            className="relative px-4 py-3 rounded-lg font-semibold transition-all duration-300 flex items-center
+             justify-center overflow-hidden group bg-gray-50 border-2 border-gray-300 text-gray-700 
+            hover:bg-gradient-to-r hover:text-white hover:from-green-600 hover:to-emerald-600 hover:border-green-500 flex-1 shadow-sm hover:shadow-md"
           >
-            {/* <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-blue-500 to-blue-500 opacity-0 group-hover:opacity-10 transition-all duration-300" /> */}
-            <span className="relative transition-all duration-300 group-hover:text-white-700">
+            <span className="relative transition-all duration-300 group-hover:text-white">
               View Details
             </span>
           </motion.button>
-          
           
           <motion.button
             whileTap={{ scale: 0.95 }}
@@ -372,9 +415,9 @@ export function ModernPropertyCard({
               e.stopPropagation();
               onViewUnits?.(property);
             }}
-            className="relative px-3 py-3 rounded-xl font-semibold transition-all duration-300 flex items-center justify-center overflow-hidden group bg-gradient-to-r from-blue-600 to-blue-600 text-white  flex-1"
+            className="relative px-3 py-3 rounded-lg font-semibold transition-all duration-300 flex items-center justify-center overflow-hidden group bg-gradient-to-r from-blue-600 to-blue-600 text-white flex-1 shadow-md hover:shadow-lg border-2 border-blue-600 hover:border-blue-700"
           >
-            <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-blue-700 to-blue-700 opacity-0 group-hover:opacity-100 transition-all duration-300" />
+            <div className="absolute inset-0 rounded-lg bg-gradient-to-r from-blue-700 to-blue-700 opacity-0 group-hover:opacity-100 transition-all duration-300" />
             <span className="relative transition-all duration-300">
               Available Units
             </span>

@@ -66,7 +66,7 @@ const SearchFilters: React.FC<SearchFiltersProps> = ({
   const bathOptions = ['1', '1.5', '2', '2.5', '3', '3.5', '4+'];
   const homeTypeOptions = ['Apartment', 'Condo', 'Townhome', 'House', 'Loft', 'Student Housing', '55+ Active Adult'];
   
-  const amenityOptions = ['Pool', 'Gym/Fitness Center', 'Pet Friendly', 'In Unit Laundry', 'Parking', 'Air Conditioning', 'Dishwasher', 'Walk-in Closets'];
+  const amenityOptions = ['Pool', 'Gym', 'Pet Friendly', 'In Unit Laundry', 'Parking', 'Air Conditioning', 'Dishwasher', 'Walk-in Closets'];
   const featureOptions = ['Hardwood Floors', 'Updated Kitchen', 'Balcony/Patio', 'High Ceilings', 'Fireplace', 'Garden/Yard Access', 'City Views', 'Modern Appliances'];
 
   const handleReset = () => {

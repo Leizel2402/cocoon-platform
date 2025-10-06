@@ -501,26 +501,12 @@ const DashboardMap: React.FC<PropertyMapProps> = ({
 
   // Check if coordinates are in expected format [lng, lat] vs [lat, lng]
   const sampleCoords = validProperties[0]?.coordinates;
-  if (sampleCoords) {
-    console.log('Sample coordinates format check:', {
-      raw: sampleCoords,
-      rawValues: `lng: ${sampleCoords[0]}, lat: ${sampleCoords[1]}`,
-      'used as [lat, lng]': [sampleCoords[1], sampleCoords[0]],
-      'latitude range valid (±90)': Math.abs(sampleCoords[1]) <= 90,
-      'longitude range valid (±180)': Math.abs(sampleCoords[0]) <= 180,
-      'coordinates seem to be in USA': sampleCoords[1] > 25 && sampleCoords[1] < 50 && sampleCoords[0] > -125 && sampleCoords[0] < -65
-    });
-  }
+ 
 
   // Calculate bounds for debugging
   if (validProperties.length > 0) {
     const bounds = calculateBounds(validProperties);
-    console.log('Calculated bounds:', bounds);
-    console.log('Current map view should show:', {
-      center: mapCenter,
-      zoom: zoom,
-      boundsCalculated: bounds
-    });
+   
   }
 
   if (validProperties.length === 0) {
@@ -599,13 +585,7 @@ const DashboardMap: React.FC<PropertyMapProps> = ({
             }
 
             // Log marker creation for first few properties
-            if (validProperties.indexOf(property) < 5) {
-              console.log(`Creating marker for property ${property.id}:`, {
-                name: property.name,
-                position: [lat, lng],
-                originalCoords: property.coordinates
-              });
-            }
+          
 
             return (
               <Marker
@@ -614,7 +594,6 @@ const DashboardMap: React.FC<PropertyMapProps> = ({
                 icon={createPropertyIcon(property)}
                 eventHandlers={{
                   click: (e) => {
-                    console.log('Marker clicked:', property.name);
                     e.originalEvent.stopPropagation();
                     setSelectedProperty(property);
                   },
@@ -773,11 +752,9 @@ const DashboardMap: React.FC<PropertyMapProps> = ({
             isOpen={showPropertyDetails}
             onClose={handleClosePropertyDetails}
             onScheduleTour={() => {
-              console.log("Schedule tour for property:", selectedPropertyForDetails);
               handleClosePropertyDetails();
             }}
             onApplyNow={() => {
-              console.log("Apply now for property:", selectedPropertyForDetails);
               handleClosePropertyDetails();
             }}
           />

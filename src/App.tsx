@@ -16,6 +16,7 @@ import { PropertyManagement } from './pages/PropertyManagement';
 import { AddyChat } from './pages/AddyChat';
 import ApplicationProcess from './Prospect/ApplicationProcess';
 import { SavedProperties } from './pages/SavedProperties';
+import { SavedSearches } from './pages/SavedSearches';
 import { MaintenanceRequests } from './pages/MaintenanceRequests';
 import { LearningCenter } from './pages/LearningCenter';
 import { Subscriptions } from './pages/Subscriptions';
@@ -87,6 +88,16 @@ function App() {
             element={
               <ProtectedRoute requiredRoles={['prospect', 'renter']}>
                 <SavedProperties />
+              </ProtectedRoute>
+            }
+          />
+          
+          {/* Saved Searches route */}
+          <Route
+            path="/saved-searches"
+            element={
+              <ProtectedRoute requiredRoles={['prospect', 'renter']}>
+                <SavedSearches />
               </ProtectedRoute>
             }
           />
