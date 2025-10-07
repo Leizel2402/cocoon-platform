@@ -466,7 +466,7 @@ const PropertyDetailsModal: React.FC<PropertyDetailsModalProps> = ({
               </div>
 
               {/* Address Details */}
-              <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
+              <div className="bg-white/80 backdrop-blur-md rounded-2xl p-6 shadow-xl border border-white/20">
                 <h3 className="font-bold text-gray-800 mb-4 flex items-center">
                   <MapPin className="h-5 w-5 mr-2 text-red-600" />
                   Address Details
@@ -476,12 +476,12 @@ const PropertyDetailsModal: React.FC<PropertyDetailsModalProps> = ({
                     <>
                       <div className="flex justify-between">
                         <span className="text-gray-600">Street:</span>
-                        <span className="font-medium">{property.address.line1}</span>
+                        <span className="font-medium text-right max-w-[60%] break-words">{property.address.line1}</span>
                       </div>
                       {property.address.line2 && (
                         <div className="flex justify-between">
                           <span className="text-gray-600">Apt/Suite:</span>
-                          <span className="font-medium">{property.address.line2}</span>
+                          <span className="font-medium text-right max-w-[60%] break-words">{property.address.line2}</span>
                         </div>
                       )}
                       <div className="flex justify-between">
@@ -502,9 +502,13 @@ const PropertyDetailsModal: React.FC<PropertyDetailsModalProps> = ({
                       </div>
                     </>
                   ) : (
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Address:</span>
-                      <span className="font-medium">{property.address}</span>
+                    <div className="space-y-2">
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Full Address:</span>
+                      </div>
+                      <div className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-lg p-4 border border-gray-200 shadow-sm">
+                        <span className="font-medium text-gray-800 leading-relaxed block">{formatPropertyAddress(property.address)}</span>
+                      </div>
                     </div>
                   )}
                   {property.city && (
@@ -679,29 +683,57 @@ const PropertyDetailsModal: React.FC<PropertyDetailsModalProps> = ({
               {/* Property Metadata */}
               <div className="mt-6 pt-4 border-t border-gray-200">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-500">
-                  {property.createdAt && (
+                  {/* Show only the most recent creation date */}
+                  {(property.createdAt || property.created_at) && (
                     <div>
-                      <span className="font-medium">Listed:</span> {new Date(property.createdAt).toLocaleDateString()}
+                      <span className="font-medium">Listed:</span> {
+                        (() => {
+                          try {
+                            const dateValue = property.createdAt || property.created_at;
+                            if (dateValue.toDate) {
+                              return dateValue.toDate().toLocaleDateString();
+                            } else {
+                              const date = new Date(dateValue);
+                              return isNaN(date.getTime()) ? 'N/A' : date.toLocaleDateString();
+                            }
+                          } catch (error) {
+                            return 'N/A';
+                          }
+                        })()
+                      }
                     </div>
                   )}
-                  {property.updatedAt && (
+                  
+                  {/* Show only the most recent update date */}
+                  {(property.updatedAt || property.updated_at) && (
                     <div>
-                      <span className="font-medium">Updated:</span> {new Date(property.updatedAt).toLocaleDateString()}
+                      <span className="font-medium">Last Updated:</span> {
+                        (() => {
+                          try {
+                            const dateValue = property.updatedAt || property.updated_at;
+                            if (dateValue.toDate) {
+                              return dateValue.toDate().toLocaleDateString();
+                            } else {
+                              const date = new Date(dateValue);
+                              return isNaN(date.getTime()) ? 'N/A' : date.toLocaleDateString();
+                            }
+                          } catch (error) {
+                            return 'N/A';
+                          }
+                        })()
+                      }
                     </div>
                   )}
-                  {property.created_at && (
-                    <div>
-                      <span className="font-medium">Created:</span> {new Date(property.created_at).toLocaleDateString()}
-                    </div>
-                  )}
-                  {property.updated_at && (
-                    <div>
-                      <span className="font-medium">Last Updated:</span> {new Date(property.updated_at).toLocaleDateString()}
-                    </div>
-                  )}
+                  
                   {property.landlordId && (
                     <div>
                       <span className="font-medium">Landlord ID:</span> {property.landlordId}
+                    </div>
+                  )}
+                  
+                  {property.propertyType && (
+                    <div>
+                      <span className="font-medium">Property Type:</span> {property.propertyType}
                     </div>
                   )}
                 </div>
