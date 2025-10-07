@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
+import { formatPropertyAddress } from '../lib/utils';
 import { useToast } from '../hooks/use-toast';
 import { saveProperty, isPropertySaved, removeSavedProperty, SavePropertyData } from '../services/savedPropertiesService';
 import SharePropertyModal from './SharePropertyModal';
@@ -303,7 +304,12 @@ export function ModernPropertyCard({
               <div className="bg-blue-50 p-1 rounded-lg mr-2">
                 <MapPin className="h-4 w-4 text-blue-600" />
               </div>
-              <span className="text-sm">{property.address}</span>
+              <span className="text-sm">
+                {typeof property.address === 'string' 
+                  ? property.address
+                  : formatPropertyAddress(property.address)
+                }
+              </span>
             </div>
             <div className="flex items-center">
               <Star className="h-4 w-4 text-yellow-400 fill-current mr-1" />

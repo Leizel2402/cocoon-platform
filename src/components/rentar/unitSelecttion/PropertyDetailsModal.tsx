@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../../ui/dialog';
 import { Button } from '../../ui/Button';
 import { Badge } from '../../ui/badge';
-import { MapPin, Star, Car, Wifi, Dumbbell, Home, ChevronLeft, ChevronRight, Calendar, FileText, Shield, Waves, Heart, TreePine, Building, Briefcase, PawPrint } from 'lucide-react';
+import { MapPin, Star, Car, Wifi, Dumbbell, Home, ChevronLeft, ChevronRight, Calendar, FileText, Shield, Waves, Heart, TreePine, Building, Briefcase, PawPrint, Instagram, Youtube, Music } from 'lucide-react';
 import { motion } from 'framer-motion';
 // import propertyInterior1 from '@/assets/property-interior-1.jpg';
 // import propertyKitchen1 from '@/assets/property-kitchen-1.jpg';
@@ -11,11 +11,19 @@ import { motion } from 'framer-motion';
 // import propertyPool1 from '@/assets/property-pool-1.jpg';
 // import propertyGym1 from '@/assets/property-gym-1.jpg';
 import heroImage from '../../../assets/images/hero-apartments.jpg';
+import { formatPropertyAddress } from '../../../lib/utils';
 interface PropertyDetailsModalProps {
   property: {
     id: string;
     name: string;
-    address: string;
+    address: string | {
+      line1: string;
+      line2?: string;
+      city: string;
+      region: string;
+      postalCode: string;
+      country: string;
+    };
     priceRange: string;
     rating: number;
     beds: string;
@@ -60,6 +68,11 @@ interface PropertyDetailsModalProps {
     contact_email?: string;
     coordinates?: [number, number];
     images?: string[];
+    socialFeeds?: {
+      instagram?: string;
+      tiktok?: string;
+      youtube?: string;
+    };
   };
   isOpen: boolean;
   onClose: () => void;
@@ -80,25 +93,45 @@ const PropertyDetailsModal: React.FC<PropertyDetailsModalProps> = ({
   
   if (!property) return null;
 
-  // Dynamic property images gallery - use property image if available, otherwise use defaults
-  const propertyImages = property.image ? [
-    { src: property.image, caption: "Property Image" },
-    { src: heroImage, caption: "Building Exterior" },
-    { src: heroImage, caption: "Living Room" },
-    { src: heroImage, caption: "Modern Kitchen" },
-    { src: heroImage, caption: "Master Bedroom" },
-    { src: heroImage, caption: "Luxury Bathroom" },
-    { src: heroImage, caption: "Rooftop Pool" },
-    { src: heroImage, caption: "Fitness Center" }
-  ] : [
-    { src: heroImage, caption: "Building Exterior" },
-    { src: heroImage, caption: "Living Room" },
-    { src: heroImage, caption: "Modern Kitchen" },
-    { src: heroImage, caption: "Master Bedroom" },
-    { src: heroImage, caption: "Luxury Bathroom" },
-    { src: heroImage, caption: "Rooftop Pool" },
-    { src: heroImage, caption: "Fitness Center" }
-  ];
+  // Dynamic property images gallery - use property images from Firebase data
+  const propertyImages = (() => {
+    const images = [];
+    
+    // Add images from property.images array (from Firebase)
+    if (property.images && property.images.length > 0) {
+      property.images.forEach((image, index) => {
+        if (image && image.trim() !== '') { // Only add non-empty images
+          images.push({
+            src: image,
+            caption: `Property Image ${index + 1}`
+          });
+        }
+      });
+    }
+    
+    // Add single image if available (fallback)
+    if (property.image && property.image.trim() !== '') {
+      images.push({
+        src: property.image,
+        caption: "Property Image"
+      });
+    }
+    
+    // If no images from property data, use default gallery
+    // if (images.length === 0) {
+    //   return [
+    //     { src: heroImage, caption: "Building Exterior" },
+    //     { src: heroImage, caption: "Living Room" },
+    //     { src: heroImage, caption: "Modern Kitchen" },
+    //     { src: heroImage, caption: "Master Bedroom" },
+    //     { src: heroImage, caption: "Luxury Bathroom" },
+    //     { src: heroImage, caption: "Rooftop Pool" },
+    //     { src: heroImage, caption: "Fitness Center" }
+    //   ];
+    // }
+    
+    return images;
+  })();
 
   const nextImage = () => {
     setCurrentImageIndex((prev) => (prev + 1) % propertyImages.length);
@@ -128,7 +161,6 @@ const PropertyDetailsModal: React.FC<PropertyDetailsModalProps> = ({
     'Dog Park': <PawPrint className="h-4 w-4 text-orange-500" />,
     'Modern': <Building className="h-4 w-4 text-gray-700" />
   };
-console.log("properties ",property );
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -153,7 +185,12 @@ console.log("properties ",property );
                 <div className="flex items-center space-x-4 text-white/90">
                   <div className="flex items-center">
                     <MapPin className="h-4 w-4 mr-1" />
-                    <span className="text-sm">{property.address}</span>
+                    <span className="text-sm">
+                      {typeof property.address === 'string' 
+                        ? property.address
+                        : formatPropertyAddress(property.address)
+                      }
+                    </span>
                   </div>
                   <div className="flex items-center">
                     <Star className="h-4 w-4 mr-1 text-yellow-300 fill-current" />
@@ -257,15 +294,37 @@ console.log("properties ",property );
               </div>
                 <div className="flex items-center text-gray-500">
                   <MapPin className="h-4 w-4 mr-2" />
-                  <span className="text-sm">{property.address}</span>
+                  <span className="text-sm">
+                    {typeof property.address === 'string' 
+                      ? property.address
+                      : formatPropertyAddress(property.address)
+                    }
+                  </span>
                 </div>
-                {property.propertyType && (
-                  <div className="mt-3">
+                
+                {/* Property Status Badges */}
+                <div className="flex flex-wrap gap-2 mt-3">
+                  {property.propertyType && (
                     <Badge className="bg-gray-100 text-gray-700">
                       {property.propertyType}
                     </Badge>
-                  </div>
-                )}
+                  )}
+                  {property.isRentWiseNetwork && (
+                    <Badge className="bg-blue-100 text-blue-700">
+                      RentWise Network
+                    </Badge>
+                  )}
+                  {property.pet_friendly && (
+                    <Badge className="bg-green-100 text-green-700">
+                      Pet Friendly
+                    </Badge>
+                  )}
+                  {property.available_date && (
+                    <Badge className="bg-purple-100 text-purple-700">
+                      Available {new Date(property.available_date).toLocaleDateString()}
+                    </Badge>
+                  )}
+                </div>
             </div>
 
               {/* Available Units and Lease Terms Card */}
@@ -303,13 +362,13 @@ console.log("properties ",property );
             </div>
           </div>
 
-            {/* Additional Property Details */}
+            {/* Complete Property Details */}
             <div className="grid md:grid-cols-3 gap-6">
               {/* Property Specifications */}
               <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
                 <h3 className="font-bold text-gray-800 mb-4 flex items-center">
                   <Building className="h-5 w-5 mr-2 text-indigo-600" />
-                  Specifications
+                  Property Details
                 </h3>
                 <div className="space-y-3">
                   {property.square_feet && (
@@ -332,14 +391,29 @@ console.log("properties ",property );
                   )}
                   {property.rent_amount && (
                     <div className="flex justify-between">
-                      <span className="text-gray-600">Rent:</span>
+                      <span className="text-gray-600">Base Rent:</span>
                       <span className="font-medium">${property.rent_amount.toLocaleString()}/mo</span>
                     </div>
                   )}
-                  {property.country && (
+                  {property.rating && (
                     <div className="flex justify-between">
-                      <span className="text-gray-600">Country:</span>
-                      <span className="font-medium">{property.country}</span>
+                      <span className="text-gray-600">Rating:</span>
+                      <span className="font-medium flex items-center">
+                        <Star className="h-4 w-4 text-yellow-500 mr-1" />
+                        {property.rating.toFixed(1)}/5.0
+                      </span>
+                    </div>
+                  )}
+                  {property.year_built && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Year Built:</span>
+                      <span className="font-medium">{property.year_built}</span>
+                    </div>
+                  )}
+                  {property.parking_spaces && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Parking:</span>
+                      <span className="font-medium">{property.parking_spaces} spaces</span>
                     </div>
                   )}
                 </div>
@@ -349,7 +423,7 @@ console.log("properties ",property );
               <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
                 <h3 className="font-bold text-gray-800 mb-4 flex items-center">
                   <Waves className="h-5 w-5 mr-2 text-teal-600" />
-                  Features
+                  Property Features
                 </h3>
                 <div className="space-y-3">
                   {property.heating_type && (
@@ -370,17 +444,92 @@ console.log("properties ",property );
                       <span className="font-medium">{property.flooring_type}</span>
                     </div>
                   )}
+                  {property.laundry_type && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Laundry:</span>
+                      <span className="font-medium">{property.laundry_type}</span>
+                    </div>
+                  )}
                   {property.pet_friendly !== undefined && (
                     <div className="flex justify-between">
                       <span className="text-gray-600">Pet Friendly:</span>
                       <span className="font-medium">{property.pet_friendly ? 'Yes' : 'No'}</span>
                     </div>
                   )}
+                  {property.isRentWiseNetwork && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">RentWise Network:</span>
+                      <span className="font-medium text-blue-600">Yes</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Address Details */}
+              <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
+                <h3 className="font-bold text-gray-800 mb-4 flex items-center">
+                  <MapPin className="h-5 w-5 mr-2 text-red-600" />
+                  Address Details
+                </h3>
+                <div className="space-y-3">
+                  {typeof property.address === 'object' ? (
+                    <>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Street:</span>
+                        <span className="font-medium">{property.address.line1}</span>
+                      </div>
+                      {property.address.line2 && (
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Apt/Suite:</span>
+                          <span className="font-medium">{property.address.line2}</span>
+                        </div>
+                      )}
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">City:</span>
+                        <span className="font-medium">{property.address.city}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">State:</span>
+                        <span className="font-medium">{property.address.region}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">ZIP:</span>
+                        <span className="font-medium">{property.address.postalCode}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Country:</span>
+                        <span className="font-medium">{property.address.country}</span>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Address:</span>
+                      <span className="font-medium">{property.address}</span>
+                    </div>
+                  )}
+                  {property.city && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">City:</span>
+                      <span className="font-medium">{property.city}</span>
+                    </div>
+                  )}
+                  {property.state && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">State:</span>
+                      <span className="font-medium">{property.state}</span>
+                    </div>
+                  )}
+                  {property.zip_code && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">ZIP Code:</span>
+                      <span className="font-medium">{property.zip_code}</span>
+                    </div>
+                  )}
                 </div>
               </div>
 
               {/* Contact Information */}
-              <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
+              {/* <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
                 <h3 className="font-bold text-gray-800 mb-4 flex items-center">
                   <Briefcase className="h-5 w-5 mr-2 text-purple-600" />
                   Contact
@@ -388,8 +537,7 @@ console.log("properties ",property );
                 <div className="space-y-3">
                   {property.landlordId && (
                     <div>
-                      {/* <span className="text-gray-600 text-sm">Landlord ID:</span> */}
-                      {/* <div className="font-medium">{property.landlordId}</div> */}
+                    
                     </div>
                   )}
                   {property.property_manager && (
@@ -411,7 +559,7 @@ console.log("properties ",property );
                     </div>
                   )}
                 </div>
-              </div>
+              </div> */}
             </div>
 
             {/* Policies and Utilities */}
@@ -517,16 +665,116 @@ console.log("properties ",property );
             </div>
           </div>
 
-            {/* Description Section */}
+
+            {/* Property Information */}
             <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
               <h3 className="font-bold text-gray-800 mb-4 text-xl flex items-center">
                 <FileText className="h-5 w-5 mr-2 text-green-600" />
                 About This Property
               </h3>
               <p className="text-gray-600 leading-relaxed text-base">
-                {property.description}
-            </p>
+                {property.description || 'No description available for this property.'}
+              </p>
+              
+              {/* Property Metadata */}
+              <div className="mt-6 pt-4 border-t border-gray-200">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-500">
+                  {property.createdAt && (
+                    <div>
+                      <span className="font-medium">Listed:</span> {new Date(property.createdAt).toLocaleDateString()}
+                    </div>
+                  )}
+                  {property.updatedAt && (
+                    <div>
+                      <span className="font-medium">Updated:</span> {new Date(property.updatedAt).toLocaleDateString()}
+                    </div>
+                  )}
+                  {property.created_at && (
+                    <div>
+                      <span className="font-medium">Created:</span> {new Date(property.created_at).toLocaleDateString()}
+                    </div>
+                  )}
+                  {property.updated_at && (
+                    <div>
+                      <span className="font-medium">Last Updated:</span> {new Date(property.updated_at).toLocaleDateString()}
+                    </div>
+                  )}
+                  {property.landlordId && (
+                    <div>
+                      <span className="font-medium">Landlord ID:</span> {property.landlordId}
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
+
+            {/* Social Media Links */}
+            {property.socialFeeds && (property.socialFeeds.instagram || property.socialFeeds.tiktok || property.socialFeeds.youtube) && (
+              <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
+                <h3 className="font-bold text-gray-800 mb-4 text-xl flex items-center">
+                  <Heart className="h-5 w-5 mr-2 text-pink-600" />
+                  Social Media
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {property.socialFeeds.instagram && (
+                    <motion.a
+                      href={property.socialFeeds.instagram.startsWith('@') ? `https://instagram.com/${property.socialFeeds.instagram.substring(1)}` : property.socialFeeds.instagram}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      className="flex items-center space-x-3 p-4 bg-gradient-to-r from-pink-50 to-pink-100 rounded-xl border border-pink-200 hover:border-pink-300 transition-all duration-200"
+                    >
+                      <div className="w-8 h-8 bg-gradient-to-r from-pink-500 to-purple-600 rounded-full flex items-center justify-center">
+                        <Instagram className="h-4 w-4 text-white" />
+                      </div>
+                      <div>
+                        <p className="font-medium text-gray-800">Instagram</p>
+                        <p className="text-sm text-gray-600">{property.socialFeeds.instagram}</p>
+                      </div>
+                    </motion.a>
+                  )}
+                  
+                  {property.socialFeeds.tiktok && (
+                    <motion.a
+                      href={property.socialFeeds.tiktok.startsWith('@') ? `https://tiktok.com/@${property.socialFeeds.tiktok.substring(1)}` : property.socialFeeds.tiktok}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      className="flex items-center space-x-3 p-4 bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl border border-gray-200 hover:border-gray-300 transition-all duration-200"
+                    >
+                      <div className="w-8 h-8 bg-black rounded-full flex items-center justify-center">
+                        <Music className="h-4 w-4 text-white" />
+                      </div>
+                      <div>
+                        <p className="font-medium text-gray-800">TikTok</p>
+                        <p className="text-sm text-gray-600">{property.socialFeeds.tiktok}</p>
+                      </div>
+                    </motion.a>
+                  )}
+                  
+                  {property.socialFeeds.youtube && (
+                    <motion.a
+                      href={property.socialFeeds.youtube}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      className="flex items-center space-x-3 p-4 bg-gradient-to-r from-red-50 to-red-100 rounded-xl border border-red-200 hover:border-red-300 transition-all duration-200"
+                    >
+                      <div className="w-8 h-8 bg-red-600 rounded-full flex items-center justify-center">
+                        <Youtube className="h-4 w-4 text-white" />
+                      </div>
+                      <div>
+                        <p className="font-medium text-gray-800">YouTube</p>
+                        <p className="text-sm text-gray-600">Channel</p>
+                      </div>
+                    </motion.a>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
           </div>
 

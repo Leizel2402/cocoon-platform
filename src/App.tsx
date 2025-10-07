@@ -20,6 +20,7 @@ import { SavedSearches } from './pages/SavedSearches';
 import { MaintenanceRequests } from './pages/MaintenanceRequests';
 import { LearningCenter } from './pages/LearningCenter';
 import { Subscriptions } from './pages/Subscriptions';
+import { LandlordPropertyManagement } from './landlord';
 
 // Component to handle property details redirect
 function PropertyDetailsRedirect() {
@@ -185,6 +186,14 @@ function App() {
             element={
               <ProtectedRoute requiredRoles={['landlord_admin', 'landlord_employee']}>
                 <PropertyManagement />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/landlord-properties"
+            element={
+              <ProtectedRoute requiredRoles={['landlord_admin', 'landlord_employee']}>
+                <LandlordPropertyManagement />
               </ProtectedRoute>
             }
           />

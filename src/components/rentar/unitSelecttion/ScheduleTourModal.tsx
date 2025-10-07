@@ -232,10 +232,10 @@ const ScheduleTourModal = ({ property, unit, isOpen, onClose }: ScheduleTourModa
                 <h3 className="text-3xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
                   Tour Request Submitted Successfully!
                 </h3>
-                <p className="text-lg text-gray-600 max-w-2xl mx-auto leading-relaxed">
+                {/* <p className="text-lg text-gray-600 max-w-2xl mx-auto leading-relaxed">
                   Your tour request for <strong className="text-gray-800">{property.name || 'this property'}</strong> has been submitted. 
                   The property manager will contact you within 24 hours to confirm your appointment.
-                </p>
+                </p> */}
               </div>
               
               <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100 text-left max-w-2xl mx-auto">

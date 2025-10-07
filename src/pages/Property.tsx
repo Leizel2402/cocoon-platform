@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { formatPropertyAddress } from '../lib/utils';
 import { 
   Search, 
   MapPin, 
@@ -463,7 +464,13 @@ export function Property() {
                 <h3 className="text-2xl font-bold text-gray-900 mb-2">${selectedListing.rent}/month</h3>
                 <p className="text-lg text-gray-700 flex items-center mb-4">
                   <MapPin className="h-5 w-5 mr-2 text-gray-500" />
-                  {properties.find(p => p.id === selectedListing.propertyId)?.address.line1}, {properties.find(p => p.id === selectedListing.propertyId)?.address.city}
+                  {(() => {
+                    const property = properties.find(p => p.id === selectedListing.propertyId);
+                    if (!property) return 'Address not available';
+                    return typeof property.address === 'string' 
+                      ? property.address
+                      : formatPropertyAddress(property.address);
+                  })()}
                 </p>
                 <div className="grid grid-cols-2 gap-4 mb-4">
                   <div className="flex items-center text-gray-700">

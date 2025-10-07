@@ -184,6 +184,10 @@ const ApplicationProcess = ({
     [key: number]: string;
   }>({});
 
+  // Enhanced validation state
+  const [fieldErrors, setFieldErrors] = useState<{[key: string]: string}>({});
+  const [validationMessages, setValidationMessages] = useState<{[key: string]: string}>({});
+
   // Pre-populate with user data
   useEffect(() => {
     if (user) {
@@ -366,68 +370,225 @@ const ApplicationProcess = ({
     }
   };
 
-  const isStepValid = () => {
-    switch (currentStep) {
-      case 0: // Personal Info
-        return (
-          formData.firstName &&
-          formData.lastName &&
-          formData.email &&
-          formData.phone.replace(/\D/g, "").length === 10 &&
-          formData.dateOfBirth &&
-          !dobError &&
-          rawSSN.replace(/\D/g, "").length === 9 &&
-          formData.middleInitial !== undefined &&
-          formData.moveInDate
-        );
-      case 6: // Documents - require at least ID document
-        return formData.documents.id.length > 0;
-      case 7: // Review & Submit - require authorization
-        return formData.backgroundCheckPermission;
-      case 1: // Financial Info
-        if (formData.employment === "unemployed") {
-          return true;
+  // Enhanced validation functions
+  const validateField = (fieldName: string, value: any, fieldType?: string): string => {
+    switch (fieldName) {
+      case 'firstName':
+      case 'lastName':
+        return !value || value.trim() === '' ? `${fieldName.charAt(0).toUpperCase() + fieldName.slice(1)} is required` : '';
+      case 'email':
+        if (!value) return 'Email is required';
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        return !emailRegex.test(value) ? 'Please enter a valid email address' : '';
+      case 'phone':
+        const phoneDigits = value.replace(/\D/g, '');
+        if (!phoneDigits) return 'Phone number is required';
+        return phoneDigits.length !== 10 ? 'Please enter a valid 10-digit phone number' : '';
+      case 'dateOfBirth':
+        if (!value) return 'Date of birth is required';
+        const dobError = validateDOB(value);
+        return dobError;
+      case 'ssn':
+        const ssnDigits = value.replace(/\D/g, '');
+        if (!ssnDigits) return 'SSN/TIN/EIN is required';
+        return ssnDigits.length !== 9 ? 'Please enter a valid 9-digit SSN/TIN/EIN' : '';
+      case 'moveInDate':
+        return !value ? 'Move-in date is required' : '';
+      case 'currentStreet':
+      case 'currentCity':
+      case 'currentState':
+        return !value || value.trim() === '' ? 'This field is required' : '';
+      case 'currentZip':
+        if (!value) return 'ZIP code is required';
+        return value.length !== 5 ? 'Please enter a valid 5-digit ZIP code' : '';
+      case 'currentDuration':
+        return !value ? 'Please specify how long you have lived at this address' : '';
+      case 'employment':
+        return !value ? 'Employment status is required' : '';
+      case 'employerName':
+        if (formData.employment !== 'unemployed' && (!value || value.trim() === '')) {
+          return 'Employer name is required';
         }
-        return formData.employment && formData.employerName;
-      case 2: // Housing History
-        const currentValid =
-          formData.currentStreet &&
-          formData.currentCity &&
-          formData.currentState &&
-          formData.currentZip.length === 5 &&
-          formData.currentDuration;
-        if (formData.currentDuration === "0-2") {
-          return (
-            currentValid &&
-            formData.previousStreet &&
-            formData.previousCity &&
-            formData.previousState &&
-            formData.previousZip.length === 5
-          );
+        return '';
+      case 'monthlyIncome':
+        if (formData.employment !== 'unemployed' && (!value || value.trim() === '')) {
+          return 'Monthly income is required';
         }
-        return currentValid;
-      case 3: // Lease Holders & Guarantors - check DOB errors
-        const holderErrors = Object.values(holderDobErrors).some(
-          (error) => error !== ""
-        );
-        const guarantorErrors = Object.values(guarantorDobErrors).some(
-          (error) => error !== ""
-        );
-        return !holderErrors && !guarantorErrors;
+        return '';
       default:
-        return true;
+        return '';
     }
+  };
+
+  const validateStep = (step: number): {isValid: boolean, errors: {[key: string]: string}, missingFields: string[]} => {
+    const errors: {[key: string]: string} = {};
+    const missingFields: string[] = [];
+
+    switch (step) {
+      case 0: // Personal Info
+        const personalFields = ['firstName', 'lastName', 'email', 'phone', 'dateOfBirth', 'ssn', 'moveInDate'];
+        personalFields.forEach(field => {
+          const error = validateField(field, formData[field as keyof typeof formData]);
+          if (error) {
+            errors[field] = error;
+            missingFields.push(field);
+          }
+        });
+        
+        // Check DOB error state
+        if (dobError) {
+          errors['dateOfBirth'] = dobError;
+          missingFields.push('dateOfBirth');
+        }
+        
+        // Check SSN format
+        const ssnError = validateField('ssn', rawSSN);
+        if (ssnError) {
+          errors['ssn'] = ssnError;
+          missingFields.push('ssn');
+        }
+        
+        // Check middle initial
+        if (formData.middleInitial === undefined) {
+          errors['middleInitial'] = 'Middle initial is required';
+          missingFields.push('middleInitial');
+        }
+        
+        break;
+
+      case 1: // Financial Info
+        const employmentError = validateField('employment', formData.employment);
+        if (employmentError) {
+          errors['employment'] = employmentError;
+          missingFields.push('employment');
+        }
+        
+        if (formData.employment !== 'unemployed') {
+          // Check employer name from both sources
+          const employerName = formData.employerName || formData.employers[0]?.name || '';
+          const employerError = validateField('employerName', employerName);
+          if (employerError) {
+            errors['employerName'] = employerError;
+            missingFields.push('employerName');
+          }
+          
+          // Check industry
+          const industry = formData.employers[0]?.industry || '';
+          if (!industry) {
+            errors['industry'] = 'Industry is required';
+            missingFields.push('industry');
+          }
+          
+          // Check position
+          const position = formData.employers[0]?.position || '';
+          if (!position) {
+            errors['position'] = 'Position is required';
+            missingFields.push('position');
+          }
+          
+          // Check income from employers array
+          const primaryIncome = formData.employers[0]?.income || '';
+          const incomeError = validateField('monthlyIncome', primaryIncome);
+          if (incomeError) {
+            errors['monthlyIncome'] = incomeError;
+            missingFields.push('monthlyIncome');
+          }
+        }
+        break;
+
+      case 2: // Housing History
+        const housingFields = ['currentStreet', 'currentCity', 'currentState', 'currentZip', 'currentDuration'];
+        housingFields.forEach(field => {
+          const error = validateField(field, formData[field as keyof typeof formData]);
+          if (error) {
+            errors[field] = error;
+            missingFields.push(field);
+          }
+        });
+        
+        // Check previous address if needed
+        if (formData.currentDuration === '0-2') {
+          const previousFields = ['previousStreet', 'previousCity', 'previousState', 'previousZip'];
+          previousFields.forEach(field => {
+            const error = validateField(field, formData[field as keyof typeof formData]);
+            if (error) {
+              errors[field] = error;
+              missingFields.push(field);
+            }
+          });
+        }
+        break;
+
+      case 3: // Lease Holders & Guarantors
+        // Check DOB errors for holders and guarantors
+        const holderErrors = Object.values(holderDobErrors).some(error => error !== '');
+        const guarantorErrors = Object.values(guarantorDobErrors).some(error => error !== '');
+        
+        if (holderErrors) {
+          errors['leaseHolders'] = 'Please fix date of birth errors for lease holders';
+          missingFields.push('leaseHolders');
+        }
+        
+        if (guarantorErrors) {
+          errors['guarantors'] = 'Please fix date of birth errors for guarantors';
+          missingFields.push('guarantors');
+        }
+        break;
+
+      case 6: // Documents
+        if (formData.documents.id.length === 0) {
+          errors['documents'] = 'At least one ID document is required';
+          missingFields.push('documents');
+        }
+        break;
+
+      case 7: // Review & Submit
+        if (!formData.backgroundCheckPermission) {
+          errors['backgroundCheckPermission'] = 'Background check authorization is required';
+          missingFields.push('backgroundCheckPermission');
+        }
+        break;
+    }
+
+    return {
+      isValid: Object.keys(errors).length === 0,
+      errors,
+      missingFields
+    };
+  };
+
+  const isStepValid = () => {
+    const validation = validateStep(currentStep);
+    if (currentStep === 1) {
+      console.log('Financial Info Validation:', {
+        employment: formData.employment,
+        employerName: formData.employerName,
+        employersArray: formData.employers,
+        primaryIncome: formData.employers[0]?.income,
+        validation,
+        isValid: validation.isValid
+      });
+    }
+    return validation.isValid;
   };
 
   const handleNext = () => {
     if (isStepValid() && currentStep < steps.length - 1) {
       setCurrentStep(currentStep + 1);
     } else if (!isStepValid()) {
+      const validation = validateStep(currentStep);
+      const errorCount = validation.missingFields.length;
+      const fieldNames = validation.missingFields.slice(0, 3).join(', ');
+      const moreFields = errorCount > 3 ? ` and ${errorCount - 3} more field${errorCount - 3 > 1 ? 's' : ''}` : '';
+      
       toast({
         title: "Missing Required Information",
-        description: "Please fill in all required fields before continuing.",
+        description: `Please complete: ${fieldNames}${moreFields}`,
         variant: "destructive",
       });
+      
+      // Update field errors for visual feedback
+      setFieldErrors(validation.errors);
     }
   };
 
@@ -554,6 +715,34 @@ const ApplicationProcess = ({
   const handleDOBBlur = (value: string) => {
     const error = validateDOB(value);
     setDobError(error);
+  };
+
+  // Real-time field validation
+  const handleFieldChange = (fieldName: string, value: any) => {
+    const error = validateField(fieldName, value);
+    setFieldErrors(prev => ({
+      ...prev,
+      [fieldName]: error
+    }));
+    
+    // Clear error when field becomes valid
+    if (!error) {
+      setFieldErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[fieldName];
+        return newErrors;
+      });
+    }
+  };
+
+  // Get field error state
+  const getFieldError = (fieldName: string): string => {
+    return fieldErrors[fieldName] || '';
+  };
+
+  // Get field error styling
+  const getFieldErrorStyle = (fieldName: string): string => {
+    return fieldErrors[fieldName] ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : '';
   };
 
   const handleHolderDOBChange = (value: string, index: number) => {
@@ -1297,13 +1486,17 @@ const ApplicationProcess = ({
                 <Input
                   id="firstName"
                   value={formData.firstName}
-                  onChange={(e) =>
-                    setFormData({ ...formData, firstName: e.target.value })
-                  }
+                  onChange={(e) => {
+                    setFormData({ ...formData, firstName: e.target.value });
+                    handleFieldChange('firstName', e.target.value);
+                  }}
                   placeholder="Enter first name"
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none bg-white/50 backdrop-blur-sm"
+                  className={`w-full px-4 py-3 border rounded-xl focus:outline-none bg-white/50 backdrop-blur-sm ${getFieldErrorStyle('firstName')}`}
                   required
                 />
+                {getFieldError('firstName') && (
+                  <p className="text-red-500 text-sm mt-1">{getFieldError('firstName')}</p>
+                )}
               </div>
               <div>
                 <Label
@@ -1315,13 +1508,17 @@ const ApplicationProcess = ({
                 <Input
                   id="lastName"
                   value={formData.lastName}
-                  onChange={(e) =>
-                    setFormData({ ...formData, lastName: e.target.value })
-                  }
+                  onChange={(e) => {
+                    setFormData({ ...formData, lastName: e.target.value });
+                    handleFieldChange('lastName', e.target.value);
+                  }}
                   placeholder="Enter last name"
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none bg-white/50 backdrop-blur-sm"
+                  className={`w-full px-4 py-3 border rounded-xl focus:outline-none bg-white/50 backdrop-blur-sm ${getFieldErrorStyle('lastName')}`}
                   required
                 />
+                {getFieldError('lastName') && (
+                  <p className="text-red-500 text-sm mt-1">{getFieldError('lastName')}</p>
+                )}
               </div>
             </div>
             <div>
@@ -1354,13 +1551,17 @@ const ApplicationProcess = ({
                   id="email"
                   type="email"
                   value={formData.email}
-                  onChange={(e) =>
-                    setFormData({ ...formData, email: e.target.value })
-                  }
+                  onChange={(e) => {
+                    setFormData({ ...formData, email: e.target.value });
+                    handleFieldChange('email', e.target.value);
+                  }}
                   placeholder="Enter email"
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring- bg-gray-50/70 backdrop-blur-sm"
+                  className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring- bg-gray-50/70 backdrop-blur-sm ${getFieldErrorStyle('email')}`}
                   required
                 />
+                {getFieldError('email') && (
+                  <p className="text-red-500 text-sm mt-1">{getFieldError('email')}</p>
+                )}
               </div>
               <div>
                 <Label 
@@ -1375,12 +1576,16 @@ const ApplicationProcess = ({
                   onChange={(e) => {
                     const formatted = formatPhoneNumber(e.target.value);
                     setFormData({ ...formData, phone: formatted });
+                    handleFieldChange('phone', formatted);
                   }}
                   placeholder="(555) 123-4567"
                   maxLength={14}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring- bg-white/50 backdrop-blur-sm"
+                  className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring- bg-white/50 backdrop-blur-sm ${getFieldErrorStyle('phone')}`}
                   required
                 />
+                {getFieldError('phone') && (
+                  <p className="text-red-500 text-sm mt-1">{getFieldError('phone')}</p>
+                )}
               </div>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -1395,19 +1600,22 @@ const ApplicationProcess = ({
                   id="dateOfBirth"
                   type="text"
                   value={formData.dateOfBirth}
-                  onChange={(e) => handleDOBChange(e.target.value)}
+                  onChange={(e) => {
+                    handleDOBChange(e.target.value);
+                    handleFieldChange('dateOfBirth', e.target.value);
+                  }}
                   onBlur={(e) => handleDOBBlur(e.target.value)}
                   placeholder="MM/DD/YYYY"
                   maxLength={10}
                   required
                   className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring- bg-white/50 backdrop-blur-sm ${
-                    dobError ? "border-red-500" : "border-gray-200"
+                    dobError || getFieldError('dateOfBirth') ? "border-red-500" : "border-gray-200"
                   }`}
                 />
-                {dobError && (
+                {(dobError || getFieldError('dateOfBirth')) && (
                   <p className="mt-2 text-sm text-red-600 flex items-center bg-red-50 p-2 rounded-lg">
                     <AlertCircle className="h-4 w-4 mr-1" />
-                    {dobError}
+                    {dobError || getFieldError('dateOfBirth')}
                   </p>
                 )}
               </div>
@@ -1433,12 +1641,16 @@ const ApplicationProcess = ({
                     const numbers = e.target.value.replace(/\D/g, "");
                     setRawSSN(numbers);
                     setFormData({ ...formData, ssn: formatSSN(numbers) });
+                    handleFieldChange('ssn', formatSSN(numbers));
                   }}
                   placeholder="XXX-XX-XXXX"
                   maxLength={11}
                   required
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring- bg-white/50 backdrop-blur-sm"
+                  className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring- bg-white/50 backdrop-blur-sm ${getFieldErrorStyle('ssn')}`}
                 />
+                {getFieldError('ssn') && (
+                  <p className="text-red-500 text-sm mt-1">{getFieldError('ssn')}</p>
+                )}
               </div>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -1561,9 +1773,10 @@ const ApplicationProcess = ({
               </Label>
               <Select
                 value={formData.employment}
-                onValueChange={(value) =>
-                  setFormData({ ...formData, employment: value })
-                }
+                onValueChange={(value) => {
+                  setFormData({ ...formData, employment: value });
+                  handleFieldChange('employment', value);
+                }}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select employment status" />
@@ -1578,6 +1791,9 @@ const ApplicationProcess = ({
                   <SelectItem value="unemployed">Unemployed</SelectItem>
                 </SelectContent>
               </Select>
+              {getFieldError('employment') && (
+                <p className="text-red-500 text-sm mt-1">{getFieldError('employment')}</p>
+              )}
             </div>
 
             {formData.employment !== "unemployed" && (
@@ -1592,12 +1808,16 @@ const ApplicationProcess = ({
                   <Input
                     id="employerName"
                     value={formData.employerName}
-                    onChange={(e) =>
-                      setFormData({ ...formData, employerName: e.target.value })
-                    }
+                    onChange={(e) => {
+                      setFormData({ ...formData, employerName: e.target.value });
+                      handleFieldChange('employerName', e.target.value);
+                    }}
                     placeholder="Enter employer name"
-                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring- bg-white/50 backdrop-blur-sm"
+                    className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring- bg-white/50 backdrop-blur-sm ${getFieldErrorStyle('employerName')}`}
                   />
+                  {getFieldError('employerName') && (
+                    <p className="text-red-500 text-sm mt-1">{getFieldError('employerName')}</p>
+                  )}
                 </div>
 
                 {formData.employerName && (
@@ -1615,6 +1835,7 @@ const ApplicationProcess = ({
                           const updated = [...formData.employers];
                           updated[0] = { ...updated[0], industry: value };
                           setFormData({ ...formData, employers: updated });
+                          handleFieldChange('industry', value);
                         }}
                       >
                         <SelectTrigger>
@@ -1631,6 +1852,9 @@ const ApplicationProcess = ({
                           ))}
                         </SelectContent>
                       </Select>
+                      {getFieldError('industry') && (
+                        <p className="text-red-500 text-sm mt-1">{getFieldError('industry')}</p>
+                      )}
                     </div>
                     <div>
                       <Label
@@ -1645,6 +1869,7 @@ const ApplicationProcess = ({
                           const updated = [...formData.employers];
                           updated[0] = { ...updated[0], position: value };
                           setFormData({ ...formData, employers: updated });
+                          handleFieldChange('position', value);
                         }}
                       >
                         <SelectTrigger>
@@ -1661,6 +1886,9 @@ const ApplicationProcess = ({
                           ))}
                         </SelectContent>
                       </Select>
+                      {getFieldError('position') && (
+                        <p className="text-red-500 text-sm mt-1">{getFieldError('position')}</p>
+                      )}
                     </div>
                     <div>
                       <Label
@@ -1676,13 +1904,17 @@ const ApplicationProcess = ({
                         <Input
                           id="primary-income"
                           value={formData.employers[0]?.income || ""}
-                          onChange={(e) =>
-                            handleIncomeChange(e.target.value, 0)
-                          }
+                          onChange={(e) => {
+                            handleIncomeChange(e.target.value, 0);
+                            handleFieldChange('monthlyIncome', e.target.value);
+                          }}
                           onBlur={() => handleIncomeBlur(0)}
                           placeholder="20000"
-                          className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring- bg-white/50 backdrop-blur-sm pl-8"
+                          className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring- bg-white/50 backdrop-blur-sm pl-8 ${getFieldErrorStyle('monthlyIncome')}`}
                         />
+                        {getFieldError('monthlyIncome') && (
+                          <p className="text-red-500 text-sm mt-1">{getFieldError('monthlyIncome')}</p>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -1937,7 +2169,6 @@ const ApplicationProcess = ({
         return (
           <div
             className="space-y-6 max-h-[60vh] overflow-y-auto"
-            ref={(el) => el?.scrollTo(0, 0)}
           >
            
             {/* Current Address */}
@@ -1955,12 +2186,16 @@ const ApplicationProcess = ({
                 <Input
                   id="currentStreet"
                   value={formData.currentStreet}
-                  onChange={(e) =>
-                    setFormData({ ...formData, currentStreet: e.target.value })
-                  }
+                  onChange={(e) => {
+                    setFormData({ ...formData, currentStreet: e.target.value });
+                    handleFieldChange('currentStreet', e.target.value);
+                  }}
                   placeholder="123 Main Street, Apt 4B"
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring- bg-white/50 backdrop-blur-sm"
+                  className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring- bg-white/50 backdrop-blur-sm ${getFieldErrorStyle('currentStreet')}`}
                 />
+                {getFieldError('currentStreet') && (
+                  <p className="text-red-500 text-sm mt-1">{getFieldError('currentStreet')}</p>
+                )}
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
@@ -1973,12 +2208,16 @@ const ApplicationProcess = ({
                   <Input
                     id="currentCity"
                     value={formData.currentCity}
-                    onChange={(e) =>
-                      setFormData({ ...formData, currentCity: e.target.value })
-                    }
+                    onChange={(e) => {
+                      setFormData({ ...formData, currentCity: e.target.value });
+                      handleFieldChange('currentCity', e.target.value);
+                    }}
                     placeholder="City"
-                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring- bg-white/50 backdrop-blur-sm"
+                    className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring- bg-white/50 backdrop-blur-sm ${getFieldErrorStyle('currentCity')}`}
                   />
+                  {getFieldError('currentCity') && (
+                    <p className="text-red-500 text-sm mt-1">{getFieldError('currentCity')}</p>
+                  )}
                 </div>
                 <div>
                   <Label
@@ -1990,12 +2229,16 @@ const ApplicationProcess = ({
                   <Input
                     id="currentState"
                     value={formData.currentState}
-                    onChange={(e) =>
-                      setFormData({ ...formData, currentState: e.target.value })
-                    }
+                    onChange={(e) => {
+                      setFormData({ ...formData, currentState: e.target.value });
+                      handleFieldChange('currentState', e.target.value);
+                    }}
                     placeholder="State"
-                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring- bg-white/50 backdrop-blur-sm"
+                    className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring- bg-white/50 backdrop-blur-sm ${getFieldErrorStyle('currentState')}`}
                   />
+                  {getFieldError('currentState') && (
+                    <p className="text-red-500 text-sm mt-1">{getFieldError('currentState')}</p>
+                  )}
                 </div>
               </div>
               <div>
@@ -2011,11 +2254,15 @@ const ApplicationProcess = ({
                   onChange={(e) => {
                     const value = e.target.value.replace(/\D/g, "").slice(0, 5);
                     setFormData({ ...formData, currentZip: value });
+                    handleFieldChange('currentZip', value);
                   }}
                   placeholder="12345"
                   maxLength={5}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring- bg-white/50 backdrop-blur-sm"
+                  className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring- bg-white/50 backdrop-blur-sm ${getFieldErrorStyle('currentZip')}`}
                 />
+                {getFieldError('currentZip') && (
+                  <p className="text-red-500 text-sm mt-1">{getFieldError('currentZip')}</p>
+                )}
               </div>
               <div className="w-64">
                 <Label
@@ -2026,9 +2273,10 @@ const ApplicationProcess = ({
                 </Label>
                 <Select
                   value={formData.currentDuration}
-                  onValueChange={(value) =>
-                    setFormData({ ...formData, currentDuration: value })
-                  }
+                  onValueChange={(value) => {
+                    setFormData({ ...formData, currentDuration: value });
+                    handleFieldChange('currentDuration', value);
+                  }}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select duration" />
@@ -2038,6 +2286,9 @@ const ApplicationProcess = ({
                     <SelectItem value="2+">More than 2 years</SelectItem>
                   </SelectContent>
                 </Select>
+                {getFieldError('currentDuration') && (
+                  <p className="text-red-500 text-sm mt-1">{getFieldError('currentDuration')}</p>
+                )}
               </div>
             </div>
 
@@ -5419,7 +5670,6 @@ const ApplicationProcess = ({
             {/* Step content - scrollable */}
             <div
               className="flex-1 overflow-y-auto bg-white/90 backdrop-blur-md"
-              ref={(el) => el?.scrollTo(0, 0)}
             >
               <div className="p-6 space-y-6">
                 {/* Section Header */}

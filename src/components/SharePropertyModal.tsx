@@ -7,6 +7,7 @@ import {
   Share2,
   Home
 } from 'lucide-react';
+import { formatPropertyAddress } from '../lib/utils';
 import { motion } from 'framer-motion';
 import { useToast } from '../hooks/use-toast';
 import { Button } from './ui/Button';
@@ -57,7 +58,7 @@ const SharePropertyModal = ({ property, isOpen, onClose }: SharePropertyModalPro
     const body = `Hi! I found this amazing property and thought you might be interested:
 
 ${property.name}
-${property.address}
+${typeof property.address === 'string' ? property.address : `${property.address.line1}, ${property.address.city}, ${property.address.region}`}
 ${property.priceRange}
 ${property.beds}
 Rating: ${property.rating}/5
@@ -76,7 +77,7 @@ Let me know what you think!`;
   };
 
   const handleTextShare = () => {
-    const message = `Check out this property: ${property.name} - ${property.address} - ${property.priceRange}`;
+    const message = `Check out this property: ${property.name} - ${typeof property.address === 'string' ? property.address : `${property.address.line1}, ${property.address.city}, ${property.address.region}`} - ${property.priceRange}`;
     const smsUrl = `sms:?body=${encodeURIComponent(message)}`;
     window.open(smsUrl);
     toast({
@@ -154,7 +155,10 @@ Let me know what you think!`;
                   {property.name}
                 </h3>
                 <p className="text-xs text-gray-600 line-clamp-1">
-                  {property.address}
+                  {typeof property.address === 'string' 
+                    ? property.address
+                    : formatPropertyAddress(property.address)
+                  }
                 </p>
                 <p className="text-sm font-bold text-green-600 mt-1">
                   {property.priceRange}

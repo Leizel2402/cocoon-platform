@@ -166,7 +166,14 @@ export interface AIConversation {
 export interface Property {
   id: string;
   title: string;
-  address: string;
+  address: string | {
+    line1: string;
+    line2?: string;
+    city: string;
+    region: string;
+    postalCode: string;
+    country: string;
+  };
   city: string;
   state: string;
   rent: number;

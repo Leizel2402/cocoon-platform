@@ -346,7 +346,7 @@ const Dashboards = () => {
           if (availableProperties.length === 0) {
             throw new Error("No available properties found");
           }
-
+        
           // Create a new query snapshot with only available properties
           querySnapshot = {
             docs: availableProperties,
@@ -362,13 +362,13 @@ const Dashboards = () => {
           // Fallback to listings collection
           const listingsQuery = query(collection(db, "listings"), limit(20));
           querySnapshot = await getDocs(listingsQuery);
-
+        
           // Filter available listings in memory
           const availableListings = querySnapshot.docs.filter((doc) => {
             const data = doc.data();
             return data.available === true;
           });
-
+        
           if (availableListings.length > 0) {
             querySnapshot = {
               docs: availableListings,
@@ -386,12 +386,12 @@ const Dashboards = () => {
         }
 
         if (querySnapshot.empty) {
-          console.log("No properties found in Firebase");
           setDatabaseProperties([]);
           return;
         }
 
         // Transform Firebase data to match expected format
+       
         const transformedProperties = querySnapshot.docs.map((doc: any, index: number) => {
           const prop = doc.data();
           // Handle different data structures from listings vs properties
@@ -400,87 +400,129 @@ const Dashboards = () => {
             // Based on Firestore console: amenities, available, availableDate, bathrooms, bedrooms, deposit, description, images, propertyId, publishedAt, rent, title
             return {
               id: doc.id,
-              name: prop.title || "Property",
-              address: `123 ${(prop.title || "Property").replace(
-                /\s+/g,
-                ""
-              )} St, City, State 00000`, // Generate address since not in listings
+              name: prop.title || "",
+              address: prop.address || "",
               priceRange: prop.rent
                 ? `$${prop.rent.toLocaleString()}`
-                : "$1,500 - $2,500",
+                : "",
               beds: prop.bedrooms
                 ? `${prop.bedrooms} ${prop.bedrooms === 1 ? "Bed" : "Beds"}`
-                : "1-2 Beds",
-              rating: 4.2 + (index % 10) * 0.1, // Generate ratings between 4.2-5.0
-              amenities: prop.amenities || ["Pool", "Gym", "Pet Friendly"],
-              image:
-                prop.images?.[0] ||
-                "https://images.pexels.com/photos/106399/pexels-photo-106399.jpeg?auto=compress&cs=tinysrgb&w=800",
-              coordinates: [
-                -97.7437 + (Math.random() - 0.5) * 0.1,
-                30.2672 + (Math.random() - 0.5) * 0.1,
-              ] as [number, number],
-              propertyType: "Apartment",
-              isRentWiseNetwork: Math.random() > 0.5, // Random RentWise status
+                : "",
+              rating: prop.rating || 0,
+              amenities: prop.amenities || [],
+              image: prop.images?.[0] || "",
+              coordinates: prop.coordinates || [0, 0] as [number, number],
+              propertyType: prop.propertyType || "",
+              isRentWiseNetwork: prop.isRentWiseNetwork || false,
               rent_amount: prop.rent,
               bedrooms: prop.bedrooms,
               bathrooms: prop.bathrooms,
-              city: "City", // Not available in listings, will be generated
-              state: "State", // Not available in listings, will be generated
-              zip_code: "00000", // Not available in listings, will be generated
+              city: prop.city || "",
+              state: prop.state || "",
+              zip_code: prop.zip_code || "",
               description: prop.description,
-              pet_friendly: prop.amenities?.includes("Pet Friendly") || false,
+              pet_friendly: prop.pet_friendly || false,
               available_date: prop.availableDate,
             };
           } else {
-            // Data from properties collection (original format)
+            // Data from properties collection (new landlord form format)
+            // Handle both string and object address formats
+            let addressString = "";
+            let city = "";
+            let state = "";
+            let zip_code = "";
+            let country = "";
+
+            if (typeof prop.address === 'string') {
+              addressString = prop.address;
+            } else if (prop.address && typeof prop.address === 'object') {
+              addressString = `${prop.address.line1}${prop.address.line2 ? ', ' + prop.address.line2 : ''}`;
+              city = prop.address.city || "";
+              state = prop.address.region || "";
+              zip_code = prop.address.postalCode || "";
+              country = prop.address.country || "";
+            }
+
+            // Handle location coordinates
+            let coordinates: [number, number] = [0, 0]; // Default to 0,0 if no coordinates
+            if (prop.location && prop.location.lat && prop.location.lng) {
+              coordinates = [prop.location.lng, prop.location.lat];
+            } else if (prop.lat && prop.lng) {
+              coordinates = [prop.lng, prop.lat];
+            }
+
+            // Handle images - use first image if available
+            let imageUrl = "";
+            if (prop.images && prop.images.length > 0 && prop.images[0]) {
+              imageUrl = prop.images[0];
+            } else if (prop.image) {
+              imageUrl = prop.image;
+            }
+
+            // Handle timestamps
+            let createdAt = null;
+            let updatedAt = null;
+            if (prop.createdAt) {
+              if (prop.createdAt.seconds) {
+                createdAt = new Date(prop.createdAt.seconds * 1000);
+              } else {
+                createdAt = new Date(prop.createdAt);
+              }
+            }
+            if (prop.updatedAt) {
+              if (prop.updatedAt.seconds) {
+                updatedAt = new Date(prop.updatedAt.seconds * 1000);
+              } else {
+                updatedAt = new Date(prop.updatedAt);
+              }
+            }
+
             return {
               id: doc.id,
-              name: prop.title || prop.name || "Property",
-              address:
-                prop.address ||
-                `${prop.city || ""}, ${prop.state || ""} ${
-                  prop.zip_code || ""
-                }`.trim(),
+              name: prop.name || prop.title || "",
+              title: prop.title || prop.name || "",
+              address: addressString || "",
               priceRange: prop.rent_amount
                 ? `$${prop.rent_amount.toLocaleString()}`
-                : "$1,500 - $2,500",
+                : "",
               beds: prop.bedrooms
                 ? `${prop.bedrooms} ${prop.bedrooms === 1 ? "Bed" : "Beds"}`
-                : "1-2 Beds",
-              rating: prop.rating || 4.2 + (index % 10) * 0.1,
-              amenities: prop.amenities || ["Pool", "Gym", "Pet Friendly"],
-              image:
-                prop.image ||
-                "https://images.pexels.com/photos/106399/pexels-photo-106399.jpeg?auto=compress&cs=tinysrgb&w=800",
-              coordinates:
-                prop.coordinates ||
-                ([
-                  -97.7437 + (Math.random() - 0.5) * 0.1,
-                  30.2672 + (Math.random() - 0.5) * 0.1,
-                ] as [number, number]),
-              propertyType:
-                prop.property_type || prop.propertyType || "Apartment",
+                : "",
+              rating: prop.rating || 0,
+              amenities: prop.amenities || [],
+              image: imageUrl,
+              coordinates: coordinates,
+              propertyType: prop.property_type || prop.propertyType || "",
               isRentWiseNetwork: prop.isRentWiseNetwork || false,
               rent_amount: prop.rent_amount,
               bedrooms: prop.bedrooms,
               bathrooms: prop.bathrooms,
-              city: prop.city,
-              state: prop.state,
-              zip_code: prop.zip_code,
+              city: city || prop.city || "",
+              state: state || prop.state || "",
+              zip_code: zip_code || prop.zip_code || "",
+              country: country || prop.country || "",
               description: prop.description,
               pet_friendly: prop.pet_friendly,
               available_date: prop.available_date,
-              // Additional fields from your Firebase data
+              is_available: prop.is_available,
               square_feet: prop.square_feet,
-              lat: prop.lat,
-              lng: prop.lng,
-              country: prop.country,
+              lat: prop.location?.lat || prop.lat,
+              lng: prop.location?.lng || prop.lng,
               landlordId: prop.landlordId,
-              createdAt: prop.createdAt,
-              updatedAt: prop.updatedAt,
+              createdAt: createdAt,
+              updatedAt: updatedAt,
               created_at: prop.created_at,
               updated_at: prop.updated_at,
+              // Social feeds
+              socialFeeds: prop.socialFeeds,
+              // Images array
+              images: prop.images || [],
+              // Property type details
+              property_type: prop.property_type,
+              // Location object
+              location: prop.location,
+              // Address object (keep original for detailed display)
+              addressObject: prop.address,
             };
           }
         });
@@ -587,7 +629,6 @@ const Dashboards = () => {
       const querySnapshot = await getDocs(unitsQuery);
 
       if (querySnapshot.empty) {
-        console.log("No units found in Firebase");
         setUnitsData([]);
         return;
       }
@@ -600,64 +641,39 @@ const Dashboards = () => {
         // amenities, available, availableDate, bathrooms, bedrooms, createdAt, deposit, description, images, propertyId
         return {
           id: doc.id,
-          unitNumber: unit.unitNumber || `Unit ${doc.id.slice(-4)}`, // Use last 4 chars of ID
-          bedrooms: unit.bedrooms || 1,
-          bathrooms: unit.bathrooms || 1,
-          sqft: unit.squareFeet || unit.sqft || 1000, // Handle different field names
+          unitNumber: unit.unitNumber || `Unit ${doc.id.slice(-4)}`,
+          bedrooms: unit.bedrooms || 0,
+          bathrooms: unit.bathrooms || 0,
+          sqft: unit.squareFeet || unit.sqft || 0,
           available: unit.available !== false,
           availableDate: unit.availableDate || new Date().toISOString(),
-          floorPlan: unit.floorPlan || "Open Floor Plan",
-          rent: unit.rent || unit.rentAmount || 2000, // Handle different field names
-          deposit:
-            unit.deposit ||
-            Math.round((unit.rent || unit.rentAmount || 2000) * 1.5),
-          leaseTerms: [
+          floorPlan: unit.floorPlan || "",
+          rent: unit.rent || unit.rentAmount || 0,
+          deposit: unit.deposit || 0,
+          leaseTerms: unit.leaseTerms || [
             {
-              months: 6,
-              rent: Math.round((unit.rent || unit.rentAmount || 2000) * 1.1),
-              popular: false,
+              months: 12,
+              rent: unit.rent || unit.rentAmount || 0,
+              popular: true,
               savings: null,
               concession: null,
             },
-            {
-              months: 12,
-              rent: unit.rent || unit.rentAmount || 2000,
-              popular: true,
-              savings: null,
-              concession: "2 weeks free rent",
-            },
-            {
-              months: 18,
-              rent: Math.round((unit.rent || unit.rentAmount || 2000) * 0.95),
-              popular: false,
-              savings: 100,
-              concession: "1 month free rent",
-            },
           ],
-          amenities: unit.amenities || ["Pool", "Gym", "Pet Friendly"],
+          amenities: unit.amenities || [],
           images: unit.images || [],
-          qualified: true, // Assume qualified for now
-          qualifiedStatus: "qualified" as const,
-          parkingIncluded:
-            unit.amenities?.includes("Garage") ||
-            unit.amenities?.includes("Parking") ||
-            true,
-          petFriendly:
-            unit.amenities?.some(
-              (amenity: string) =>
-                amenity.toLowerCase().includes("pet") ||
-                amenity.toLowerCase().includes("dog")
-            ) || false,
+          qualified: unit.qualified !== false,
+          qualifiedStatus: unit.qualifiedStatus || "qualified" as const,
+          parkingIncluded: unit.parkingIncluded || false,
+          petFriendly: unit.petFriendly || false,
           furnished: unit.furnished || false,
-          floor: unit.floor || Math.floor(Math.random() * 10) + 1,
-          view: unit.view || "City View",
+          floor: unit.floor || 0,
+          view: unit.view || "",
           description: unit.description || "",
           propertyId: unit.propertyId || "",
         };
       });
 
       setUnitsData(transformedUnits);
-      // console.log(`Loaded ${transformedUnits.length} units from Firebase units collection`);
     } catch (error) {
       console.error("Error loading units from Firebase:", error);
       setUnitsData([]);
@@ -696,55 +712,31 @@ const Dashboards = () => {
           return {
             id: doc.id,
             unitNumber: unit.unitNumber || `Unit ${doc.id.slice(-4)}`,
-            bedrooms: unit.bedrooms || 1,
-            bathrooms: unit.bathrooms || 1,
-            sqft: unit.squareFeet || unit.sqft || 1000,
+            bedrooms: unit.bedrooms || 0,
+            bathrooms: unit.bathrooms || 0,
+            sqft: unit.squareFeet || unit.sqft || 0,
             available: unit.available !== false,
             availableDate: unit.availableDate || new Date().toISOString(),
-            floorPlan: unit.floorPlan || "Open Floor Plan",
-            rent: unit.rent || unit.rentAmount || 2000,
-            deposit:
-              unit.deposit ||
-              Math.round((unit.rent || unit.rentAmount || 2000) * 1.5),
-            amenities: unit.amenities || ["Pool", "Gym", "Pet Friendly"],
+            floorPlan: unit.floorPlan || "",
+            rent: unit.rent || unit.rentAmount || 0,
+            deposit: unit.deposit || 0,
+            amenities: unit.amenities || [],
             images: unit.images || [],
             description: unit.description || "",
             propertyId: unit.propertyId || "",
             // Additional unit details
-            floor: unit.floor || Math.floor(Math.random() * 10) + 1,
-            view: unit.view || "City View",
-            parkingIncluded:
-              unit.amenities?.includes("Garage") ||
-              unit.amenities?.includes("Parking") ||
-              false,
-            petFriendly:
-              unit.amenities?.some(
-                (amenity: string) =>
-                  amenity.toLowerCase().includes("pet") ||
-                  amenity.toLowerCase().includes("dog")
-              ) || false,
+            floor: unit.floor || 0,
+            view: unit.view || "",
+            parkingIncluded: unit.parkingIncluded || false,
+            petFriendly: unit.petFriendly || false,
             furnished: unit.furnished || false,
-            leaseTerms: [
-              {
-                months: 6,
-                rent: Math.round((unit.rent || unit.rentAmount || 2000) * 1.1),
-                popular: false,
-                savings: null,
-                concession: null,
-              },
+            leaseTerms: unit.leaseTerms || [
               {
                 months: 12,
-                rent: unit.rent || unit.rentAmount || 2000,
+                rent: unit.rent || unit.rentAmount || 0,
                 popular: true,
                 savings: null,
-                concession: "2 weeks free rent",
-              },
-              {
-                months: 18,
-                rent: Math.round((unit.rent || unit.rentAmount || 2000) * 0.95),
-                popular: false,
-                savings: 100,
-                concession: "1 month free rent",
+                concession: null,
               },
             ],
           };
@@ -765,25 +757,8 @@ const Dashboards = () => {
     }
   };
 
-  // Use database properties if available, otherwise fallback to sample data
-  const featuredProperties =
-    databaseProperties.length > 0
-      ? databaseProperties
-      : [
-          {
-            id: 1,
-            name: "The Lodge at Autumn Willow",
-            address: "1200 Autumn Willow Dr, Austin, TX 78745",
-            priceRange: "$1,255 - $2,849",
-            beds: "Studio - 2 Beds",
-            rating: 4.5,
-            amenities: ["Pool", "Gym", "Pet Friendly", "In Unit Laundry"],
-            image: "",
-            coordinates: [-97.8008, 30.224] as [number, number],
-            propertyType: "Apartment",
-            isRentWiseNetwork: true,
-          },
-        ];
+  // Use only database properties - no static fallbacks
+  const featuredProperties = databaseProperties;
 
   // Real-time filter updates and search summary
   useEffect(() => {
@@ -1742,7 +1717,6 @@ const Dashboards = () => {
                   isPrequalified={isPrequalified}
                   language={selectedLanguage}
                   onPropertySelect={(property) => {
-                    console.log("Selected property from map:", property);
                     setCurrentView("unit-selection");
                   }}
                   // onViewUnits={async (property) => {
@@ -1858,11 +1832,21 @@ const Dashboards = () => {
                           <MapPin className="h-12 w-12 text-green-600" />
                         </div>
                         <h3 className="text-2xl font-bold text-gray-900 mb-4">
-                          {t("noPropertiesFound")}
+                          {databaseProperties.length === 0 ? "No Properties Available" : "No Properties Match Your Filters"}
                         </h3>
-                        <p className="text-gray-600 text-lg">
-                          {t("adjustFilters")}
+                        <p className="text-gray-600 text-lg mb-6">
+                          {databaseProperties.length === 0 
+                            ? "No properties are currently available in the database. Please check back later or contact support."
+                            : "Try adjusting your search criteria to find more properties."
+                          }
                         </p>
+                        {databaseProperties.length === 0 && (
+                          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 max-w-md mx-auto">
+                            <p className="text-sm text-blue-800">
+                              <strong>Tip:</strong> If you're a landlord, you can add properties through the property management section.
+                            </p>
+                          </div>
+                        )}
                       </div>
                     ) : (
                       <>
@@ -1895,7 +1879,6 @@ const Dashboards = () => {
         currentView === "unit-selection" ? (
           <QualifiedProperties
             onUnitSelect={(property, unit) => {
-              console.log("Selected unit:", unit, "from property:", property);
               // Navigate to rental application
               setSelectedProperty(property);
               // setSelectedUnit(unit);
@@ -1926,14 +1909,16 @@ const Dashboards = () => {
             }
             onBack={handleBack}
             applicantData={{
-              unitType: "1-2 Bedrooms",
-              desiredTourDate: "2024-01-15",
-              moveInDate: "2024-02-01",
-              desiredLeaseTerm: "12",
-              rentalRange: "$1,200 - $1,800",
-              location: "Downtown Austin",
-              amenities: ["Pool", "Gym", "Parking", "W/D"],
-              petFriendly: true,
+              unitType: selectedBeds.length > 0 ? selectedBeds.join(", ") + " Bedroom" + (selectedBeds.length > 1 ? "s" : "") : "Any",
+              desiredTourDate: new Date().toISOString().split('T')[0], // Today's date
+              moveInDate: moveInDate ? moveInDate.toISOString().split('T')[0] : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 30 days from now if no date set
+              desiredLeaseTerm: "12", // Default to 12 months
+              rentalRange: priceRange[0] === 0 && priceRange[1] === 5000 
+                ? "Any" 
+                : `$${priceRange[0].toLocaleString()} - $${priceRange[1].toLocaleString()}`,
+              location: searchLocation || userLocation,
+              amenities: selectedAmenities.length > 0 ? selectedAmenities : [],
+              petFriendly: petPolicy === "Pet Friendly" || (petPolicy === "" && selectedAmenities.includes("Pet Friendly")),
             }}
             // Pass dynamic properties data
             dynamicProperties={databaseProperties}
@@ -1947,36 +1932,20 @@ const Dashboards = () => {
             comparisonUnits={comparisonUnits}
             onBack={() => setCurrentView("unit-selection")}
             onProceedToProducts={(property, unit, leaseTerm) => {
-              console.log("[Dashboard] Proceed to products", {
-                property,
-                unit,
-                leaseTerm,
-              });
+            
               setSelectedProperty(property);
               // setSelectedUnit(unit);
               // setSelectedLeaseTerm(leaseTerm);
               setCurrentView("product-selection");
             }}
             onUnitSelect={(property, unit, leaseTerm) => {
-              console.log(
-                "Selected unit:",
-                unit,
-                "from property:",
-                property,
-                "with lease term:",
-                leaseTerm
-              );
+             
               // Navigate to next step in application process
               setCurrentView("application-process");
               setApplicationStep(2); // Move to next application step
             }}
             onShowDetails={(property, unit) => {
-              console.log(
-                "Show details for:",
-                unit,
-                "from property:",
-                property
-              );
+              
             }}
           />
         ) : currentView === "product-selection" ? (
@@ -1986,12 +1955,12 @@ const Dashboards = () => {
             selectedLeaseTerm={selectedLeaseTerm?.months || 12}
             selectedLeaseTermRent={selectedLeaseTerm?.rent}
             applicantData={{
-              unitType: `${selectedUnit?.bedrooms} bedroom`,
+              unitType: selectedUnit?.bedrooms ? `${selectedUnit.bedrooms} bedroom${selectedUnit.bedrooms > 1 ? 's' : ''}` : "Any",
               petDescription: "", // This should come from application data
               petName: "",
               petBreed: "",
               petWeight: "",
-              creditScore: 720,
+              creditScore: 0, // No default credit score
               applicationId: null, // This should be the actual application ID
             }}
             onBack={() => setCurrentView("unit-comparison")}
@@ -2006,7 +1975,6 @@ const Dashboards = () => {
             paymentType={paymentData?.annualPayment ? "annual" : "monthly"}
             onBack={() => setCurrentView("product-selection")}
             onPaymentComplete={() => {
-              console.log("Payment completed successfully");
               setCurrentView("dashboard");
             }}
           />
@@ -2029,12 +1997,7 @@ const Dashboards = () => {
             onViewUnits={async (property) => {
               setSelectedProperty(property);
               // Load units for this specific property
-              console.log("Loading units for property:", property.id);
-              const loadedUnits = await loadUnitsForProperty(property.id);
-              console.log(
-                "Units loaded, setting view to unit-selection. Units count:",
-                loadedUnits.length
-              );
+             
               setCurrentView("unit-selection");
             }}
           />

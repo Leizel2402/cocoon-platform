@@ -3,6 +3,7 @@ import { X, Bed, Bath, Heart, Share, MapPin } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import PropertyDetailsModal from '../components/rentar/unitSelecttion/PropertyDetailsModal';
 import { useAuth } from '../hooks/useAuth';
+import { formatPropertyAddress } from '../lib/utils';
 import { useToast } from '../hooks/use-toast';
 import { saveProperty, isPropertySaved, removeSavedProperty, SavePropertyData } from '../services/savedPropertiesService';
 
@@ -317,8 +318,8 @@ const DashboardMap: React.FC<PropertyMapProps> = ({
               return newMap;
             });
             toast({
-              title: "Property removed",
-              description: "Property has been removed from your saved list.",
+              title: "Property unsave",
+              description: "Property has been saved from your saved list.",
             });
           } else {
             toast({
@@ -682,7 +683,10 @@ const DashboardMap: React.FC<PropertyMapProps> = ({
                       <div className="flex items-start gap-1 mt-2">
                         <MapPin size={12} color="#6b7280" className="mt-0.5 flex-shrink-0" />
                         <p className="!m-0 text-xs text-gray-500 leading-tight">
-                          {property.address}
+                          {typeof property.address === 'string' 
+                            ? property.address
+                            : formatPropertyAddress(property.address)
+                          }
                         </p>
                       </div>
                       

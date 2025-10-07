@@ -131,7 +131,7 @@ const UnitsComparison: React.FC<UnitsComparisonProps> = ({
   const [floorPlanUnit, setFloorPlanUnit] = useState<{ property: QualifiedProperty; unit: Unit } | null>(null);
   const [showProductsModal, setShowProductsModal] = useState(false);
   const [selectedForProducts, setSelectedForProducts] = useState<{ property: QualifiedProperty; unit: Unit; leaseTerm: LeaseTerm } | null>(null);
-  const [paymentData, setPaymentData] = useState<unknown>(null);
+  const [, setPaymentData] = useState<unknown>(null);
   const [inPaymentStep, setInPaymentStep] = useState(false);
 
   const handleLeaseTermSelect = (unitKey: string, leaseTerm: LeaseTerm) => {
@@ -148,16 +148,13 @@ const UnitsComparison: React.FC<UnitsComparisonProps> = ({
   };
 
   const openProductsFlow = (property: QualifiedProperty, unit: Unit, leaseTerm: LeaseTerm) => {
-    console.log('Opening products flow', { property: property.name, unit: unit.unitNumber, leaseTerm: leaseTerm.months });
     setSelectedForProducts({ property, unit, leaseTerm });
     setShowProductsModal(true);
     setInPaymentStep(false);
     setPaymentData(null);
-    console.log('Modal state set to true');
   };
 
   const handleNext = () => {
-    console.log('[UnitsComparison] Proceed bar clicked', { selectedUnit, selectedTerm: selectedUnit ? selectedLeaseTerms[selectedUnit] : null });
     if (!selectedUnit) {
       toast({
         title: "Please select a unit",
@@ -206,9 +203,9 @@ const UnitsComparison: React.FC<UnitsComparisonProps> = ({
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-gray-50 to-zinc-100">
+    <div className="min-h-screen bg-white">
       {/* Modern Header */}
-      <div className="bg-gradient-to-r from-blue-600 via-purple-600 to-blue-600 text-white p-6 shadow-2xl">
+      <div className="sticky top-16 z-50 bg-gradient-to-r from-green-600 via-emerald-600 to-teal-600 text-white p-6 shadow-2xl">
         <div className="container mx-auto">
       <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
@@ -249,19 +246,19 @@ const UnitsComparison: React.FC<UnitsComparisonProps> = ({
       {/* Main Content */}
       <div className="container mx-auto p-6 space-y-6">
 
-      {/* Summary Section */}
-        <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
+      {/* Summary Section - Sticky */}
+        <div className=" bg-white/95 backdrop-blur-md rounded-2xl p-6 shadow-2xl border border-white/30">
           <h2 className="font-bold text-gray-800 mb-6 text-xl flex items-center">
-            <Star className="h-5 w-5 mr-2 text-blue-600" />
+            <Star className="h-5 w-5 mr-2 text-green-600" />
             Comparison Summary
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="bg-blue-50 rounded-xl p-4">
-              <h4 className="font-bold text-blue-800 mb-2 flex items-center">
+            <div className="bg-green-50 rounded-xl p-4 border border-green-200">
+              <h4 className="font-bold text-green-800 mb-2 flex items-center">
                 <DollarSign className="h-4 w-4 mr-1" />
                 Price Range
               </h4>
-              <p className="text-blue-700 font-medium">
+              <p className="text-green-700 font-medium">
                 {(() => {
                   const rents = comparisonUnits.map(({ unit }) => {
                     const lt = Array.isArray(unit.leaseTerms) && unit.leaseTerms.length ? unit.leaseTerms[0] : null;
@@ -271,22 +268,22 @@ const UnitsComparison: React.FC<UnitsComparisonProps> = ({
                 })()}
               </p>
             </div>
-            <div className="bg-purple-50 rounded-xl p-4">
-              <h4 className="font-bold text-purple-800 mb-2 flex items-center">
+            <div className="bg-emerald-50 rounded-xl p-4 border border-emerald-200">
+              <h4 className="font-bold text-emerald-800 mb-2 flex items-center">
                 <Square className="h-4 w-4 mr-1" />
                 Size Range
               </h4>
-              <p className="text-purple-700 font-medium">
+              <p className="text-emerald-700 font-medium">
                 {Math.min(...comparisonUnits.map(({ unit }) => unit.sqft))} - 
                 {Math.max(...comparisonUnits.map(({ unit }) => unit.sqft))} sqft
               </p>
             </div>
-            <div className="bg-green-50 rounded-xl p-4">
-              <h4 className="font-bold text-green-800 mb-2 flex items-center">
+            <div className="bg-teal-50 rounded-xl p-4 border border-teal-200">
+              <h4 className="font-bold text-teal-800 mb-2 flex items-center">
                 <Bed className="h-4 w-4 mr-1" />
                 Bedroom Types
               </h4>
-              <p className="text-green-700 font-medium">
+              <p className="text-teal-700 font-medium">
                 {[...new Set(comparisonUnits.map(({ unit }) => `${unit.bedrooms} bed`))].join(', ')}
               </p>
             </div>
@@ -294,7 +291,7 @@ const UnitsComparison: React.FC<UnitsComparisonProps> = ({
           {selectedUnit && selectedLeaseTerms[selectedUnit] && (
             <>
               <Separator className="my-6" />
-              <div className="bg-gradient-to-r from-blue-50 to-purple-50 p-6 rounded-xl border border-blue-200">
+              <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-6 rounded-xl border border-green-200">
                 <h4 className="font-bold text-gray-800 mb-3 flex items-center">
                   <CheckCircle className="h-5 w-5 mr-2 text-green-600" />
                   Selected Unit
@@ -316,7 +313,7 @@ const UnitsComparison: React.FC<UnitsComparisonProps> = ({
         </div>
 
       {/* Comparison Grid */}
-        <div className="grid gap-6 pb-24" style={{ gridTemplateColumns: `repeat(${Math.min(comparisonUnits.length, 3)}, 1fr)` }}>
+        <div className="grid gap-6 pb-24 mt-6" style={{ gridTemplateColumns: `repeat(${Math.min(comparisonUnits.length, 3)}, 1fr)` }}>
         {comparisonUnits.map(({ property, unit }) => {
           const unitKey = `${property.id}-${unit.id}`;
           const isSelected = selectedUnit === unitKey;
@@ -328,8 +325,8 @@ const UnitsComparison: React.FC<UnitsComparisonProps> = ({
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.3 }}
-                className={`relative bg-white rounded-2xl shadow-lg border-2 transition-all duration-300 ${
-                  isSelected ? 'border-blue-500 shadow-blue-200 bg-blue-50/30' : 'border-gray-200 hover:border-blue-300 hover:shadow-xl'
+                className={`relative bg-white/80 backdrop-blur-md rounded-2xl shadow-xl border-2 transition-all duration-300 ${
+                  isSelected ? 'border-green-500 shadow-green-200 bg-green-50/30' : 'border-gray-200 hover:border-green-300 hover:shadow-xl'
                 }`}
               >
                 {/* Card Header */}
@@ -342,8 +339,8 @@ const UnitsComparison: React.FC<UnitsComparisonProps> = ({
                       <span>{property.address}</span>
                     </div>
                       <div className="flex items-center gap-2">
-                        <Badge className="bg-blue-100 text-blue-700 text-xs px-2 py-1">Unit {unit.unitNumber}</Badge>
-                        <Badge className="bg-purple-100 text-purple-700 text-xs px-2 py-1">Floor {unit.floor}</Badge>
+                        <Badge className="bg-green-100 text-green-700 text-xs px-2 py-1">Unit {unit.unitNumber}</Badge>
+                        <Badge className="bg-emerald-100 text-emerald-700 text-xs px-2 py-1">Floor {unit.floor}</Badge>
                         <Badge className={`text-xs px-2 py-1 ${
                           unit.qualified ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'
                         }`}>
@@ -359,7 +356,7 @@ const UnitsComparison: React.FC<UnitsComparisonProps> = ({
                         e.stopPropagation();
                         handleShowDetails(property, unit);
                       }}
-                        className="border-gray-300 hover:border-blue-500 hover:bg-blue-50"
+                        className="border-gray-300 hover:border-green-500 hover:bg-green-50"
                     >
                         <Eye className="h-4 w-4" />
                     </Button>
@@ -443,10 +440,10 @@ const UnitsComparison: React.FC<UnitsComparisonProps> = ({
                               key={months}
                               className={`p-3 border-2 rounded-xl cursor-pointer transition-all ${
                                 selectedLeaseTerms[unitKey]?.months === months 
-                                  ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-200' 
+                                  ? 'border-green-500 bg-green-50 ring-2 ring-green-200' 
                                   : currentTerm.popular 
-                                    ? 'border-blue-300 bg-blue-25' 
-                                    : 'border-gray-200 hover:border-blue-300 hover:bg-gray-50'
+                                    ? 'border-green-300 bg-green-25' 
+                                    : 'border-gray-200 hover:border-green-300 hover:bg-gray-50'
                               }`}
                               onClick={(e) => { e.stopPropagation(); handleLeaseTermSelect(unitKey, currentTerm); }}
                             >
@@ -514,7 +511,7 @@ const UnitsComparison: React.FC<UnitsComparisonProps> = ({
                       );
                     })}
                     {Array.isArray(unit.amenities) && unit.amenities.length > 4 && (
-                        <Badge className="bg-blue-100 text-blue-700 text-xs px-2 py-1 border border-blue-200">
+                        <Badge className="bg-green-100 text-green-700 text-xs px-2 py-1 border border-green-200">
                         +{unit.amenities.length - 4} more
                       </Badge>
                     )}
@@ -526,7 +523,7 @@ const UnitsComparison: React.FC<UnitsComparisonProps> = ({
                   <Button
                     variant="outline"
                     size="sm"
-                      className="flex-shrink-0 border-gray-300 hover:border-blue-500 hover:bg-blue-50"
+                      className="flex-shrink-0 border-gray-300 hover:border-green-500 hover:bg-green-50"
                     onClick={(e) => {
                       e.stopPropagation();
                       handleShowDetails(property, unit);
@@ -539,7 +536,7 @@ const UnitsComparison: React.FC<UnitsComparisonProps> = ({
                   {unit.qualified ? (
                     <Button 
                       size="sm" 
-                        className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg hover:shadow-xl" 
+                        className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white shadow-lg hover:shadow-xl" 
                       onClick={(e) => {
                         e.stopPropagation();
                         const term = selectedLeaseTerms[unitKey];
@@ -548,10 +545,8 @@ const UnitsComparison: React.FC<UnitsComparisonProps> = ({
                           return;
                         }
                         if (onProceedToProducts) {
-                          console.log('[UnitsComparison] Next -> parent flow');
                           onProceedToProducts(property, unit, term);
                         } else {
-                          console.log('[UnitsComparison] Next -> local modal flow');
                           openProductsFlow(property, unit, term);
                         }
                       }}
@@ -691,7 +686,6 @@ const UnitsComparison: React.FC<UnitsComparisonProps> = ({
        </Dialog>
         {selectedForProducts && (
           <Dialog open={showProductsModal} onOpenChange={(open) => { 
-            console.log('[UnitsComparison] Dialog onOpenChange', { open, showProductsModal, inPaymentStep });
             setShowProductsModal(open); 
             if (!open) { 
               setInPaymentStep(false); 
@@ -705,7 +699,6 @@ const UnitsComparison: React.FC<UnitsComparisonProps> = ({
                 </DialogTitle>
               </DialogHeader>
               {(() => {
-                console.log('[UnitsComparison] Rendering dialog content', { inPaymentStep, paymentData: !!paymentData });
                 return !inPaymentStep ? (
                   <div className="space-y-4">
                     <div className="p-3 bg-accent/50 rounded-md text-sm">
@@ -722,7 +715,6 @@ const UnitsComparison: React.FC<UnitsComparisonProps> = ({
                   setSelectedForProducts(null);
                 }}
                 onPaymentProcess={(data) => {
-                         console.log('[UnitsComparison] onPaymentProcess called', { data });
                          setPaymentData(data); 
                          setInPaymentStep(true); 
                        }}
@@ -742,12 +734,24 @@ const UnitsComparison: React.FC<UnitsComparisonProps> = ({
           </Dialog>
         )}
 
-       {/* Fixed Bottom Action Bar */}
+       {/* Enhanced Fixed Bottom Action Bar */}
        {getCanProceed() && (
           <div className="fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60 border-t border-gray-200 p-4 shadow-2xl">
-           <div className="container mx-auto flex justify-end">
+           <div className="container mx-auto flex items-center justify-between">
+              <div className="flex items-center space-x-4">
+                <div className="bg-blue-50 px-4 py-2 rounded-lg border border-blue-200">
+                  <span className="text-sm font-medium text-blue-800">
+                    {comparisonUnits.length} unit{comparisonUnits.length > 1 ? 's' : ''} selected
+                  </span>
+                </div>
+                {selectedUnit && selectedLeaseTerms[selectedUnit] && (
+                  <div className="text-sm text-gray-600 bg-gray-50 px-3 py-2 rounded-lg">
+                    <span className="font-medium">Selected:</span> {selectedLeaseTerms[selectedUnit].months} months at ${selectedLeaseTerms[selectedUnit].rent}/mo
+                  </div>
+                )}
+              </div>
               <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-                <Button onClick={handleNext} size="lg" className="min-w-[200px] h-12 text-lg font-semibold bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-200">
+                <Button onClick={handleNext} size="lg" className="min-w-[200px] h-12 text-lg font-semibold bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-200">
                Proceed to Products
                   <ArrowRight className="h-5 w-5 ml-2" />
              </Button>

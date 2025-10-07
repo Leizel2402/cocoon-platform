@@ -3,6 +3,7 @@ import { Card } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
 import { Button } from '../components/ui/Button';
 import { Star, MapPin, Bed, Bath, Square, Heart } from 'lucide-react';
+import { formatPropertyAddress } from '../lib/utils';
 
 interface Property {
   id: string;
@@ -75,7 +76,12 @@ export const TestPropertyCard: React.FC<TestPropertyCardProps> = ({
             </div>
             <div className="flex items-center text-muted-foreground">
               <MapPin className="h-4 w-4 mr-1" />
-              <span className="text-sm">{property.address}</span>
+              <span className="text-sm">
+                {typeof property.address === 'string' 
+                  ? property.address
+                  : formatPropertyAddress(property.address)
+                }
+              </span>
             </div>
           </div>
 
