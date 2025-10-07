@@ -8,7 +8,7 @@ import UnitForm from './UnitForm';
 import ListingForm from './ListingForm';
 import PropertyFormStepper from './PropertyFormStepper';
 import PropertyFormReview from './PropertyFormReview';
-import { Button } from '../../../components/ui/button';
+import { Button } from '../../../components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui/card';
 import { useToast } from '../../../hooks/use-toast';
 import { Building, Plus, X, Save, ArrowLeft } from 'lucide-react';
