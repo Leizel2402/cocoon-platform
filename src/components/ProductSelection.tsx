@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/lable';
@@ -8,6 +7,7 @@ import { Switch } from '../components/ui/switch';
 import { Separator } from '../components/ui/separator';
 import { Badge } from '../components/ui/badge';
 import { useToast } from '../hooks/use-toast';
+import { motion } from 'framer-motion';
 import { 
   Shield, 
   DollarSign, 
@@ -15,23 +15,71 @@ import {
   Heart, 
   FileText,
   Calculator,
-  Percent,
   Tag,
   Info,
-  Smartphone,
+  ArrowLeft,
   Building,
-  Bitcoin,
-  ArrowLeft
+  Star
 } from 'lucide-react';
 
+interface LeaseTerm {
+  months: number;
+  rent: number;
+  popular?: boolean;
+  savings?: number | null;
+  concession?: string | null;
+}
+
+interface Unit {
+  id: string;
+  unitNumber: string;
+  bedrooms: number;
+  bathrooms: number;
+  sqft: number;
+  available: boolean;
+  availableDate: string;
+  floorPlan: string;
+  rent: number;
+  deposit: number;
+  leaseTerms: LeaseTerm[];
+  amenities: string[];
+  images: string[];
+  qualified: boolean;
+  qualifiedStatus?: 'qualified' | 'pending' | 'denied';
+  parkingIncluded: boolean;
+  petFriendly: boolean;
+  furnished: boolean;
+  floor: number;
+  view: string;
+}
+
+interface QualifiedProperty {
+  id: string;
+  name: string;
+  address: string;
+  city: string;
+  state: string;
+  zip: string;
+  units: Unit[];
+  amenities: string[];
+  images: string[];
+  latitude: number;
+  longitude: number;
+  petPolicy: {
+    allowed: boolean;
+    fee: number;
+    deposit: number;
+  };
+}
+
 interface ProductSelectionProps {
-  property: any;
-  unit: any;
+  property: QualifiedProperty | null;
+  unit: Unit | null;
   selectedLeaseTerm: number;
-  selectedLeaseTermRent?: number; // Add the actual rent from selected lease term
-  onPaymentProcess: (paymentData: any) => void;
+  selectedLeaseTermRent?: number;
+  onPaymentProcess: (paymentData: unknown) => void;
   onBack: () => void;
-  applicantData: any;
+  applicantData: Record<string, unknown>;
 }
 
 interface Product {
@@ -40,7 +88,7 @@ interface Product {
   description: string;
   monthlyPrice: number;
   required: boolean;
-  icon: any;
+  icon: React.ComponentType<{ className?: string }>;
   options?: { value: string; label: string; price: number }[];
 }
 
@@ -51,10 +99,11 @@ const ProductSelection = ({
   selectedLeaseTermRent,
   onPaymentProcess,
   onBack,
-  applicantData 
+  applicantData: _applicantData // eslint-disable-line @typescript-eslint/no-unused-vars
 }: ProductSelectionProps) => {
   const { toast } = useToast();
-  const [selectedProducts, setSelectedProducts] = useState<{[key: string]: any}>({
+  
+  const [selectedProducts, setSelectedProducts] = useState<Record<string, { selected: boolean; option?: string }>>({
     // Default personal contents coverage to $7,500
     personal_contents: { selected: false, option: '7500' }
   });
@@ -62,12 +111,16 @@ const ProductSelection = ({
   const [couponCode, setCouponCode] = useState('');
   const [appliedCoupon, setAppliedCoupon] = useState<{code: string; discount: number} | null>(null);
   const [petInfo, setPetInfo] = useState({
-    type: applicantData?.petDescription || '',
-    name: applicantData?.petName || '',
-    breed: applicantData?.petBreed || '',
-    weight: applicantData?.petWeight || ''
+    type: '',
+    name: '',
+    breed: '',
+    weight: ''
   });
-
+  useEffect(() => {
+    if (!couponCode || couponCode !== '111') {
+      setAppliedCoupon(null);
+    }
+  }, [couponCode]);
   // Mock credit score for security deposit calculation
   const creditScore = 720; // This would come from the screening results
 
@@ -243,11 +296,7 @@ const ProductSelection = ({
   };
 
   // Clear coupon discount if field is blank or wrong code
-  useEffect(() => {
-    if (!couponCode || couponCode !== '111') {
-      setAppliedCoupon(null);
-    }
-  }, [couponCode]);
+ 
 
   const totals = calculateTotal();
 
@@ -287,325 +336,425 @@ const ProductSelection = ({
   };
 
   return (
-    <div className="max-w-5xl mx-auto p-4 bg-gradient-to-br from-green-50 to-blue-50 min-h-screen">
-      {/* Header */}
-      <div className="mb-4">
-        <div className="flex items-center gap-4 mb-2">
-          <Button variant="outline" size="sm" onClick={onBack} className="flex items-center gap-2 border-green-200 text-green-700 hover:bg-green-50">
-            <ArrowLeft className="h-4 w-4" />
-            Back
-          </Button>
-          <div>
-            <h1 className="text-2xl font-bold text-green-600">Customize Your Move-in Package</h1>
-            <p className="text-sm text-gray-600">{property.name} - Unit {unit.unitNumber}</p>
+    <div className="min-h-screen bg-white">
+      {/* Modern Header */}
+      <div className="sticky top-16 z-50 bg-gradient-to-r from-green-600 via-emerald-600 to-teal-600 text-white p-6 shadow-2xl">
+        <div className="container mx-auto">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <motion.div
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ delay: 0.1, type: "spring", stiffness: 200 }}
+                className="w-12 h-12 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center shadow-2xl"
+              >
+                <Shield className="h-6 w-6 text-white" />
+              </motion.div>
+              <div>
+                <h1 className="text-3xl font-bold text-white mb-1">Customize Your Move-in Package</h1>
+                <div className="flex items-center space-x-4 text-white/90">
+                  <div className="flex items-center">
+                    <Building className="h-4 w-4 mr-1" />
+                    <span className="text-sm">{property.name} - Unit {unit.unitNumber}</span>
+                  </div>
+                  <div className="flex items-center">
+                    <DollarSign className="h-4 w-4 mr-1" />
+                    <span className="text-sm">{selectedLeaseTerm} months at ${selectedLeaseTermRent?.toLocaleString()}/mo</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <Button 
+              variant="outline" 
+              onClick={onBack} 
+              className="bg-white/10 border-white/20 text-white hover:bg-white/20 flex items-center gap-2"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Back to Comparison
+            </Button>
           </div>
         </div>
       </div>
 
-      <div className="grid lg:grid-cols-3 gap-6">
-        {/* Left Column - Product Selection */}
-        <div className="lg:col-span-2 space-y-3">
-          <h3 className="text-xl font-semibold">Select Products</h3>
+      {/* Main Content */}
+      <div className="container mx-auto p-6 space-y-6">
 
-          {/* Required Products */}
-          <div className="space-y-3">
-            <h4 className="font-medium text-green-700 flex items-center">
-              <Shield className="h-4 w-4 mr-2" />
-              Required Protection (Included)
-            </h4>
-            {products.filter(p => p.required).map((product) => {
-              const Icon = product.icon;
-              return (
-                <Card key={product.id} className="border-green-200 bg-green-50/50">
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-3">
-                        <Icon className="h-5 w-5 text-green-600" />
-                        <div>
-                          <p className="font-semibold">{product.name}</p>
-                          <p className="text-sm text-muted-foreground">{product.description}</p>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <p className="font-semibold text-green-700">${product.monthlyPrice}/mo</p>
-                        <Badge variant="outline" className="border-green-600 text-green-600 text-xs">
-                          Required
-                        </Badge>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
-
-          {/* Optional Products */}
-          <div className="space-y-3">
-            <h4 className="font-medium text-primary flex items-center">
-              <Heart className="h-4 w-4 mr-2" />
-              Optional Add-ons
-            </h4>
-            {products.filter(p => !p.required).map((product) => {
-              const Icon = product.icon;
-              const isSelected = selectedProducts[product.id]?.selected;
-              
-              return (
-                <Card key={product.id} className={`transition-all cursor-pointer hover:shadow-md ${
-                  isSelected ? 'border-primary bg-primary/5 ring-2 ring-primary/20' : 'border-border'
-                }`} onClick={() => !product.options && handleProductToggle(product.id, !isSelected)}>
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-3">
-                        <Icon className="h-5 w-5 text-primary" />
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <p className="font-semibold">{product.name}</p>
-                            {product.id === 'flex_rent' && (
-                              <div className="group relative">
-                                <Info className="h-4 w-4 text-muted-foreground cursor-help" />
-                                <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 bg-popover border rounded-md p-2 text-xs w-48 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10 shadow-md">
-                                  TEST TEST TEST
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                          <p className="text-sm text-muted-foreground">{product.description}</p>
-                          {product.id === 'flex_rent' && (
-                            <p className="text-xs text-primary mt-1">Split rent into three installments for easier budgeting</p>
-                          )}
-                        </div>
-                      </div>
-                      <div className="flex items-center space-x-3">
-                        {!product.options && (
-                          <div className="text-right">
-                            <p className="font-semibold text-primary">${product.monthlyPrice}/mo</p>
-                          </div>
-                        )}
-                        <Switch
-                          checked={isSelected}
-                          onCheckedChange={(checked) => handleProductToggle(product.id, checked)}
-                          onClick={(e) => e.stopPropagation()}
-                        />
-                      </div>
-                    </div>
-                    
-                    {/* Options for products like Personal Contents */}
-                    {product.options && isSelected && (
-                      <div className="mt-4 space-y-2">
-                        <Label className="text-sm font-medium">Choose Coverage Level</Label>
-                        <Select
-                          value={selectedProducts[product.id]?.option || '7500'}
-                          onValueChange={(value) => handleProductOption(product.id, value)}
-                        >
-                          <SelectTrigger className="w-full">
-                            <SelectValue placeholder="Select coverage amount" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {product.options.map((option) => (
-                              <SelectItem key={option.value} value={option.value}>
-                                {option.label} - ${option.price}/month
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    )}
-
-                    {/* Pet Information Form */}
-                    {product.id === 'pet_insurance' && isSelected && (
-                      <div className="mt-4 space-y-3 border-t pt-4">
-                        <h5 className="font-medium">Tell Us About Your Pet</h5>
-                        <div className="grid grid-cols-2 gap-3">
-                          <div>
-                            <Label htmlFor="petType" className="text-xs">Pet Type</Label>
-                            <Input
-                              id="petType"
-                              value={petInfo.type}
-                              onChange={(e) => setPetInfo(prev => ({...prev, type: e.target.value}))}
-                              placeholder="Dog, Cat, etc."
-                              className="h-8"
-                            />
-                          </div>
-                          <div>
-                            <Label htmlFor="petName" className="text-xs">Pet Name</Label>
-                            <Input
-                              id="petName"
-                              value={petInfo.name}
-                              onChange={(e) => setPetInfo(prev => ({...prev, name: e.target.value}))}
-                              placeholder="Pet's name"
-                              className="h-8"
-                            />
-                          </div>
-                          <div>
-                            <Label htmlFor="petBreed" className="text-xs">Breed</Label>
-                            <Input
-                              id="petBreed"
-                              value={petInfo.breed}
-                              onChange={(e) => setPetInfo(prev => ({...prev, breed: e.target.value}))}
-                              placeholder="Breed"
-                              className="h-8"
-                            />
-                          </div>
-                          <div>
-                            <Label htmlFor="petWeight" className="text-xs">Weight (lbs)</Label>
-                            <Input
-                              id="petWeight"
-                              type="number"
-                              value={petInfo.weight}
-                              onChange={(e) => setPetInfo(prev => ({...prev, weight: e.target.value}))}
-                              placeholder="Weight"
-                              className="h-8"
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              );
-            })}
+        {/* Summary Section */}
+        <div className="bg-white/95 backdrop-blur-md rounded-2xl p-6 shadow-2xl border border-white/30">
+          <h2 className="font-bold text-gray-800 mb-6 text-xl flex items-center">
+            <Star className="h-5 w-5 mr-2 text-green-600" />
+            Move-in Package Summary
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="bg-green-50 rounded-xl p-4 border border-green-200">
+              <h4 className="font-bold text-green-800 mb-2 flex items-center">
+                <Building className="h-4 w-4 mr-1" />
+                Property
+              </h4>
+              <p className="text-green-700 font-medium text-sm">{property.name}</p>
+              <p className="text-green-600 text-xs">Unit {unit.unitNumber}</p>
+            </div>
+            <div className="bg-emerald-50 rounded-xl p-4 border border-emerald-200">
+              <h4 className="font-bold text-emerald-800 mb-2 flex items-center">
+                <DollarSign className="h-4 w-4 mr-1" />
+                Lease Term
+              </h4>
+              <p className="text-emerald-700 font-medium text-sm">{selectedLeaseTerm} months</p>
+              <p className="text-emerald-600 text-xs">${selectedLeaseTermRent?.toLocaleString()}/mo</p>
+            </div>
+            <div className="bg-teal-50 rounded-xl p-4 border border-teal-200">
+              <h4 className="font-bold text-teal-800 mb-2 flex items-center">
+                <Shield className="h-4 w-4 mr-1" />
+                Protection
+              </h4>
+              <p className="text-teal-700 font-medium text-sm">Required + Optional</p>
+              <p className="text-teal-600 text-xs">Customize below</p>
+            </div>
           </div>
         </div>
 
-        {/* Right Column - Payment Summary */}
-        <div className="lg:col-span-1">
-          <Card className="sticky top-4">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-lg flex items-center">
-                <Tag className="h-5 w-5 mr-2" />
-                Payment Summary
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {/* Flex Rent Section (separate if selected) */}
-              {selectedProducts.flex_rent?.selected && (
-                <>
-                  <div className="bg-primary/5 rounded-lg p-3 space-y-2">
-                    <h4 className="font-medium text-primary text-sm">Flex Payment Plan</h4>
-                    <div className="space-y-1 text-sm">
-                      <div className="flex justify-between">
-                        <span>Rent (50%)</span>
-                        <span>${(baseRent * 0.5).toFixed(2)}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>Flex Rent Fee</span>
-                        <span>$30.00</span>
+        <div className="grid lg:grid-cols-3 gap-6">
+          {/* Left Column - Product Selection */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Required Products */}
+            <div className="space-y-4">
+              <h3 className="text-xl font-bold text-gray-800 flex items-center">
+                <Shield className="h-5 w-5 mr-2 text-green-600" />
+                Required Protection
+              </h3>
+              {products.filter(p => p.required).map((product, index) => {
+                const Icon = product.icon;
+                return (
+                  <motion.div
+                    key={product.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3, delay: index * 0.1 }}
+                    className="bg-white/80 backdrop-blur-md rounded-2xl shadow-xl border-2 border-green-200 hover:border-green-300 transition-all duration-300"
+                  >
+                    <div className="p-6">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-4">
+                          <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
+                            <Icon className="h-6 w-6 text-green-600" />
+                          </div>
+                          <div>
+                            <h4 className="font-bold text-gray-800">{product.name}</h4>
+                            <p className="text-sm text-gray-600">{product.description}</p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-bold text-green-700 text-lg">${product.monthlyPrice}/mo</p>
+                          <Badge className="bg-green-100 text-green-700 text-xs px-2 py-1">
+                            Required
+                          </Badge>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                  <Separator />
-                </>
-              )}
+                  </motion.div>
+                );
+              })}
+            </div>
 
-              {/* Products in order they appear on left */}
-              <div className="space-y-2 text-sm">
-                {products.map(product => {
-                  if (product.id === 'flex_rent') return null;
-                  if (product.required) {
-                    return (
-                      <div key={product.id} className="flex justify-between">
-                        <span>{product.name}</span>
-                        <span>${product.monthlyPrice.toFixed(2)}</span>
-                      </div>
-                    );
-                  }
-                  const isSelected = selectedProducts[product.id]?.selected;
-                  if (isSelected) {
-                    let productPrice = 0;
-                    if (product.options && selectedProducts[product.id]?.option) {
-                      const option = product.options.find(o => o.value === selectedProducts[product.id].option);
-                      productPrice = option?.price || 0;
-                    } else {
-                      productPrice = product.monthlyPrice;
-                    }
-                    return (
-                      <div key={product.id} className="flex justify-between">
-                        <span>{product.name}</span>
-                        <span>${productPrice.toFixed(2)}</span>
-                      </div>
-                    );
-                  }
-                  return null;
-                })}
-              </div>
-
-              <Separator />
-
-              {/* Subtotal */}
-              <div className="flex justify-between font-medium">
-                <span>Subtotal</span>
-                <span>${totals.subtotal.toFixed(2)}</span>
-              </div>
-
-              {/* Annual Discount */}
-              {annualPayment && totals.annualDiscount > 0 && (
-                <div className="flex justify-between text-green-600">
-                  <span>Annual Payment Discount (7%)</span>
-                  <span>-(${totals.annualDiscount.toFixed(2)})</span>
-                </div>
-              )}
-
-              {/* Coupon Section */}
-              <div className="space-y-2">
-                <Label htmlFor="coupon">Coupon Code</Label>
-                <div className="flex space-x-2">
-                  <Input
-                    id="coupon"
-                    value={couponCode}
-                    onChange={(e) => setCouponCode(e.target.value)}
-                    placeholder="Enter code"
-                    className="flex-1"
-                  />
-                  <Button 
-                    variant="outline" 
-                    onClick={applyCoupon}
-                    disabled={!couponCode}
+            {/* Optional Products */}
+            <div className="space-y-4">
+               <h3 className="text-xl font-bold text-gray-800 flex items-center">
+                 <Heart className="h-5 w-5 mr-2 text-blue-600" />
+                 Optional Add-ons
+               </h3>
+              {products.filter(p => !p.required).map((product, index) => {
+                const Icon = product.icon;
+                const isSelected = selectedProducts[product.id]?.selected;
+                
+                return (
+                  <motion.div
+                    key={product.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3, delay: index * 0.1 }}
+                     className={`bg-white/80 backdrop-blur-md rounded-2xl shadow-xl border-2 transition-all duration-300 cursor-pointer hover:shadow-lg ${
+                       isSelected ? 'border-blue-500 shadow-blue-200 bg-blue-50/30' : 'border-gray-200 hover:border-blue-300'
+                     }`}
+                    onClick={() => !product.options && handleProductToggle(product.id, !isSelected)}
                   >
-                    Apply
-                  </Button>
+                    <div className="p-6">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-4">
+                           <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
+                             isSelected ? 'bg-blue-100' : 'bg-gray-100'
+                           }`}>
+                             <Icon className={`h-6 w-6 ${isSelected ? 'text-blue-600' : 'text-gray-600'}`} />
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <h4 className="font-bold text-gray-800">{product.name}</h4>
+                              {product.id === 'flex_rent' && (
+                                <div className="group relative">
+                                  <Info className="h-4 w-4 text-gray-400 cursor-help" />
+                                  <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white border rounded-md p-2 text-xs w-48 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10 shadow-md">
+                                    Split rent into three installments for easier budgeting
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                            <p className="text-sm text-gray-600">{product.description}</p>
+                             {product.id === 'flex_rent' && (
+                               <p className="text-xs text-blue-600 mt-1 font-medium">Split rent into three installments for easier budgeting</p>
+                             )}
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-3">
+                          {!product.options && (
+                            <div className="text-right">
+                               <p className={`font-bold text-lg ${isSelected ? 'text-blue-700' : 'text-gray-700'}`}>
+                                 ${product.monthlyPrice}/mo
+                               </p>
+                               {isSelected && (
+                                 <Badge className="bg-blue-100 text-blue-700 text-xs px-2 py-1">
+                                   Selected
+                                 </Badge>
+                               )}
+                            </div>
+                          )}
+                          <Switch
+                            checked={isSelected}
+                            onCheckedChange={(checked) => handleProductToggle(product.id, checked)}
+                            onClick={(e) => e.stopPropagation()}
+                          />
+                        </div>
+                      </div>
+                    
+                      {/* Options for products like Personal Contents */}
+                      {product.options && isSelected && (
+                        <div className="mt-4 pt-4 border-t border-gray-200">
+                          <Label className="text-sm font-medium text-gray-700">Choose Coverage Level</Label>
+                          <Select
+                            value={selectedProducts[product.id]?.option || '7500'}
+                            onValueChange={(value) => handleProductOption(product.id, value)}
+                          >
+                             <SelectTrigger className="w-full mt-2 border-gray-300 focus:border-blue-500">
+                              <SelectValue placeholder="Select coverage amount" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {product.options.map((option) => (
+                                <SelectItem key={option.value} value={option.value}>
+                                  {option.label} - ${option.price}/month
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      )}
+
+                      {/* Pet Information Form */}
+                      {product.id === 'pet_insurance' && isSelected && (
+                        <div className="mt-4 pt-4 border-t border-gray-200">
+                          <h5 className="font-medium text-gray-700 mb-3">Tell Us About Your Pet</h5>
+                          <div className="grid grid-cols-2 gap-3">
+                            <div>
+                              <Label htmlFor="petType" className="text-xs text-gray-600">Pet Type</Label>
+                              <Input
+                                id="petType"
+                                value={petInfo.type}
+                                onChange={(e) => setPetInfo(prev => ({...prev, type: e.target.value}))}
+                                placeholder="Dog, Cat, etc."
+                                 className="h-8 border-gray-300 focus:border-blue-500"
+                              />
+                            </div>
+                            <div>
+                              <Label htmlFor="petName" className="text-xs text-gray-600">Pet Name</Label>
+                              <Input
+                                id="petName"
+                                value={petInfo.name}
+                                onChange={(e) => setPetInfo(prev => ({...prev, name: e.target.value}))}
+                                placeholder="Pet's name"
+                                 className="h-8 border-gray-300 focus:border-blue-500"
+                              />
+                            </div>
+                            <div>
+                              <Label htmlFor="petBreed" className="text-xs text-gray-600">Breed</Label>
+                              <Input
+                                id="petBreed"
+                                value={petInfo.breed}
+                                onChange={(e) => setPetInfo(prev => ({...prev, breed: e.target.value}))}
+                                placeholder="Breed"
+                                 className="h-8 border-gray-300 focus:border-blue-500"
+                              />
+                            </div>
+                            <div>
+                              <Label htmlFor="petWeight" className="text-xs text-gray-600">Weight (lbs)</Label>
+                              <Input
+                                id="petWeight"
+                                type="number"
+                                value={petInfo.weight}
+                                onChange={(e) => setPetInfo(prev => ({...prev, weight: e.target.value}))}
+                                placeholder="Weight"
+                                 className="h-8 border-gray-300 focus:border-blue-500"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Right Column - Payment Summary */}
+          <div className="lg:col-span-1">
+            <div className="sticky top-4 bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl border border-white/30 p-6">
+              <h3 className="text-xl font-bold text-gray-800 mb-6 flex items-center">
+                <Tag className="h-5 w-5 mr-2 text-green-600" />
+                Payment Summary
+              </h3>
+              <div className="space-y-4">
+                {/* Flex Rent Section (separate if selected) */}
+                {selectedProducts.flex_rent?.selected && (
+                  <>
+                     <div className="bg-blue-50 rounded-xl p-4 border border-blue-200">
+                       <h4 className="font-bold text-blue-800 text-sm mb-3 flex items-center">
+                         <Calculator className="h-4 w-4 mr-1" />
+                         Flex Payment Plan
+                       </h4>
+                      <div className="space-y-2 text-sm">
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Rent (50%)</span>
+                          <span className="font-semibold text-gray-800">${(baseRent * 0.5).toFixed(2)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Flex Rent Fee</span>
+                          <span className="font-semibold text-gray-800">$30.00</span>
+                        </div>
+                      </div>
+                    </div>
+                    <Separator className="my-4" />
+                  </>
+                )}
+
+                {/* Products in order they appear on left */}
+                <div className="space-y-3">
+                  <h4 className="font-bold text-gray-800 text-sm flex items-center">
+                    <Shield className="h-4 w-4 mr-1 text-green-600" />
+                    Selected Products
+                  </h4>
+                  <div className="space-y-2 text-sm">
+                    {products.map(product => {
+                      if (product.id === 'flex_rent') return null;
+                      if (product.required) {
+                        return (
+                          <div key={product.id} className="flex justify-between items-center p-2 bg-green-50 rounded-lg">
+                            <span className="text-gray-700">{product.name}</span>
+                            <span className="font-semibold text-green-700">${product.monthlyPrice.toFixed(2)}</span>
+                          </div>
+                        );
+                      }
+                      const isSelected = selectedProducts[product.id]?.selected;
+                      if (isSelected) {
+                        let productPrice = 0;
+                        if (product.options && selectedProducts[product.id]?.option) {
+                          const option = product.options.find(o => o.value === selectedProducts[product.id].option);
+                          productPrice = option?.price || 0;
+                        } else {
+                          productPrice = product.monthlyPrice;
+                        }
+                         return (
+                           <div key={product.id} className="flex justify-between items-center p-2 bg-blue-50 rounded-lg">
+                             <span className="text-gray-700">{product.name}</span>
+                             <span className="font-semibold text-blue-700">${productPrice.toFixed(2)}</span>
+                           </div>
+                         );
+                      }
+                      return null;
+                    })}
+                  </div>
                 </div>
-                {appliedCoupon && (
+
+                <Separator className="my-4" />
+
+                {/* Subtotal */}
+                <div className="flex justify-between font-semibold text-gray-800">
+                  <span>Subtotal</span>
+                  <span>${totals.subtotal.toFixed(2)}</span>
+                </div>
+
+                {/* Annual Discount */}
+                {annualPayment && totals.annualDiscount > 0 && (
                   <div className="flex justify-between text-green-600 text-sm">
-                    <span>Coupon Discount ({appliedCoupon.discount}%)</span>
-                    <span>-(${totals.couponDiscount.toFixed(2)})</span>
+                    <span>Annual Payment Discount (7%)</span>
+                    <span>-${totals.annualDiscount.toFixed(2)}</span>
                   </div>
                 )}
-              </div>
 
-              <Separator />
-
-              {/* Total */}
-              <div className="flex justify-between text-lg font-bold">
-                <span>Total Due</span>
-                <span>${totals.total.toFixed(2)}</span>
-              </div>
-
-              {/* Payment Frequency Selection */}
-              <div className="space-y-2 bg-muted/30 rounded-lg p-3">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="annual-payment" className="text-sm">Pay Annually (Save 7%)</Label>
-                  <Switch
-                    id="annual-payment"
-                    checked={annualPayment}
-                    onCheckedChange={setAnnualPayment}
-                  />
+                {/* Coupon Section */}
+                <div className="space-y-3">
+                  <Label htmlFor="coupon" className="text-sm font-medium text-gray-700">Coupon Code</Label>
+                  <div className="flex space-x-2">
+                    <Input
+                      id="coupon"
+                      value={couponCode}
+                      onChange={(e) => setCouponCode(e.target.value)}
+                      placeholder="Enter code"
+                       className="flex-1 border-gray-300 focus:border-blue-500"
+                    />
+                    <Button 
+                      variant="outline" 
+                      onClick={applyCoupon}
+                      disabled={!couponCode}
+                       className="border-gray-300 hover:border-blue-500"
+                    >
+                      Apply
+                    </Button>
+                  </div>
+                  {appliedCoupon && (
+                    <div className="flex justify-between text-green-600 text-sm bg-green-50 p-2 rounded-lg">
+                      <span>Coupon Discount ({appliedCoupon.discount}%)</span>
+                      <span>-${totals.couponDiscount.toFixed(2)}</span>
+                    </div>
+                  )}
                 </div>
-                {annualPayment && (
-                  <div className="text-xs text-green-600">
-                    💰 Saving ${totals.annualDiscount.toFixed(2)} with annual payment!
-                  </div>
-                )}
-              </div>
 
-              <Button 
-                onClick={processPayment} 
-                className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-200"
-                size="lg"
-              >
-                Pay Now
-              </Button>
-            </CardContent>
-          </Card>
+                <Separator className="my-4" />
+
+                {/* Total */}
+                <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-4 rounded-xl border border-green-200">
+                  <div className="flex justify-between text-xl font-bold text-green-800">
+                    <span>Total Due</span>
+                    <span>${totals.total.toFixed(2)}</span>
+                  </div>
+                  <p className="text-xs text-green-600 mt-1">
+                    {annualPayment ? 'Annual payment (7% discount applied)' : 'Monthly payment'}
+                  </p>
+                </div>
+
+                {/* Payment Frequency Selection */}
+                <div className="space-y-3 bg-gray-50 rounded-xl p-4 border border-gray-200">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="annual-payment" className="text-sm font-medium text-gray-700">Pay Annually (Save 7%)</Label>
+                    <Switch
+                      id="annual-payment"
+                      checked={annualPayment}
+                      onCheckedChange={setAnnualPayment}
+                    />
+                  </div>
+                  {annualPayment && (
+                    <div className="text-xs text-green-600 bg-green-50 p-2 rounded-lg">
+                      💰 Saving ${totals.annualDiscount.toFixed(2)} with annual payment!
+                    </div>
+                  )}
+                </div>
+
+                <Button 
+                  onClick={processPayment} 
+                  className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 h-12 text-lg font-semibold"
+                  size="lg"
+                >
+                  Proceed to Payment
+                </Button>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>

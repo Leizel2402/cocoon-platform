@@ -153,12 +153,7 @@ const ApplicationProcess = ({
     additionalInfo: "",
     // Documents
     documents: {
-      id: [],
-      payStubs: [],
-      bankStatements: [],
-      taxReturns: [],
-      references: [],
-      other: []
+      id: []
     },
     // Permissions
     backgroundCheckPermission: false,
@@ -4484,7 +4479,7 @@ const ApplicationProcess = ({
             <div className="space-y-6">
               <div className="text-center">
                 <h3 className="text-xl font-semibold text-gray-800 mb-2">Upload Required Documents</h3>
-                <p className="text-gray-600">Please upload the following documents to complete your application</p>
+                <p className="text-gray-600">Please upload your driver's license or ID to complete your application</p>
               </div>
 
               {/* ID Documents */}
@@ -4548,188 +4543,7 @@ const ApplicationProcess = ({
                 )}
               </div>
 
-              {/* Pay Stubs */}
-              <div className="bg-white rounded-xl p-6 border border-gray-200">
-                <h4 className="font-semibold text-lg mb-4 flex items-center">
-                  <DollarSign className="h-5 w-5 mr-2 text-green-600" />
-                  Pay Stubs (Last 2 months)
-                </h4>
-                <p className="text-sm text-gray-600 mb-4">Upload your most recent pay stubs or income verification</p>
-                <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-green-400 transition-colors">
-                  <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                  <p className="text-gray-600 mb-2">Click to upload or drag and drop</p>
-                  <p className="text-xs text-gray-500">PNG, JPG, PDF up to 10MB</p>
-                  <input
-                    type="file"
-                    accept=".png,.jpg,.jpeg,.pdf"
-                    multiple
-                    className="hidden"
-                    id="paystubs-upload"
-                    onChange={(e) => {
-                      const files = Array.from(e.target.files || []);
-                      setFormData({
-                        ...formData,
-                        documents: {
-                          ...formData.documents,
-                          payStubs: [...formData.documents.payStubs, ...files]
-                        }
-                      });
-                    }}
-                  />
-                  <label
-                    htmlFor="paystubs-upload"
-                    className="inline-block mt-4 px-4 py-2 bg-green-600 text-white rounded-lg cursor-pointer hover:bg-green-700 transition-colors"
-                  >
-                    Choose Files
-                  </label>
-                </div>
-                {formData.documents.payStubs.length > 0 && (
-                  <div className="mt-4">
-                    <p className="text-sm font-medium text-gray-700 mb-2">Uploaded files:</p>
-                    <div className="space-y-2">
-                      {formData.documents.payStubs.map((file, index) => (
-                        <div key={index} className="flex items-center justify-between bg-gray-50 p-2 rounded">
-                          <span className="text-sm text-gray-700">{file.name}</span>
-                          <button
-                            onClick={() => {
-                              const newFiles = formData.documents.payStubs.filter((_, i) => i !== index);
-                              setFormData({
-                                ...formData,
-                                documents: { ...formData.documents, payStubs: newFiles }
-                              });
-                            }}
-                            className="text-red-500 hover:text-red-700"
-                          >
-                            Remove
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
 
-              {/* Bank Statements */}
-              <div className="bg-white rounded-xl p-6 border border-gray-200">
-                <h4 className="font-semibold text-lg mb-4 flex items-center">
-                  <DollarSign className="h-5 w-5 mr-2 text-green-600" />
-                  Bank Statements (Last 2 months)
-                </h4>
-                <p className="text-sm text-gray-600 mb-4">Upload your most recent bank statements</p>
-                <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-green-400 transition-colors">
-                  <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                  <p className="text-gray-600 mb-2">Click to upload or drag and drop</p>
-                  <p className="text-xs text-gray-500">PNG, JPG, PDF up to 10MB</p>
-                  <input
-                    type="file"
-                    accept=".png,.jpg,.jpeg,.pdf"
-                    multiple
-                    className="hidden"
-                    id="bankstatements-upload"
-                    onChange={(e) => {
-                      const files = Array.from(e.target.files || []);
-                      setFormData({
-                        ...formData,
-                        documents: {
-                          ...formData.documents,
-                          bankStatements: [...formData.documents.bankStatements, ...files]
-                        }
-                      });
-                    }}
-                  />
-                  <label
-                    htmlFor="bankstatements-upload"
-                    className="inline-block mt-4 px-4 py-2 bg-green-600 text-white rounded-lg cursor-pointer hover:bg-green-700 transition-colors"
-                  >
-                    Choose Files
-                  </label>
-                </div>
-                {formData.documents.bankStatements.length > 0 && (
-                  <div className="mt-4">
-                    <p className="text-sm font-medium text-gray-700 mb-2">Uploaded files:</p>
-                    <div className="space-y-2">
-                      {formData.documents.bankStatements.map((file, index) => (
-                        <div key={index} className="flex items-center justify-between bg-gray-50 p-2 rounded">
-                          <span className="text-sm text-gray-700">{file.name}</span>
-                          <button
-                            onClick={() => {
-                              const newFiles = formData.documents.bankStatements.filter((_, i) => i !== index);
-                              setFormData({
-                                ...formData,
-                                documents: { ...formData.documents, bankStatements: newFiles }
-                              });
-                            }}
-                            className="text-red-500 hover:text-red-700"
-                          >
-                            Remove
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Optional Documents */}
-              <div className="bg-white rounded-xl p-6 border border-gray-200">
-                <h4 className="font-semibold text-lg mb-4 flex items-center">
-                  <FileText className="h-5 w-5 mr-2 text-green-600" />
-                  Additional Documents (Optional)
-                </h4>
-                <p className="text-sm text-gray-600 mb-4">Upload any additional documents that may help with your application</p>
-                <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-green-400 transition-colors">
-                  <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                  <p className="text-gray-600 mb-2">Click to upload or drag and drop</p>
-                  <p className="text-xs text-gray-500">PNG, JPG, PDF up to 10MB</p>
-                  <input
-                    type="file"
-                    accept=".png,.jpg,.jpeg,.pdf"
-                    multiple
-                    className="hidden"
-                    id="other-upload"
-                    onChange={(e) => {
-                      const files = Array.from(e.target.files || []);
-                      setFormData({
-                        ...formData,
-                        documents: {
-                          ...formData.documents,
-                          other: [...formData.documents.other, ...files]
-                        }
-                      });
-                    }}
-                  />
-                  <label
-                    htmlFor="other-upload"
-                    className="inline-block mt-4 px-4 py-2 bg-green-600 text-white rounded-lg cursor-pointer hover:bg-green-700 transition-colors"
-                  >
-                    Choose Files
-                  </label>
-                </div>
-                {formData.documents.other.length > 0 && (
-                  <div className="mt-4">
-                    <p className="text-sm font-medium text-gray-700 mb-2">Uploaded files:</p>
-                    <div className="space-y-2">
-                      {formData.documents.other.map((file, index) => (
-                        <div key={index} className="flex items-center justify-between bg-gray-50 p-2 rounded">
-                          <span className="text-sm text-gray-700">{file.name}</span>
-                          <button
-                            onClick={() => {
-                              const newFiles = formData.documents.other.filter((_, i) => i !== index);
-                              setFormData({
-                                ...formData,
-                                documents: { ...formData.documents, other: newFiles }
-                              });
-                            }}
-                            className="text-red-500 hover:text-red-700"
-                          >
-                            Remove
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
             </div>
           </div>
         );

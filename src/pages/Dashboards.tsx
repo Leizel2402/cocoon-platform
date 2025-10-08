@@ -22,7 +22,6 @@ import UnitsComparison from "../components/rentar/unitSelecttion/UnitsComparison
 // import PropertyManagementForm from '../landlord/property-management/PropertyManagementForm';
 // import PropertyManagementSuccess from '../landlord/property-management/PropertyManagementSuccess';
 // import PropertiesList from '../landlord/shared/PropertiesList';
-// import PrequalificationInfo from '../renter/application/PrequalificationInfo';
 import DashboardMap from "../components/DashboardMap";
 // import SubmissionsDashboard from "../components/SubmissionsDashboard";
 // import AccountManagement from '../landlord/shared/AccountManagement';
@@ -36,6 +35,7 @@ import { CalendarPopover } from "../components/CalendarPopover";
 import SearchFilters from "../components/PropertyAllFilter";
 import ProductSelection from "../components/ProductSelection";
 import PaymentPage from "../components/payment/PaymentPage";
+import PrequalificationInfo from "../Prospect/PrequalificationInfo";
 
 const Dashboards = () => {
   const { user, loading } = useAuth();
@@ -76,8 +76,8 @@ const Dashboards = () => {
   const [comparisonUnits, setComparisonUnits] = useState<any[]>([]);
   const [selectedUnitsForComparison, setSelectedUnitsForComparison] = useState<any[]>([]);
   const [selectedProperty, setSelectedProperty] = useState<any>(null);
-  const [selectedUnit] = useState<any>(null);
-  const [selectedLeaseTerm] = useState<any>(null);
+  const [selectedUnit, setSelectedUnit] = useState<any>(null);
+  const [selectedLeaseTerm, setSelectedLeaseTerm] = useState<any>(null);
   const [paymentData, setPaymentData] = useState<any>(null);
   const [_editingProperty] = useState<Record<string, any> | null>(null);
   const [scheduleTourModalOpen, setScheduleTourModalOpen] = useState(false);
@@ -1644,7 +1644,7 @@ const Dashboards = () => {
                       onClick={() => setShowSaveSearchModal(true)}
                       className="text-sm px-4 py-3 bg-blue-50 text-black-600 border-blue-200 rounded-lg hover:bg-blue-100 transition-all duration-200"
                     >
-                      ♡ Save Search
+                      ♡ Save Filters
                     </Button>
 
                     <Button
@@ -1874,69 +1874,39 @@ const Dashboards = () => {
             </section>
           </div>
         ) : currentView === "prequalification-info" ? (
-          <></>
+        <PrequalificationInfo onBack={() => setCurrentView('dashboard')} />
         ) : // <PrequalificationInfo onBack={() => setCurrentView('dashboard')} />
         currentView === "unit-selection" ? (
           <QualifiedProperties
-            onUnitSelect={(property, unit) => {
-              // Navigate to rental application
-              setSelectedProperty(property);
-              // setSelectedUnit(unit);
-              setCurrentView("application-process");
+          onUnitSelect={(property, unit) => {
+            setSelectedProperty(property);
+            setSelectedUnit(unit);
+            setCurrentView('application-process');
+          }}
+          // onNavigateToLeaseHolders={() => {
+          //   setCurrentView('application-process');
+          //   setApplicationStep(3); // Step 3 is "Lease Holders & Guarantors"
+          // }}
+          // onNavigateToGuarantors={() => {
+          //   setCurrentView('application-process');
+          //   setApplicationStep(3); // Step 3 is "Lease Holders & Guarantors"
+          // }}
+            onCompareUnits={(units) => {
+              setComparisonUnits(units);
+              setCurrentView("unit-comparison");
             }}
-            onNavigateToLeaseHolders={() => {
-              setCurrentView("application-process");
-              setApplicationStep(3); // Step 3 is "Lease Holders & Guarantors"
-            }}
-            onNavigateToGuarantors={() => {
-              setCurrentView("application-process");
-              setApplicationStep(3); // Step 3 is "Lease Holders & Guarantors"
-            }}
-            onCompareUnits={
-              async (units) => {
-                // Use real units data instead of mock data
-                if (units && units.length > 0) {
-                  setComparisonUnits(units);
-                  setCurrentView("unit-comparison");
-                } else {
-                  // Fallback to mock data if no real units available
-                  await loadUnitsData();
-                  const mockUnits = generateMockComparisonUnits(databaseProperties);
-                  setComparisonUnits(mockUnits);
-                  setCurrentView("unit-comparison");
-                }
-              }
-            }
             onBack={handleBack}
-            applicantData={{
-              unitType: selectedBeds.length > 0 ? selectedBeds.join(", ") + " Bedroom" + (selectedBeds.length > 1 ? "s" : "") : "Any",
-              desiredTourDate: new Date().toISOString().split('T')[0], // Today's date
-              moveInDate: moveInDate ? moveInDate.toISOString().split('T')[0] : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 30 days from now if no date set
-              desiredLeaseTerm: "12", // Default to 12 months
-              rentalRange: priceRange[0] === 0 && priceRange[1] === 5000 
-                ? "Any" 
-                : `$${priceRange[0].toLocaleString()} - $${priceRange[1].toLocaleString()}`,
-              location: searchLocation || userLocation,
-              amenities: selectedAmenities.length > 0 ? selectedAmenities : [],
-              petFriendly: petPolicy === "Pet Friendly" || (petPolicy === "" && selectedAmenities.includes("Pet Friendly")),
-            }}
-            // Pass dynamic properties data
-            dynamicProperties={databaseProperties}
-            useDynamicData={databaseProperties.length > 0}
-            // Pass selected property to show units for specific property
             selectedProperty={selectedProperty}
-            unitsData={unitsData}
           />
         ) : currentView === "unit-comparison" ? (
           <UnitsComparison
             comparisonUnits={comparisonUnits}
             onBack={() => setCurrentView("unit-selection")}
             onProceedToProducts={(property, unit, leaseTerm) => {
-            
               setSelectedProperty(property);
-              // setSelectedUnit(unit);
-              // setSelectedLeaseTerm(leaseTerm);
-              setCurrentView("product-selection");
+              setSelectedUnit(unit);
+              setSelectedLeaseTerm(leaseTerm);
+              setCurrentView('product-selection');
             }}
             onUnitSelect={(property, unit, leaseTerm) => {
              
@@ -2066,7 +2036,7 @@ const Dashboards = () => {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl p-6 w-full max-w-md mx-4 shadow-2xl">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-xl font-bold text-gray-900">Save Search</h3>
+              <h3 className="text-xl font-bold text-gray-900">Save Filters</h3>
               <button
                 onClick={() => {
                   setShowSaveSearchModal(false);
@@ -2093,7 +2063,7 @@ const Dashboards = () => {
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Search Name
+                  Filter Name
                 </label>
                 <Input
                   type="text"
@@ -2107,7 +2077,7 @@ const Dashboards = () => {
 
               <div className="bg-gray-50 rounded-lg p-4">
                 <h4 className="text-sm font-medium text-gray-700 mb-2">
-                  Search Criteria:
+                  Filter Criteria:
                 </h4>
                 <div className="space-y-1 text-sm text-gray-600">
                   {searchLocation && <div>📍 Location: {searchLocation}</div>}
@@ -2172,7 +2142,7 @@ const Dashboards = () => {
                     Saving...
                   </div>
                 ) : (
-                  "Save Search"
+                  "Save Filters"
                 )}
               </Button>
             </div>

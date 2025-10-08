@@ -128,11 +128,6 @@ export const submitApplicationWithDocuments = async (
   applicationData: Omit<ApplicationData, 'status' | 'submittedBy' | 'submittedAt' | 'documents'>,
   documents: {
     id: File[];
-    payStubs: File[];
-    bankStatements: File[];
-    taxReturns: File[];
-    references: File[];
-    other: File[];
   },
   userId: string
 ) => {
@@ -155,12 +150,7 @@ export const submitApplicationWithDocuments = async (
     
     // Upload each category of documents
     const categories = [
-      { key: 'id' as const, files: documents.id },
-      { key: 'payStubs' as const, files: documents.payStubs },
-      { key: 'bankStatements' as const, files: documents.bankStatements },
-      { key: 'taxReturns' as const, files: documents.taxReturns },
-      { key: 'references' as const, files: documents.references },
-      { key: 'other' as const, files: documents.other }
+      { key: 'id' as const, files: documents.id }
     ];
 
     for (const category of categories) {

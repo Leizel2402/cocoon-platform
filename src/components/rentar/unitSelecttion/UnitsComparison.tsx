@@ -1,11 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Button } from "../../ui/Button";
 import { Badge } from "../../ui/badge";
 import { Separator } from "../../ui/separator";
-import { ScrollArea } from "../../ui/scroll-area";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../../ui/dialog";
 import { useToast } from "../../../hooks/use-toast";
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
   ArrowLeft, 
   MapPin, 
@@ -32,8 +31,10 @@ import {
   Home,
   Star,
   CheckCircle,
+  ChevronDown,
 } from 'lucide-react';
 import ProductSelection from '../../ProductSelection';
+import PaymentProcess from '../../payment/PaymentProcess';
 // import PaymentProcess from '../payment/PaymentProcess';
 
 interface LeaseTerm {
@@ -86,8 +87,28 @@ interface QualifiedProperty {
   };
 }
 
+interface IncomingProperty {
+  id: string;
+  name: string;
+  address: string;
+  city: string;
+  state: string;
+  zip?: string;
+  images?: string[];
+  amenities?: string[];
+  latitude?: number;
+  longitude?: number;
+  petPolicy?: {
+    allowed: boolean;
+    fee: number;
+    deposit: number;
+  };
+  units?: Unit[];
+  isRentWiseNetwork?: boolean;
+}
+
 interface ComparisonUnit {
-  property: QualifiedProperty;
+  property: IncomingProperty;
   unit: Unit;
 }
 
@@ -125,14 +146,80 @@ const UnitsComparison: React.FC<UnitsComparisonProps> = ({
   const { toast } = useToast();
   const [selectedLeaseTerms, setSelectedLeaseTerms] = useState<Record<string, LeaseTerm>>({});
   const [selectedUnit, setSelectedUnit] = useState<string | null>(null);
+  const [openDropdowns, setOpenDropdowns] = useState<Record<string, boolean>>({});
+  const dropdownRefs = useRef<Record<string, HTMLDivElement | null>>({});
+
+  // Transform Property to QualifiedProperty format
+  const transformPropertyToQualified = (property: IncomingProperty): QualifiedProperty => {
+    return {
+      id: property.id || '',
+      name: property.name || '',
+      address: property.address || '',
+      city: property.city || '',
+      state: property.state || '',
+      zip: property.zip || '',
+      units: property.units || [],
+      amenities: property.amenities || [],
+      images: property.images || [],
+      latitude: property.latitude || 0,
+      longitude: property.longitude || 0,
+      petPolicy: property.petPolicy || {
+        allowed: false,
+        fee: 0,
+        deposit: 0
+      }
+    };
+  };
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [showFloorPlanModal, setShowFloorPlanModal] = useState(false);
   const [detailsUnit, setDetailsUnit] = useState<{ property: QualifiedProperty; unit: Unit } | null>(null);
   const [floorPlanUnit, setFloorPlanUnit] = useState<{ property: QualifiedProperty; unit: Unit } | null>(null);
   const [showProductsModal, setShowProductsModal] = useState(false);
   const [selectedForProducts, setSelectedForProducts] = useState<{ property: QualifiedProperty; unit: Unit; leaseTerm: LeaseTerm } | null>(null);
-  const [, setPaymentData] = useState<unknown>(null);
+  const [paymentData, setPaymentData] = useState<unknown>(null);
   const [inPaymentStep, setInPaymentStep] = useState(false);
+
+  // Initialize default lease terms when comparison units are loaded
+  useEffect(() => {
+    if (comparisonUnits.length > 0) {
+      const defaultTerms: Record<string, LeaseTerm> = {};
+      comparisonUnits.forEach(({ unit }) => {
+        const unitKey = `${unit.id}`;
+        if (!selectedLeaseTerms[unitKey]) {
+          // Default to 12 months or first available term
+          const defaultTerm = unit.leaseTerms.find(term => term.months === 12) || unit.leaseTerms[0];
+          if (defaultTerm) {
+            defaultTerms[unitKey] = defaultTerm;
+          }
+        }
+      });
+      if (Object.keys(defaultTerms).length > 0) {
+        setSelectedLeaseTerms(prev => ({ ...prev, ...defaultTerms }));
+      }
+    }
+  }, [comparisonUnits, selectedLeaseTerms]);
+
+  // Handle click outside to close dropdowns
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      Object.keys(openDropdowns).forEach(unitKey => {
+        if (openDropdowns[unitKey] && dropdownRefs.current[unitKey]) {
+          const dropdownElement = dropdownRefs.current[unitKey];
+          if (dropdownElement && !dropdownElement.contains(event.target as Node)) {
+            setOpenDropdowns(prev => ({
+              ...prev,
+              [unitKey]: false
+            }));
+          }
+        }
+      });
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [openDropdowns]);
 
   const handleLeaseTermSelect = (unitKey: string, leaseTerm: LeaseTerm) => {
     setSelectedLeaseTerms(prev => ({
@@ -141,14 +228,27 @@ const UnitsComparison: React.FC<UnitsComparisonProps> = ({
     }));
     // Automatically select this unit when a lease term is chosen
     setSelectedUnit(unitKey);
+    // Close dropdown after selection
+    setOpenDropdowns(prev => ({
+      ...prev,
+      [unitKey]: false
+    }));
     toast({
       title: 'Lease term selected',
       description: `${leaseTerm.months} months at $${leaseTerm.rent}/mo`,
     });
   };
 
-  const openProductsFlow = (property: QualifiedProperty, unit: Unit, leaseTerm: LeaseTerm) => {
-    setSelectedForProducts({ property, unit, leaseTerm });
+  const toggleDropdown = (unitKey: string) => {
+    setOpenDropdowns(prev => ({
+      ...prev,
+      [unitKey]: !prev[unitKey]
+    }));
+  };
+
+  const openProductsFlow = (property: IncomingProperty, unit: Unit, leaseTerm: LeaseTerm) => {
+    const qualifiedProperty = transformPropertyToQualified(property);
+    setSelectedForProducts({ property: qualifiedProperty, unit, leaseTerm });
     setShowProductsModal(true);
     setInPaymentStep(false);
     setPaymentData(null);
@@ -175,26 +275,30 @@ const UnitsComparison: React.FC<UnitsComparisonProps> = ({
     }
 
     const comparisonUnit = comparisonUnits.find(({ property, unit }) => 
+      
       `${property.id}-${unit.id}` === selectedUnit
     );
 
     if (comparisonUnit) {
       // Use onProceedToProducts if available (for main flow), otherwise use modal flow
       if (onProceedToProducts) {
-        onProceedToProducts(comparisonUnit.property, comparisonUnit.unit, selectedTerm);
+        const qualifiedProperty = transformPropertyToQualified(comparisonUnit.property);
+        onProceedToProducts(qualifiedProperty, comparisonUnit.unit, selectedTerm);
       } else {
         openProductsFlow(comparisonUnit.property, comparisonUnit.unit, selectedTerm);
       }
     }
   };
 
-  const handleShowDetails = (property: QualifiedProperty, unit: Unit) => {
-    setDetailsUnit({ property, unit });
+  const handleShowDetails = (property: IncomingProperty, unit: Unit) => {
+    const qualifiedProperty = transformPropertyToQualified(property);
+    setDetailsUnit({ property: qualifiedProperty, unit });
     setShowDetailsModal(true);
   };
 
-  const handleShowFloorPlan = (property: QualifiedProperty, unit: Unit) => {
-    setFloorPlanUnit({ property, unit });
+  const handleShowFloorPlan = (property: IncomingProperty, unit: Unit) => {
+    const qualifiedProperty = transformPropertyToQualified(property);
+    setFloorPlanUnit({ property: qualifiedProperty, unit });
     setShowFloorPlanModal(true);
   };
 
@@ -403,91 +507,137 @@ const UnitsComparison: React.FC<UnitsComparisonProps> = ({
                   </div>
                 </div>
 
-                {/* Lease Terms */}
+                {/* Lease Terms Dropdown */}
                 <div>
                     <h4 className="font-bold text-gray-800 mb-3 text-sm flex items-center">
                       <DollarSign className="h-4 w-4 mr-2 text-green-600" />
-                      Select Lease Term & Rent
+                      Select Lease Term
                     </h4>
-                  <ScrollArea className="h-32">
-                    <div className="space-y-2 pr-2">
-                      {Array.from({ length: 24 }, (_, i) => i + 1).map((months) => {
-                        // Find if there's a specific lease term for this month count
-                        const specificTerm = leaseTerms.find(term => term.months === months);
-                        
-                        // If no specific term, calculate based on 12-month term or first available
+                    
+                    {/* Custom Dropdown */}
+                    <div 
+                      ref={(el) => (dropdownRefs.current[unitKey] = el)}
+                      className="relative"
+                    >
+                      {/* Selected Value Display */}
+                      <div
+                        onClick={() => toggleDropdown(unitKey)}
+                        className="w-full px-4 py-3 border border-gray-200 rounded-lg bg-white cursor-pointer hover:border-gray-300 transition-all duration-200 flex items-center justify-between"
+                      >
+                        <div className="flex items-center">
+                          <span className="text-gray-900 font-medium">
+                            {selectedLeaseTerms[unitKey]?.months || 12}months ${(selectedLeaseTerms[unitKey]?.rent || 1200).toLocaleString()}/mo
+                          </span>
+                          {(selectedLeaseTerms[unitKey]?.popular || (selectedLeaseTerms[unitKey]?.months || 12) === 12) && (
+                            <span className="ml-2 px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded-full">
+                              Popular
+                            </span>
+                          )}
+                        </div>
+                        <ChevronDown className={`h-4 w-4 text-gray-400 transition-transform duration-200 ${openDropdowns[unitKey] ? 'rotate-180' : ''}`} />
+                      </div>
+
+                      {/* Dropdown Options */}
+                      <AnimatePresence key={unitKey}>
+                        {openDropdowns[unitKey] && (
+                          <motion.div
+                            initial={{ opacity: 0, y: -10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -10 }}
+                            transition={{ duration: 0.2 }}
+                            className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-10 overflow-hidden"
+                          >
+                            {[4, 6, 12, 16, 24].map((months) => {
                         const baseTerm = leaseTerms.find(term => term.months === 12) || leaseTerms[0];
                         const baseRent = baseTerm?.rent || 1200;
                         
-                        // Calculate rent - shorter terms cost more, longer terms cost less
                         let calculatedRent = baseRent;
                         if (months < 12) {
-                          calculatedRent = Math.round(baseRent * (1 + (12 - months) * 0.05)); // 5% increase per month under 12
+                                calculatedRent = Math.round(baseRent * (1 + (12 - months) * 0.05));
                         } else if (months > 12) {
-                          calculatedRent = Math.round(baseRent * (1 - (months - 12) * 0.02)); // 2% decrease per month over 12
+                                calculatedRent = Math.round(baseRent * (1 - (months - 12) * 0.02));
                         }
                         
-                        const currentTerm = specificTerm || {
+                              const isPopular = months === 12;
+                              const savings = months > 12 ? Math.round((baseRent - calculatedRent)) : null;
+                              
+                              const term = {
                           months,
                           rent: calculatedRent,
-                          popular: months === 12,
-                          savings: months > 12 ? Math.round((baseRent - calculatedRent)) : null,
+                                popular: isPopular,
+                                savings,
                           concession: null
                         };
 
                           return (
                             <div 
                               key={months}
-                              className={`p-3 border-2 rounded-xl cursor-pointer transition-all ${
+                                  onClick={() => handleLeaseTermSelect(unitKey, term)}
+                                  className={`px-4 py-3 cursor-pointer transition-colors duration-150 flex items-center justify-between ${
                                 selectedLeaseTerms[unitKey]?.months === months 
-                                  ? 'border-green-500 bg-green-50 ring-2 ring-green-200' 
-                                  : currentTerm.popular 
-                                    ? 'border-green-300 bg-green-25' 
-                                    : 'border-gray-200 hover:border-green-300 hover:bg-gray-50'
-                              }`}
-                              onClick={(e) => { e.stopPropagation(); handleLeaseTermSelect(unitKey, currentTerm); }}
-                            >
-                            <div className="flex justify-between items-center">
-                              <div>
-                                  <span className="font-bold text-sm text-gray-800">{months} months</span>
+                                      ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white'
+                                      : 'hover:bg-gray-50 text-gray-900'
+                                  }`}
+                                >
+                                  <div className="flex items-center">
                                 {selectedLeaseTerms[unitKey]?.months === months && (
-                                    <Badge className="ml-2 bg-blue-600 text-white text-xs px-2 py-0.5">
-                                    Selected
-                                  </Badge>
-                                )}
-                                {currentTerm.popular && selectedLeaseTerms[unitKey]?.months !== months && (
+                                      <CheckCircle className="h-4 w-4 text-white mr-2" />
+                                    )}
+                                    <span className="font-medium">
+                                      {months}months ${calculatedRent.toLocaleString()}/mo
+                                    </span>
+                                    {isPopular && (
+                                      <span className={`ml-2 px-2 py-1 text-xs rounded-full ${
+                                        selectedLeaseTerms[unitKey]?.months === months
+                                          ? 'bg-white/20 text-white'
+                                          : 'bg-gray-100 text-gray-600'
+                                      }`}>
+                                        Popular
+                                      </span>
+                                    )}
+                                  </div>
+                                  {savings && (
+                                    <span className={`text-xs ${
+                                      selectedLeaseTerms[unitKey]?.months === months
+                                        ? 'text-white/80'
+                                        : 'text-green-600'
+                                    }`}>
+                                      Save ${savings}
+                                    </span>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </div>
+                    
+                    {/* Selected Term Display */}
+                    {selectedLeaseTerms[unitKey] && (
+                      <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center">
+                            <CheckCircle className="h-4 w-4 text-green-600 mr-2" />
+                            <span className="text-sm font-semibold text-green-800">
+                              {selectedLeaseTerms[unitKey].months}mon
+                            </span>
+                            {selectedLeaseTerms[unitKey].popular && (
                                     <Badge className="ml-2 bg-green-100 text-green-700 text-xs px-2 py-0.5">
                                     Popular
                                   </Badge>
                                 )}
                               </div>
-                                <span className="font-bold text-blue-600 text-sm">${currentTerm.rent}/mo</span>
+                          <div className="text-right">
+                            <div className="text-lg font-bold text-green-800">
+                              ${selectedLeaseTerms[unitKey].rent.toLocaleString()}
                             </div>
-                            {currentTerm.savings && (
-                                <div className="text-xs text-green-600 mt-1 font-medium">
-                                <span>Save ${currentTerm.savings}/month</span>
-                              </div>
-                            )}
-                            {currentTerm.concession && (
-                                <div className="text-xs text-blue-600 mt-1 font-medium">
-                                💎 {currentTerm.concession}
-                              </div>
-                            )}
+                            <div className="text-xs text-green-600">per month</div>
                           </div>
-                        );
-                      })}
-                    </div>
-                  </ScrollArea>
-                  
-                  {/* Selected Lease Term Display */}
-                  {selectedLeaseTerms[unitKey] && (
-                      <div className="mt-3 p-3 bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 rounded-xl">
-                        <div className="text-sm font-bold text-blue-800">
-                        Selected: {selectedLeaseTerms[unitKey].months} months at ${selectedLeaseTerms[unitKey].rent}/mo
-                      </div>
-                      {selectedLeaseTerms[unitKey].concession && (
-                          <div className="text-xs text-blue-600 mt-1 font-medium">
-                          💎 {selectedLeaseTerms[unitKey].concession}
+                        </div>
+                        {selectedLeaseTerms[unitKey].savings && (
+                          <div className="mt-2 text-xs text-green-600 font-medium">
+                            💰 Save ${selectedLeaseTerms[unitKey].savings} per month
                         </div>
                       )}
                     </div>
@@ -545,7 +695,8 @@ const UnitsComparison: React.FC<UnitsComparisonProps> = ({
                           return;
                         }
                         if (onProceedToProducts) {
-                          onProceedToProducts(property, unit, term);
+                          const qualifiedProperty = transformPropertyToQualified(property);
+                          onProceedToProducts(qualifiedProperty, unit, term);
                         } else {
                           openProductsFlow(property, unit, term);
                         }
@@ -686,6 +837,7 @@ const UnitsComparison: React.FC<UnitsComparisonProps> = ({
        </Dialog>
         {selectedForProducts && (
           <Dialog open={showProductsModal} onOpenChange={(open) => { 
+            console.log('[UnitsComparison] Dialog onOpenChange', { open, showProductsModal, inPaymentStep });
             setShowProductsModal(open); 
             if (!open) { 
               setInPaymentStep(false); 
@@ -721,13 +873,12 @@ const UnitsComparison: React.FC<UnitsComparisonProps> = ({
                      />
                   </div>
                 ) : (
-                    <></>
-                //   <PaymentProcess
-                //     paymentData={paymentData}
-                //     onPaymentComplete={(success, details) => {
-                //       console.log('[UnitsComparison] Payment complete', { success, details });
-                //     }}
-                //   />
+                  <PaymentProcess
+                    paymentData={paymentData}
+                    onPaymentComplete={(_success, _details) => { // eslint-disable-line @typescript-eslint/no-unused-vars
+                      // Handle payment completion
+                    }}
+                  />
                 );
               })()}
             </DialogContent>
