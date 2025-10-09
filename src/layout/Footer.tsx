@@ -22,7 +22,7 @@ const Footer = () => {
                 <HomeIcon className="h-8 w-8 text-white" />
               </div>
               <div>
-                <h3 className="text-2xl font-bold">Cocoon</h3>
+                {/* <h3 className="text-2xl font-bold">Cocoon</h3> */}
                 <p className="text-blue-300 text-sm">Find Your Dream Home</p>
               </div>
             </div>
