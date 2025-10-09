@@ -1,34 +1,34 @@
-import React from 'react';
-import { Button } from './ui/Button';
-import { Input } from './ui/input';
-import { Checkbox } from './ui/checkbox';
-import { Slider } from './ui/slider';
-import { Search, X } from 'lucide-react';
-import { CalendarPopover } from './CalendarPopover';
+import React from "react";
+import { Button } from "./ui/Button";
+import { Input } from "./ui/input";
+import { Checkbox } from "./ui/checkbox";
+import { Slider } from "./ui/slider";
+import { Search, X } from "lucide-react";
+import { CalendarPopover } from "./CalendarPopover";
 
 interface SearchFiltersProps {
   // Location and basic filters
   searchLocation: string;
   setSearchLocation: (value: string) => void;
-  
+
   // Price filter
   priceRange: [number, number];
   setPriceRange: (value: [number, number]) => void;
-  
+
   // Beds and baths
   selectedBeds: string[];
   setSelectedBeds: (value: string[]) => void;
   selectedBaths: string[];
   setSelectedBaths: (value: string[]) => void;
-  
+
   // Home types
   selectedHomeTypes: string[];
   setSelectedHomeTypes: (value: string[]) => void;
-  
+
   // Move in date
   moveInDate?: Date;
   setMoveInDate: (value: Date | undefined) => void;
-  
+
   // Advanced filters
   selectedAmenities: string[];
   setSelectedAmenities: (value: string[]) => void;
@@ -40,34 +40,71 @@ interface SearchFiltersProps {
   setYearBuilt: (value: [number, number]) => void;
   showOnlyRentWise: boolean;
   setShowOnlyRentWise: (value: boolean) => void;
-  
+
   // Control
   onClose?: () => void;
   showSearch?: boolean;
 }
 
 const SearchFilters: React.FC<SearchFiltersProps> = ({
-  searchLocation, setSearchLocation,
-  priceRange, setPriceRange,
-  selectedBeds, setSelectedBeds,
-  selectedBaths, setSelectedBaths,
-  selectedHomeTypes, setSelectedHomeTypes,
-  moveInDate, setMoveInDate,
-  selectedAmenities, setSelectedAmenities,
-  selectedFeatures, setSelectedFeatures,
-  squareFootage, setSquareFootage,
-  yearBuilt, setYearBuilt,
-  showOnlyRentWise, setShowOnlyRentWise,
+  searchLocation,
+  setSearchLocation,
+  priceRange,
+  setPriceRange,
+  selectedBeds,
+  setSelectedBeds,
+  selectedBaths,
+  setSelectedBaths,
+  selectedHomeTypes,
+  setSelectedHomeTypes,
+  moveInDate,
+  setMoveInDate,
+  selectedAmenities,
+  setSelectedAmenities,
+  selectedFeatures,
+  setSelectedFeatures,
+  squareFootage,
+  setSquareFootage,
+  yearBuilt,
+  setYearBuilt,
+  showOnlyRentWise,
+  setShowOnlyRentWise,
   onClose,
-  showSearch = true
+  showSearch = true,
 }) => {
   // Filter options
-  const bedOptions = ['Studio', '1', '2', '3', '4+'];
-  const bathOptions = ['1', '1.5', '2', '2.5', '3', '3.5', '4+'];
-  const homeTypeOptions = ['Apartment', 'Condo', 'Townhome', 'House', 'Loft', 'Student Housing', '55+ Active Adult'];
-  
-  const amenityOptions = ['Pool', 'Gym', 'Pet Friendly', 'In Unit Laundry', 'Parking', 'Air Conditioning', 'Dishwasher', 'Walk-in Closets'];
-  const featureOptions = ['Hardwood Floors', 'Updated Kitchen', 'Balcony/Patio', 'High Ceilings', 'Fireplace', 'Garden/Yard Access', 'City Views', 'Modern Appliances'];
+  const bedOptions = ["Studio", "1", "2", "3", "4+"];
+  const bathOptions = ["1", "1.5", "2", "2.5", "3", "3.5", "4+"];
+  const homeTypeOptions = [
+    "Apartment",
+    "Condo",
+    "Townhome",
+    "House",
+    "Loft",
+    "Student Housing",
+    "55+ Active Adult",
+  ];
+
+  const amenityOptions = [
+    "Pool",
+    "Gym",
+    "Pet Friendly",
+    "In Unit Laundry",
+    "Parking",
+    "Air Conditioning",
+    "Dishwasher",
+    "Walk-in Closets",
+  ];
+  const featureOptions = [
+    "Hardwood Floors",
+    "Updated Kitchen",
+    "Balcony/Patio",
+    "High Ceilings",
+    "Fireplace",
+    "Garden/Yard Access",
+    "City Views",
+    "Modern Appliances",
+  ];
 
   const handleReset = () => {
     setPriceRange([500, 5000]);
@@ -83,7 +120,7 @@ const SearchFilters: React.FC<SearchFiltersProps> = ({
   };
 
   return (
-    <div className="p-6 bg-white border border-gray-200 rounded-lg shadow-sm">
+    <div className="p-6 bg-white border border-gray-200 rounded-lg shadow-sm relative z-50">
       <div className="flex items-center justify-between mb-6">
         <h3 className="text-xl font-semibold text-gray-900">Search Filters</h3>
         {onClose && (
@@ -95,7 +132,9 @@ const SearchFilters: React.FC<SearchFiltersProps> = ({
 
       {/* Location Search */}
       <div className="mb-6">
-        <label className="block text-sm font-medium text-gray-700 mb-2">Location</label>
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          Location
+        </label>
         <Input
           placeholder="Enter a city, neighborhood, or address..."
           value={searchLocation}
@@ -132,7 +171,9 @@ const SearchFilters: React.FC<SearchFiltersProps> = ({
           <h4 className="font-semibold mb-3 text-gray-900">Beds & Baths</h4>
           <div className="space-y-3">
             <div>
-              <h5 className="text-sm font-medium text-gray-800 mb-2">Bedrooms</h5>
+              <h5 className="text-sm font-medium text-gray-800 mb-2">
+                Bedrooms
+              </h5>
               <div className="flex flex-wrap gap-1">
                 {bedOptions.map((bed) => (
                   <div key={bed} className="flex items-center space-x-1">
@@ -143,17 +184,23 @@ const SearchFilters: React.FC<SearchFiltersProps> = ({
                         if (checked) {
                           setSelectedBeds([...selectedBeds, bed]);
                         } else {
-                          setSelectedBeds(selectedBeds.filter(b => b !== bed));
+                          setSelectedBeds(
+                            selectedBeds.filter((b) => b !== bed)
+                          );
                         }
                       }}
                     />
-                    <label htmlFor={`bed-${bed}`} className="text-xs">{bed}</label>
+                    <label htmlFor={`bed-${bed}`} className="text-xs">
+                      {bed}
+                    </label>
                   </div>
                 ))}
               </div>
             </div>
             <div>
-              <h5 className="text-sm font-medium text-gray-800 mb-2">Bathrooms</h5>
+              <h5 className="text-sm font-medium text-gray-800 mb-2">
+                Bathrooms
+              </h5>
               <div className="flex flex-wrap gap-1">
                 {bathOptions.map((bath) => (
                   <div key={bath} className="flex items-center space-x-1">
@@ -164,11 +211,15 @@ const SearchFilters: React.FC<SearchFiltersProps> = ({
                         if (checked) {
                           setSelectedBaths([...selectedBaths, bath]);
                         } else {
-                          setSelectedBaths(selectedBaths.filter(b => b !== bath));
+                          setSelectedBaths(
+                            selectedBaths.filter((b) => b !== bath)
+                          );
                         }
                       }}
                     />
-                    <label htmlFor={`bath-${bath}`} className="text-xs">{bath}</label>
+                    <label htmlFor={`bath-${bath}`} className="text-xs">
+                      {bath}
+                    </label>
                   </div>
                 ))}
               </div>
@@ -189,11 +240,15 @@ const SearchFilters: React.FC<SearchFiltersProps> = ({
                     if (checked) {
                       setSelectedHomeTypes([...selectedHomeTypes, type]);
                     } else {
-                      setSelectedHomeTypes(selectedHomeTypes.filter(t => t !== type));
+                      setSelectedHomeTypes(
+                        selectedHomeTypes.filter((t) => t !== type)
+                      );
                     }
                   }}
                 />
-                <label htmlFor={`type-${type}`} className="text-sm">{type}</label>
+                <label htmlFor={`type-${type}`} className="text-sm">
+                  {type}
+                </label>
               </div>
             ))}
           </div>
@@ -212,11 +267,15 @@ const SearchFilters: React.FC<SearchFiltersProps> = ({
                     if (checked) {
                       setSelectedAmenities([...selectedAmenities, amenity]);
                     } else {
-                      setSelectedAmenities(selectedAmenities.filter(a => a !== amenity));
+                      setSelectedAmenities(
+                        selectedAmenities.filter((a) => a !== amenity)
+                      );
                     }
                   }}
                 />
-                <label htmlFor={`amenity-${amenity}`} className="text-sm">{amenity}</label>
+                <label htmlFor={`amenity-${amenity}`} className="text-sm">
+                  {amenity}
+                </label>
               </div>
             ))}
           </div>
@@ -235,11 +294,15 @@ const SearchFilters: React.FC<SearchFiltersProps> = ({
                     if (checked) {
                       setSelectedFeatures([...selectedFeatures, feature]);
                     } else {
-                      setSelectedFeatures(selectedFeatures.filter(f => f !== feature));
+                      setSelectedFeatures(
+                        selectedFeatures.filter((f) => f !== feature)
+                      );
                     }
                   }}
                 />
-                <label htmlFor={`feature-${feature}`} className="text-sm">{feature}</label>
+                <label htmlFor={`feature-${feature}`} className="text-sm">
+                  {feature}
+                </label>
               </div>
             ))}
           </div>
@@ -304,33 +367,35 @@ const SearchFilters: React.FC<SearchFiltersProps> = ({
               checked={showOnlyRentWise}
               onCheckedChange={(checked) => setShowOnlyRentWise(!!checked)}
             />
-            <label htmlFor="rentwise-only" className="text-sm">RentWise Network Only</label>
+            <label htmlFor="rentwise-only" className="text-sm">
+              RentWise Network Only
+            </label>
           </div>
         </div>
       </div>
 
       {/* Action Buttons */}
-      <div className="flex items-center justify-between mt-6">
-        <Button 
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mt-6 space-y-3 sm:space-y-0 sm:space-x-3">
+        <Button
           variant="outline"
           onClick={handleReset}
-          className="text-gray-600 border-gray-300"
+          className="text-gray-600 border-gray-300 w-full sm:w-auto"
         >
           Reset Filters
         </Button>
-        
-        <div className="flex items-center space-x-3">
-          <Button 
+
+        <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-3 space-y-3 sm:space-y-0 w-full sm:w-auto">
+          <Button
             variant="outline"
-            className="text-blue-600 border-blue-300 bg-blue-50"
+            className="text-blue-600 border-blue-300 bg-blue-50 w-full sm:w-auto"
           >
             ♡ Save Search
           </Button>
-          
+
           {showSearch && (
-            <Button 
+            <Button
               onClick={onClose}
-              className="bg-green-600 hover:bg-green-700 text-white"
+              className="bg-green-600 hover:bg-green-700 text-white w-full sm:w-auto"
             >
               <Search className="h-4 w-4 mr-2" />
               Search

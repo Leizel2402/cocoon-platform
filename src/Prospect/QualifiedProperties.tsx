@@ -468,8 +468,8 @@ const QualifiedProperties: React.FC<QualifiedPropertiesProps> = ({
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
       {/* Header */}
-      <div className="sticky top-16 z-50 bg-gradient-to-r from-green-600 via-emerald-600 to-teal-600 text-white py-4 px-6 shadow-2xl">
-        <div className="container mx-auto flex items-center justify-between">
+      <div className="sticky top-16 z-30 bg-gradient-to-r from-green-600 via-emerald-600 to-teal-600 text-white py-4 px-6 shadow-2xl ">
+        <div className="container mx-auto flex flex-col sm:flex-row  items-center justify-between">
           <div className="flex items-center space-x-4">
             <div className="w-12 h-12 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center shadow-2xl">
               <Boxes className="h-6 w-6 text-white" />
@@ -514,7 +514,7 @@ const QualifiedProperties: React.FC<QualifiedPropertiesProps> = ({
             whileTap={{ scale: 0.98 }}
             onClick={() => onCompareUnits?.(comparisonUnits)}
             disabled={comparisonUnits.length === 0}
-            className={`flex items-center px-6 py-3 rounded-lg font-semibold transition-all duration-200 shadow-lg hover:shadow-xl ${
+            className={`flex items-center px-6 py-3 rounded-lg sm:mt-0 mt-3 font-semibold transition-all duration-200 shadow-lg hover:shadow-xl ${
               comparisonUnits.length > 0
                 ? "bg-white text-green-600 hover:bg-green-100"
                 : "bg-gray-100 text-gray-400 border border-gray-200 cursor-not-allowed"
@@ -757,7 +757,7 @@ const QualifiedProperties: React.FC<QualifiedPropertiesProps> = ({
                   className="bg-white/80 backdrop-blur-md rounded-2xl shadow-xl overflow-hidden border border-white/20"
                 >
                   <div className="p-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
                       {filteredUnits.map((unit, unitIndex) => (
                         <motion.div
                           key={unit.id}

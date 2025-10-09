@@ -4,6 +4,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { motion } from 'framer-motion';
 import { UserPlus, Eye, EyeOff, Home, ArrowRight, User, Building, Search, Wrench, Crown } from 'lucide-react';
 import { UserRole } from '../../types';
+import { useToast } from '../../hooks/use-toast';
 
 export function SignUp() {
   const [email, setEmail] = useState('');
@@ -19,31 +20,31 @@ export function SignUp() {
   
   const { signUp, user } = useAuth();
   const navigate = useNavigate();
-
+  const { toast } = useToast();
   // Redirect if already logged in
-  useEffect(() => {
-    if (user) {
-      // Redirect based on role
-      switch (user.role) {
-        case 'landlord_admin':
-        case 'landlord_employee':
-          navigate('/landlord-dashboard', { replace: true });
-          break;
-        case 'cocoon_admin':
-        case 'cocoon_employee':
-          navigate('/cocoon-dashboard', { replace: true });
-          break;
-        case 'renter':
-          navigate('/portal', { replace: true });
-          break;
-        case 'prospect':
-          navigate('/property', { replace: true });
-          break;
-        default:
-          navigate('/', { replace: true });
-      }
-    }
-  }, [user, navigate]);
+  // useEffect(() => {
+  //   if (user) {
+  //     // Redirect based on role
+  //     switch (user.role) {
+  //       case 'landlord_admin':
+  //       case 'landlord_employee':
+  //         navigate('/landlord-dashboard', { replace: true });
+  //         break;
+  //       case 'cocoon_admin':
+  //       case 'cocoon_employee':
+  //         navigate('/cocoon-dashboard', { replace: true });
+  //         break;
+  //       case 'renter':
+  //         navigate('/portal', { replace: true });
+  //         break;
+  //       case 'prospect':
+  //         navigate('/property', { replace: true });
+  //         break;
+  //       default:
+  //         navigate('/', { replace: true });
+  //     }
+  //   }
+  // }, [user, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -83,7 +84,17 @@ export function SignUp() {
     try {
       await signUp(email, password, displayName, role, phone);
       // Redirect to home page after successful signup
-      navigate('/', { replace: true });
+      // navigate('/', { replace: true });
+
+      toast({
+        title: "Verification link sent!",
+        description: "Please check your email for the verification link.",
+      });
+ 
+      // Redirect to signin page after a short delay
+      setTimeout(() => {
+        navigate("/signin", { replace: true });
+      }, 2000);
     } catch (error: any) {
       console.error('SignUp error:', error);
       setError(error.message);

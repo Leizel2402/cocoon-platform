@@ -19,26 +19,26 @@ export function SignIn() {
   const navigate = useNavigate();
 
   // Role-based redirect function
-  const redirectUserByRole = useCallback((userRole: string) => {
-    switch (userRole) {
-      case 'prospect':
-        navigate('/property', { replace: true });
-        break;
-      case 'renter':
-        navigate('/portal', { replace: true });
-        break;
-      case 'landlord_admin':
-      case 'landlord_employee':
-        navigate('/landlord-dashboard', { replace: true });
-        break;
-      case 'cocoon_admin':
-      case 'cocoon_employee':
-        navigate('/cocoon-dashboard', { replace: true });
-        break;
-      default:
-        navigate('/', { replace: true });
-    }
-  }, [navigate]);
+  // const redirectUserByRole = useCallback((userRole: string) => {
+  //   switch (userRole) {
+  //     case 'prospect':
+  //       navigate('/property', { replace: true });
+  //       break;
+  //     case 'renter':
+  //       navigate('/portal', { replace: true });
+  //       break;
+  //     case 'landlord_admin':
+  //     case 'landlord_employee':
+  //       navigate('/landlord-dashboard', { replace: true });
+  //       break;
+  //     case 'cocoon_admin':
+  //     case 'cocoon_employee':
+  //       navigate('/cocoon-dashboard', { replace: true });
+  //       break;
+  //     default:
+  //       navigate('/', { replace: true });
+  //   }
+  // }, [navigate]);
 
   const handleMagicLinkVerification = useCallback(async () => {
     try {
@@ -91,37 +91,86 @@ export function SignIn() {
 
 
   // Updated redirect effect for logged in users
-  useEffect(() => {
-    if (user && !isVerifying) {
-      console.log('User logged in, redirecting based on role:', user.role);
-      redirectUserByRole(user.role);
-    }
-  }, [user, navigate, isVerifying, redirectUserByRole]);
+  // useEffect(() => {
+  //   if (user && !isVerifying) {
+  //     console.log('User logged in, redirecting based on role:', user.role);
+  //     redirectUserByRole(user.role);
+  //   }
+  // }, [user, navigate, isVerifying, redirectUserByRole]);
 
+
+  // const handleSubmit = async (e: React.FormEvent) => {
+  //   e.preventDefault();
+  //   setError('');
+  //   setLoading(true);
+  //   setQuotaExceeded(false);
+
+  //   try {
+  //     await sendMagicLink(email);
+  //     setEmailSent(true);
+  //   } catch (error: unknown) {
+  //     console.error('Magic link error:', error);
+  //     const errorMessage = error instanceof Error ? error.message : 'An error occurred';
+      
+  //     // Check if it's a quota exceeded error
+  //     if (errorMessage.includes('quota') || errorMessage.includes('QUOTA_EXCEEDED')) {
+  //       setQuotaExceeded(true);
+  //     } else {
+  //       setError(errorMessage);
+  //     }
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    setLoading(true);
-    setQuotaExceeded(false);
+  e.preventDefault();
+  setError("");
+  setLoading(true);
+  setQuotaExceeded(false);
 
-    try {
-      await sendMagicLink(email);
-      setEmailSent(true);
-    } catch (error: unknown) {
-      console.error('Magic link error:', error);
-      const errorMessage = error instanceof Error ? error.message : 'An error occurred';
-      
-      // Check if it's a quota exceeded error
-      if (errorMessage.includes('quota') || errorMessage.includes('QUOTA_EXCEEDED')) {
-        setQuotaExceeded(true);
-      } else {
-        setError(errorMessage);
-      }
-    } finally {
-      setLoading(false);
+  try {
+    const { auth } = await import("../../lib/firebase");
+
+
+    const currentUser = auth.currentUser;
+    if (currentUser) {
+      await currentUser.reload();
     }
-  };
+
+    
+    if (
+      currentUser &&
+      currentUser.email === email &&
+      !currentUser.emailVerified
+    ) {
+      throw new Error(
+        "Please verify your email address before logging in. Check your inbox for a verification email."
+      );
+    }
+
+    
+
+    await sendMagicLink(email);
+    setEmailSent(true);
+  } catch (error: unknown) {
+    console.error("Magic link error:", error);
+    const errorMessage =
+      error instanceof Error ? error.message : "An error occurred";
+
+    // Quota check
+    if (
+      errorMessage.includes("quota") ||
+      errorMessage.includes("QUOTA_EXCEEDED")
+    ) {
+      setQuotaExceeded(true);
+    } else {
+      setError(errorMessage);
+    }
+  } finally {
+    setLoading(false);
+  }
+};
 
   const handleRetry = () => {
     setQuotaExceeded(false);
@@ -206,7 +255,7 @@ export function SignIn() {
               Check Your Email
             </h2>
             <p className="text-lg text-gray-600 mb-6">
-              We've sent a magic link to <strong>{email}</strong>
+              If an account exists with <strong>{email}</strong>, you'll receive a magic link shortly.
             </p>
             <p className="text-sm text-gray-500 mb-8">
               Click the link in your email to sign in. The link will expire in 1 hour.

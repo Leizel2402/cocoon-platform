@@ -41,9 +41,9 @@ export function Layout({ children }: LayoutProps) {
     if (!user) return;
 
     // Redirect from auth pages
-    if (location.pathname === "/signin" || location.pathname === "/signup") {
+    if (location.pathname === "/signin" ) {
       if (user.role === "prospect") {
-        navigate("/property", { replace: true });
+        // navigate("/property", { replace: true });
       } else if (user.role === "renter") {
         navigate("/portal", { replace: true });
       } else if (
@@ -61,7 +61,7 @@ export function Layout({ children }: LayoutProps) {
 
     // Redirect prospect users from home page to their dashboard
     if (location.pathname === "/" && user.role === "prospect") {
-      navigate("/property", { replace: true });
+      // navigate("/property", { replace: true });
     }
   }, [user, location.pathname, navigate]);
 

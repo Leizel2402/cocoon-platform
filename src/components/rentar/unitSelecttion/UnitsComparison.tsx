@@ -309,9 +309,9 @@ const UnitsComparison: React.FC<UnitsComparisonProps> = ({
   return (
     <div className="min-h-screen bg-white">
       {/* Modern Header */}
-      <div className="sticky top-16 z-50 bg-gradient-to-r from-green-600 via-emerald-600 to-teal-600 text-white p-6 shadow-2xl">
+      <div className="sticky top-16 z-30 bg-gradient-to-r from-green-600 via-emerald-600 to-teal-600 text-white p-6 shadow-2xl">
         <div className="container mx-auto">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row items-center justify-between">
             <div className="flex items-center space-x-4">
               <motion.div
                 initial={{ scale: 0 }}
@@ -338,7 +338,7 @@ const UnitsComparison: React.FC<UnitsComparisonProps> = ({
             <Button 
               variant="outline" 
               onClick={onBack} 
-              className="bg-white/10 border-white/20 text-white hover:bg-white/20 flex items-center gap-2"
+              className="bg-white/10 mt-3 md:mt-0 border-white/20 text-white hover:bg-white/20 flex items-center gap-2"
             >
             <ArrowLeft className="h-4 w-4" />
             Back to Results
@@ -417,7 +417,8 @@ const UnitsComparison: React.FC<UnitsComparisonProps> = ({
         </div>
 
       {/* Comparison Grid */}
-        <div className="grid gap-6 pb-24 mt-6" style={{ gridTemplateColumns: `repeat(${Math.min(comparisonUnits.length, 3)}, 1fr)` }}>
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 gap-6 pb-24 mt-6">
+
         {comparisonUnits.map(({ property, unit }) => {
           const unitKey = `${property.id}-${unit.id}`;
           const isSelected = selectedUnit === unitKey;
@@ -670,7 +671,7 @@ const UnitsComparison: React.FC<UnitsComparisonProps> = ({
 
                 {/* Action Buttons */}
                   <div className="flex gap-3 pt-4">
-                  <Button
+                  {/* <Button
                     variant="outline"
                     size="sm"
                       className="flex-shrink-0 border-gray-300 hover:border-green-500 hover:bg-green-50"
@@ -681,12 +682,12 @@ const UnitsComparison: React.FC<UnitsComparisonProps> = ({
                   >
                       <Eye className="h-4 w-4 mr-1" />
                     Details
-                  </Button>
+                  </Button> */}
                   
                   {unit.qualified ? (
                     <Button 
                       size="sm" 
-                        className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white shadow-lg hover:shadow-xl" 
+                        className=" bg-gradient-to-r w-full from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white shadow-lg hover:shadow-xl" 
                       onClick={(e) => {
                         e.stopPropagation();
                         const term = selectedLeaseTerms[unitKey];
@@ -725,89 +726,138 @@ const UnitsComparison: React.FC<UnitsComparisonProps> = ({
 
       {/* Details Modal */}
       <Dialog open={showDetailsModal} onOpenChange={setShowDetailsModal}>
-        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>
-              {detailsUnit ? `${detailsUnit.property.name} - Unit ${detailsUnit.unit.unitNumber}` : 'Unit Details'}
-            </DialogTitle>
-          </DialogHeader>
-          {detailsUnit && (
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <h4 className="font-medium">Property</h4>
-                  <p className="text-sm text-muted-foreground">{detailsUnit.property.name}</p>
-                  <p className="text-sm text-muted-foreground">{detailsUnit.property.address}</p>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto p-0">
+          {/* Branded Header */}
+          <div className="bg-gradient-to-r from-green-600 via-emerald-600 to-teal-600 text-white p-6 rounded-t-lg">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 bg-white/20 backdrop-blur-md rounded-xl flex items-center justify-center">
+                  <Home className="h-5 w-5 text-white" />
                 </div>
                 <div>
-                  <h4 className="font-medium">Unit Details</h4>
-                  <p className="text-sm text-muted-foreground">
-                    {detailsUnit.unit.bedrooms} bed, {detailsUnit.unit.bathrooms} bath
-                  </p>
-                  <p className="text-sm text-muted-foreground">{detailsUnit.unit.sqft} sqft</p>
+                  <DialogTitle className="text-xl font-bold text-white">
+                    {detailsUnit ? `${detailsUnit.property.name} - Unit ${detailsUnit.unit.unitNumber}` : 'Unit Details'}
+                  </DialogTitle>
+                  <p className="text-white/90 text-sm mt-1">Complete unit information and lease options</p>
+                </div>
+              </div>
+              {/* <div className="flex items-center space-x-2">
+                <div className="w-6 h-6 border-2 border-white/30 rounded-md flex items-center justify-center">
+                  <div className="w-3 h-3 bg-white/20 rounded-sm"></div>
+                </div>
+              </div> */}
+            </div>
+          </div>
+
+          {detailsUnit && (
+            <div className="p-6 space-y-6">
+              {/* Property & Unit Details Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-4 border border-green-200">
+                  <h4 className="font-bold text-green-800 mb-3 flex items-center">
+                    <Building className="h-4 w-4 mr-2" />
+                    Property
+                  </h4>
+                  <p className="text-green-700 font-medium mb-1">{detailsUnit.property.name}</p>
+                  <p className="text-green-600 text-sm">{detailsUnit.property.address}</p>
+                </div>
+                <div className="bg-gradient-to-br from-emerald-50 to-teal-50 rounded-xl p-4 border border-emerald-200">
+                  <h4 className="font-bold text-emerald-800 mb-3 flex items-center">
+                    <Home className="h-4 w-4 mr-2" />
+                    Unit Details
+                  </h4>
+                  <div className="space-y-1">
+                    <p className="text-emerald-700 font-medium">
+                      {detailsUnit.unit.bedrooms} bed, {detailsUnit.unit.bathrooms} bath
+                    </p>
+                    <p className="text-emerald-600 text-sm">{detailsUnit.unit.sqft} sqft</p>
+                  </div>
                 </div>
               </div>
               
-              <div>
-                <h4 className="font-medium mb-2">Property Amenities</h4>
+              {/* Property Amenities */}
+              <div className="bg-white rounded-xl p-4 border border-gray-200">
+                <h4 className="font-bold text-gray-800 mb-3 flex items-center">
+                  <Star className="h-4 w-4 mr-2 text-yellow-500" />
+                  Property Amenities
+                </h4>
                 <div className="flex flex-wrap gap-2">
                   {(detailsUnit.property.amenities || []).map((amenity) => {
                     const IconComponent = amenityIconMap[amenity.toLowerCase()] || Building;
                     return (
-                      <Badge key={amenity} variant="secondary">
+                      <Badge key={amenity} className="bg-green-100 text-green-700 border border-green-200 hover:bg-green-200 transition-colors">
                         <IconComponent className="h-3 w-3 mr-1" />
                         {amenity}
                       </Badge>
                     );
                   })}
                   {(!detailsUnit.property.amenities || detailsUnit.property.amenities.length === 0) && (
-                    <p className="text-sm text-muted-foreground">No property amenities listed</p>
+                    <p className="text-sm text-gray-500 italic">No property amenities listed</p>
                   )}
                 </div>
               </div>
 
-              <div>
-                <h4 className="font-medium mb-2">Unit Amenities</h4>
+              {/* Unit Amenities */}
+              <div className="bg-white rounded-xl p-4 border border-gray-200">
+                <h4 className="font-bold text-gray-800 mb-3 flex items-center">
+                  <Home className="h-4 w-4 mr-2 text-blue-500" />
+                  Unit Amenities
+                </h4>
                 <div className="flex flex-wrap gap-2">
                   {(detailsUnit.unit.amenities || []).map((amenity) => {
                     const IconComponent = amenityIconMap[amenity.toLowerCase()] || Building;
                     return (
-                      <Badge key={amenity} variant="outline">
+                      <Badge key={amenity} className="bg-blue-100 text-blue-700 border border-blue-200 hover:bg-blue-200 transition-colors">
                         <IconComponent className="h-3 w-3 mr-1" />
                         {amenity}
                       </Badge>
                     );
                   })}
                   {(!detailsUnit.unit.amenities || detailsUnit.unit.amenities.length === 0) && (
-                    <p className="text-sm text-muted-foreground">No unit amenities listed</p>
+                    <p className="text-sm text-gray-500 italic">No unit amenities listed</p>
                   )}
                 </div>
               </div>
 
-              <div>
-                <h4 className="font-medium mb-2">All Lease Terms</h4>
-                <div className="space-y-2">
+              {/* All Lease Terms */}
+              <div className="bg-white rounded-xl p-4 border border-gray-200">
+                <h4 className="font-bold text-gray-800 mb-4 flex items-center">
+                  <DollarSign className="h-4 w-4 mr-2 text-green-600" />
+                  All Lease Terms
+                </h4>
+                <div className="space-y-3">
                   {(detailsUnit.unit.leaseTerms || []).map((term) => (
-                    <div key={term.months} className="p-3 border rounded-lg">
+                    <div key={term.months} className="p-4 border border-gray-200 rounded-lg hover:border-green-300 hover:bg-green-50/30 transition-all duration-200">
                       <div className="flex justify-between items-center">
-                        <div>
-                          <span className="font-medium">{term.months} months</span>
-                          {term.popular && <Badge variant="secondary" className="ml-2 text-xs">Popular</Badge>}
+                        <div className="flex items-center space-x-3">
+                          <div className="w-8 h-8 bg-gradient-to-r from-green-500 to-emerald-500 rounded-lg flex items-center justify-center">
+                            <span className="text-white font-bold text-sm">{term.months}</span>
+                          </div>
+                          <div>
+                            <span className="font-semibold text-gray-800">{term.months} months</span>
+                            {term.popular && (
+                              <Badge className="ml-2 bg-green-100 text-green-700 text-xs px-2 py-0.5">
+                                Popular
+                              </Badge>
+                            )}
+                          </div>
                         </div>
                         <div className="text-right">
-                          <div className="font-semibold text-primary">${term.rent}/mo</div>
+                          <div className="font-bold text-green-600 text-lg">${term.rent.toLocaleString()}/mo</div>
                           {term.savings && (
-                            <div className="text-xs text-green-600">Save ${term.savings}/mo</div>
+                            <div className="text-xs text-green-500 font-medium">Save ${term.savings}/mo</div>
                           )}
                         </div>
                       </div>
                       {term.concession && (
-                        <div className="text-xs text-muted-foreground mt-1">{term.concession}</div>
+                        <div className="text-xs text-gray-600 mt-2 p-2 bg-gray-50 rounded border-l-2 border-green-400">
+                          {term.concession}
+                        </div>
                       )}
                     </div>
                   ))}
                   {(!detailsUnit.unit.leaseTerms || detailsUnit.unit.leaseTerms.length === 0) && (
-                    <p className="text-sm text-muted-foreground">No lease terms available</p>
+                    <p className="text-sm text-gray-500 italic text-center py-4">No lease terms available</p>
                   )}
                 </div>
               </div>
@@ -818,19 +868,32 @@ const UnitsComparison: React.FC<UnitsComparisonProps> = ({
 
        {/* Floor Plan Modal */}
        <Dialog open={showFloorPlanModal} onOpenChange={setShowFloorPlanModal}>
-         <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden">
-           <DialogHeader>
-             <DialogTitle>
-               {floorPlanUnit ? `${floorPlanUnit.property.name} - Unit ${floorPlanUnit.unit.unitNumber} Floor Plan` : 'Floor Plan'}
-             </DialogTitle>
-           </DialogHeader>
+         <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden p-0">
+           {/* Branded Header */}
+           <div className="bg-gradient-to-r from-green-600 via-emerald-600 to-teal-600 text-white p-6 rounded-t-lg">
+             <div className="flex items-center space-x-3">
+               <div className="w-10 h-10 bg-white/20 backdrop-blur-md rounded-xl flex items-center justify-center">
+                 <Building className="h-5 w-5 text-white" />
+               </div>
+               <div>
+                 <DialogTitle className="text-xl font-bold text-white">
+                   {floorPlanUnit ? `${floorPlanUnit.property.name} - Unit ${floorPlanUnit.unit.unitNumber} Floor Plan` : 'Floor Plan'}
+                 </DialogTitle>
+                 <p className="text-white/90 text-sm mt-1">
+                   {floorPlanUnit ? `${floorPlanUnit.unit.bedrooms} bed, ${floorPlanUnit.unit.bathrooms} bath • ${floorPlanUnit.unit.sqft} sqft` : 'Unit layout and dimensions'}
+                 </p>
+               </div>
+             </div>
+           </div>
            {floorPlanUnit && (
-             <div className="flex justify-center p-4">
-               <img 
-                 src={floorPlanUnit.unit.floorPlan || '/placeholder.svg'} 
-                 alt={`${floorPlanUnit.unit.bedrooms} bedroom floor plan`}
-                 className="max-w-full max-h-[70vh] object-contain"
-               />
+             <div className="flex justify-center p-6 bg-gradient-to-br from-gray-50 to-green-50">
+               <div className="bg-white rounded-xl p-4 shadow-lg border border-gray-200">
+                 <img 
+                   src={floorPlanUnit.unit.floorPlan || '/placeholder.svg'} 
+                   alt={`${floorPlanUnit.unit.bedrooms} bedroom floor plan`}
+                   className="max-w-full max-h-[70vh] object-contain rounded-lg"
+                 />
+               </div>
              </div>
            )}
          </DialogContent>
@@ -888,7 +951,7 @@ const UnitsComparison: React.FC<UnitsComparisonProps> = ({
        {/* Enhanced Fixed Bottom Action Bar */}
        {getCanProceed() && (
           <div className="fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60 border-t border-gray-200 p-4 shadow-2xl">
-           <div className="container mx-auto flex items-center justify-between">
+           <div className="container mx-auto flex flex-col md:flex-row items-center justify-between">
               <div className="flex items-center space-x-4">
                 <div className="bg-blue-50 px-4 py-2 rounded-lg border border-blue-200">
                   <span className="text-sm font-medium text-blue-800">
@@ -902,7 +965,7 @@ const UnitsComparison: React.FC<UnitsComparisonProps> = ({
                 )}
               </div>
               <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-                <Button onClick={handleNext} size="lg" className="min-w-[200px] h-12 text-lg font-semibold bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-200">
+                <Button onClick={handleNext} size="lg" className="min-w-[200px] mt-3 md:mt-0 h-12 text-lg font-semibold bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-200">
                Proceed to Products
                   <ArrowRight className="h-5 w-5 ml-2" />
              </Button>

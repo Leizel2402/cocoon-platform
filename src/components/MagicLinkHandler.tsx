@@ -182,19 +182,31 @@ export function MagicLinkHandler() {
             </motion.div>
             
             <h2 className="text-3xl font-bold text-gray-900 mb-4">
-              Verification Failed
+              {error.includes('An error occurred during authentication. Please try again.') ? 'Account Not Found' : 'Verification Failed'}
             </h2>
             <p className="text-lg text-gray-600 mb-6">
-              {error || 'There was an error verifying your magic link.'}
+              {error.includes('An error occurred during authentication. Please try again.') 
+                ? 'No account found with this email. Please create an account first before signing in.'
+                : error || 'There was an error verifying your magic link.'
+              }
             </p>
             
             <div className="space-y-4">
-              <Link
-                to="/signin"
-                className="block w-full py-3 px-4 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors"
-              >
-                Try Magic Link Again
-              </Link>
+              {error.includes('An error occurred during authentication. Please try again.') ? (
+                <Link
+                  to="/signup"
+                  className="block w-full py-3 px-4 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-colors"
+                >
+                  Create Account
+                </Link>
+              ) : (
+                <Link
+                  to="/signin"
+                  className="block w-full py-3 px-4 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors"
+                >
+                  Try Magic Link Again
+                </Link>
+              )}
               
               <Link
                 to="/"

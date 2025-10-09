@@ -104,7 +104,7 @@ const PaymentPage = ({ totalAmount, paymentType = 'monthly', onBack, onPaymentCo
       {/* Modern Header */}
       <div className="sticky top-16 z-50 bg-gradient-to-r from-green-600 via-emerald-600 to-teal-600 text-white p-6 shadow-2xl">
         <div className="container mx-auto">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col md:flex-row  items-center justify-between">
             <div className="flex items-center space-x-4">
               <motion.div
                 initial={{ scale: 0 }}
@@ -131,7 +131,7 @@ const PaymentPage = ({ totalAmount, paymentType = 'monthly', onBack, onPaymentCo
             <Button 
               variant="outline" 
               onClick={onBack} 
-              className="bg-white/10 border-white/20 text-white hover:bg-white/20 flex items-center gap-2"
+              className="bg-white/10 mt-3 md:mt-0 border-white/20 text-white hover:bg-white/20 flex items-center gap-2"
             >
               <ArrowLeft className="h-4 w-4" />
               Back to Products
@@ -176,7 +176,7 @@ const PaymentPage = ({ totalAmount, paymentType = 'monthly', onBack, onPaymentCo
           </div>
         </div>
 
-        <div className="grid lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Left Column - Payment Form */}
           <div className="lg:col-span-2 space-y-6">
             {paymentStatus === 'form' && (
@@ -200,7 +200,7 @@ const PaymentPage = ({ totalAmount, paymentType = 'monthly', onBack, onPaymentCo
                     </div>
                     <div className="space-y-3">
                       <p className="text-xs text-green-700">Simulate payment approval/decline for testing:</p>
-                      <div className="flex gap-2">
+                      <div className="flex items-center flex-col md:flex-row gap-2">
                         <Button
                           variant={simulationChoice === 'approve' ? 'default' : 'outline'}
                           size="sm"

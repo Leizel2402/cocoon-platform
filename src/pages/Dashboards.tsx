@@ -1258,14 +1258,14 @@ const Dashboards = () => {
               <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/50 to-black/70"></div>
               <div className="relative z-10 container mx-auto px-6 text-center">
                 <div className="max-w-4xl mx-auto">
-                  <h1 className="text-6xl md:text-7xl font-bold text-white mb-8 leading-tight">
+                  <h1 className="text-4xl md:text-7xl font-bold text-white mb-8 leading-tight">
                     Let's get you Home
                   </h1>
                   <p className="text-xl md:text-2xl text-white/90 mb-8 font-light">
                     Discover your perfect home with our intelligent matching
                     system
                   </p>
-                  <div className="flex justify-center space-x-4">
+                  <div className="flex flex-col sm:flex-row justify-center  space-x-0 gap-y-3  sm:gap-y-0 sm:space-x-4">
                     <div className="bg-white/20 backdrop-blur-sm rounded-lg px-6 py-3">
                       <span className="text-white font-semibold">
                         🏠 Premium Properties
@@ -1289,9 +1289,9 @@ const Dashboards = () => {
             <div className="h-1.5 bg-gradient-to-r  from-green-600 via-emerald-500 to-teal-600"></div>
 
             {/* Modern Search Filters Bar */}
-            <section className="bg-white/95 backdrop-blur-md border-b border-gray-200 shadow-lg py-4 sticky top-16 z-40">
+            <section className="bg-white/95 backdrop-blur-md border-b border-gray-200 shadow-lg py-4 sticky top-16 z-40 px-4 md:px-8">
               <div className="container mx-auto  px-auto">
-                <div className="flex items-center space-x-4 flex-wrap">
+                <div className="flex items-center space-x-0 xl:space-x-4 flex-wrap 2xl:gap-0 gap-3">
                   <Input
                     placeholder="City, neighborhood..."
                     value={searchLocation}
@@ -1599,7 +1599,7 @@ const Dashboards = () => {
                     selectedDate={moveInDate}
                     onDateSelect={setMoveInDate}
                     placeholder="Move-in Date"
-                    className="text-sm px-4 py-3 w-auto rounded-lg border-gray-200 hover:bg-green-50 hover:border-green-300 transition-all duration-200"
+                    className="text-sm pl-4 py-3 w-auto rounded-lg border-gray-200 hover:bg-green-50 hover:border-green-300 transition-all duration-200"
                     disabled={(date) => date < new Date()}
                   />
 
@@ -1709,9 +1709,9 @@ const Dashboards = () => {
             </section>
 
             {/* Modern Main Content Area - Map + Listings */}
-            <section className="flex" style={{ height: "calc(100vh - 140px)" }}>
+            <section    className="flex flex-col xl:flex-row h-auto xl:h-screen-minus-140">
               {/* Map Section - Left Side */}
-              <div className="w-[60%] bg-gradient-to-br from-gray-50 to-gray-100 relative">
+              <div className="xl:w-[60%] w-full bg-gradient-to-br from-gray-50 to-gray-100 relative">
                 <DashboardMap
                   properties={filteredProperties}
                   isPrequalified={isPrequalified}
@@ -1738,7 +1738,7 @@ const Dashboards = () => {
               </div>
 
               {/* Listings Section - Right Side - Scrollable */}
-              <div className="w-[40%] overflow-y-auto bg-gradient-to-br from-white to-green-50/30">
+              <div className="w-full xl:w-[40%] overflow-y-auto bg-gradient-to-br from-white to-green-50/30">
                 <div className="py-6 px-4">
                   <div className="flex items-center justify-between mb-6">
                     <div>

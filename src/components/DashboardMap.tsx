@@ -553,7 +553,7 @@ const DashboardMap: React.FC<PropertyMapProps> = ({
 
   try {
     return (
-      <div className="relative w-full h-full">
+      <div className="relative w-full h-[300px] xl:h-full">
         <MapContainer 
           ref={mapRef}
           center={mapCenter} 
@@ -725,7 +725,7 @@ const DashboardMap: React.FC<PropertyMapProps> = ({
         </MapContainer>
 
         {/* Controls */}
-        <div className="absolute top-4 right-4 bg-white rounded-lg shadow-lg px-4 py-2 z-40 border border-gray-200">
+        <div className="absolute top-4 right-4 bg-white rounded-lg shadow-lg px-4 py-2 z-30 border border-gray-200">
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center space-x-2">
               <div className="w-3 h-3 bg-red-500 rounded-full"></div>

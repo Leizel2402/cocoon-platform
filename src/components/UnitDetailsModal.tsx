@@ -77,8 +77,8 @@ export const UnitDetailsModal: React.FC<UnitDetailsModalProps> = ({
         {/* Modern Header with Gradient Background */}
         <DialogHeader className="relative bg-gradient-to-r from-green-600 via-emerald-400 to-green-400 p-6 text-white">
           <div className="absolute inset-0 bg-black/10"></div>
-          <div className="relative z-10 flex items-center justify-between mr-[50px]">
-            <div className="flex items-center space-x-4">
+          <div className="relative z-10 flex flex-col sm:flex-row  items-center justify-between mr-[50px]">
+            <div className="flex  items-center space-x-4">
               <motion.div
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
@@ -88,10 +88,10 @@ export const UnitDetailsModal: React.FC<UnitDetailsModalProps> = ({
                 <Home className="h-6 w-6 text-white" />
               </motion.div>
               <div>
-                <DialogTitle className="text-3xl font-bold text-white mb-1">
+                <DialogTitle className="text-xl md:text-3xl font-bold text-white mb-1">
                   Unit {unit.unitNumber} - {propertyName}
                 </DialogTitle>
-                <div className="flex items-center space-x-4 text-white/90">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center space-x-0 sm:space-x-4 text-white/90">
                   <div className="flex items-center">
                     <Bed className="h-4 w-4 mr-1" />
                     <span className="text-sm">{unit.bedrooms} {unit.bedrooms === 1 ? 'Bedroom' : 'Bedrooms'}</span>
@@ -107,7 +107,7 @@ export const UnitDetailsModal: React.FC<UnitDetailsModalProps> = ({
                 </div>
               </div>
             </div>
-            <div className="flex items-center space-x-3">
+            <div className="flex items-center mt-0 sm:mt-3 space-x-0 sm:space-x-3">
               <Badge className={`${getAvailabilityColor()} text-sm font-semibold`}>
                 {getAvailabilityText()}
               </Badge>
@@ -254,8 +254,8 @@ export const UnitDetailsModal: React.FC<UnitDetailsModalProps> = ({
           </div>
 
         {/* Modern Action Buttons */}
-        <div className="bg-white border-t border-gray-200 p-4">
-          <div className="flex space-x-4">
+        <div className="bg-white border-t border-gray-200 p-2 sm:p-4">
+          <div className="flex sm:flex-row flex-col gap-y-2 sm:gap-y-0 space-x-0 sm:space-x-4">
             <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="flex-1">
             <Button 
               onClick={() => onScheduleTour?.(unit)}

@@ -210,9 +210,10 @@ export function ModernPropertyCard({
       whileHover={{ y: -5, transition: { duration: 0.2 } }}
       className="bg-white rounded-2xl shadow-xl overflow-hidden hover:shadow-2xl transition-all duration-300 border border-gray-100"
     >
-      <div className="flex">
+      <div className="flex flex-col sm:flex-row"
+>
         {/* Image & Availability */}
-        <div className="w-1/3 relative overflow-hidden group">
+        <div className="w-full sm:w-1/3 relative overflow-hidden group">
           <img
             src={property.image || "https://images.pexels.com/photos/106399/pexels-photo-106399.jpeg?auto=compress&cs=tinysrgb&w=800"}
             alt={property.name}
@@ -294,7 +295,7 @@ export function ModernPropertyCard({
         </div>
 
         {/* Details */}
-        <div className="w-2/3 p-4 sm:p-6">
+        <div className="w-full sm:w-2/3 p-4 sm:p-6">
         <div className="flex items-start justify-between mb-3">
           <div className="flex-1">
             <h3 className="text-lg sm:text-xl font-bold text-gray-900 line-clamp-2 mb-1">

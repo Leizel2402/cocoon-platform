@@ -2,7 +2,11 @@
 export default {
   content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
   theme: {
-    extend: {},
+    extend: {
+       height: {
+        'screen-minus-140': 'calc(100vh - 140px)',
+      },
+    },
   },
   plugins: [],
 };

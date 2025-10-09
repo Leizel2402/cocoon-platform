@@ -340,7 +340,7 @@ const ProductSelection = ({
       {/* Modern Header */}
       <div className="sticky top-16 z-50 bg-gradient-to-r from-green-600 via-emerald-600 to-teal-600 text-white p-6 shadow-2xl">
         <div className="container mx-auto">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col md:flex-row items-center justify-between">
             <div className="flex items-center space-x-4">
               <motion.div
                 initial={{ scale: 0 }}
@@ -351,7 +351,7 @@ const ProductSelection = ({
                 <Shield className="h-6 w-6 text-white" />
               </motion.div>
               <div>
-                <h1 className="text-3xl font-bold text-white mb-1">Customize Your Move-in Package</h1>
+                <h1 className="text-xl md:text-2xl  lg:text-3xl font-bold text-white mb-1">Customize Your Move-in Package</h1>
                 <div className="flex items-center space-x-4 text-white/90">
                   <div className="flex items-center">
                     <Building className="h-4 w-4 mr-1" />
@@ -367,7 +367,7 @@ const ProductSelection = ({
             <Button 
               variant="outline" 
               onClick={onBack} 
-              className="bg-white/10 border-white/20 text-white hover:bg-white/20 flex items-center gap-2"
+              className="bg-white/10 mt-3 md:mt-0 border-white/20 text-white hover:bg-white/20 flex items-center gap-2"
             >
               <ArrowLeft className="h-4 w-4" />
               Back to Comparison
