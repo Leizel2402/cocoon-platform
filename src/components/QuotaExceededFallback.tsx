@@ -63,7 +63,7 @@ export function QuotaExceededFallback({ onRetry, onContactSupport }: QuotaExceed
               >
                 <h3 className="font-semibold text-gray-900 mb-2">Contact Information:</h3>
                 <p className="text-sm text-gray-600 mb-2">
-                  Email: support@cocoon.com
+                  Email: support@rental.com
                 </p>
                 <p className="text-sm text-gray-600 mb-2">
                   Phone: (555) 123-4567

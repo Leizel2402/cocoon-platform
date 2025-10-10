@@ -174,7 +174,7 @@ const ScheduleTourModal = ({ property, unit, isOpen, onClose }: ScheduleTourModa
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => { if (!open) handleClose(); }}>
-      <DialogContent className="max-w-3xl h-[70vh] overflow-hidden p-0 bg-gradient-to-br from-slate-50 via-gray-50 to-zinc-100">
+      <DialogContent className="max-w-4xl h-[90vh] overflow-hidden p-0 bg-gradient-to-br from-slate-50 via-gray-50 to-zinc-100">
         {/* Modern Header with Gradient Background */}
         <DialogHeader className="relative bg-gradient-to-r from-green-600 via-emerald-400 to-green-400 p-6 text-white">
           <div className="absolute inset-0 bg-black/10"></div>

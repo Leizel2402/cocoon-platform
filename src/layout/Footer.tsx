@@ -147,7 +147,7 @@ const Footer = () => {
           <div className="flex flex-col lg:flex-row justify-between items-center space-y-4 lg:space-y-0">
             <div className="flex flex-col sm:flex-row items-center space-y-2 sm:space-y-0 sm:space-x-6">
               <p className="text-gray-300 text-sm">
-                © 2022 Cocoon. All rights reserved.
+                © 2022 rental. All rights reserved.
               </p>
               <div className="flex space-x-6">
                 <a

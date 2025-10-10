@@ -80,8 +80,8 @@ const ApplicationProcess = ({
   initialStep,
   onNavigateToUnitSelection,
 }: ApplicationProcessProps) => {
-  console.log("prequalify",type);
-  
+  console.log("prequalify", type);
+
   const { user } = useAuth();
   const { toast } = useToast();
   const today = new Date().toISOString().split("T")[0];
@@ -153,12 +153,13 @@ const ApplicationProcess = ({
     additionalInfo: "",
     // Documents
     documents: {
-      id: []
+      id: [],
     },
     // Permissions
     backgroundCheckPermission: false,
     textMessagePermission: true,
   });
+  console.log("formadata", FormData);
 
   const [rawSSN, setRawSSN] = useState("");
   const [ssnFocused, setSsnFocused] = useState(false);
@@ -180,8 +181,10 @@ const ApplicationProcess = ({
   }>({});
 
   // Enhanced validation state
-  const [fieldErrors, setFieldErrors] = useState<{[key: string]: string}>({});
-  const [validationMessages, setValidationMessages] = useState<{[key: string]: string}>({});
+  const [fieldErrors, setFieldErrors] = useState<{ [key: string]: string }>({});
+  const [validationMessages, setValidationMessages] = useState<{
+    [key: string]: string;
+  }>({});
 
   // Pre-populate with user data
   useEffect(() => {
@@ -202,6 +205,59 @@ const ApplicationProcess = ({
       setDobError(error);
     }
   }, [formData.dateOfBirth]);
+
+  // Auto-populate pet and vehicle forms when navigating to Additional Info step
+  useEffect(() => {
+    if (currentStep === 5) { // Additional Info step
+      // Auto-populate pets if hasPets is true but no pets exist
+      if (formData.hasPets === true && formData.pets.length === 0) {
+        setFormData(prev => ({
+          ...prev,
+          pets: [{
+            type: "",
+            breed: "",
+            age: "",
+            weight: "",
+            isServiceAnimal: false
+          }]
+        }));
+      }
+      
+      // Auto-populate vehicles if hasVehicles is true but no vehicles exist
+      if (formData.hasVehicles === true && formData.vehicles.length === 0) {
+        setFormData(prev => ({
+          ...prev,
+          vehicles: [{
+            type: "",
+            make: "",
+            model: "",
+            year: "",
+            color: "",
+            licensePlate: ""
+          }]
+        }));
+      }
+    }
+  }, [currentStep]);
+
+  // Auto-set checkboxes to "No" when all pets or vehicles are removed
+  useEffect(() => {
+    // Auto-set hasPets to false if pets array becomes empty
+    if (formData.hasPets === true && formData.pets.length === 0) {
+      setFormData(prev => ({
+        ...prev,
+        hasPets: false
+      }));
+    }
+    
+    // Auto-set hasVehicles to false if vehicles array becomes empty
+    if (formData.hasVehicles === true && formData.vehicles.length === 0) {
+      setFormData(prev => ({
+        ...prev,
+        hasVehicles: false
+      }));
+    }
+  }, [formData.pets.length, formData.vehicles.length]);
 
   const steps = [
     { title: "Personal Info", icon: User },
@@ -224,6 +280,17 @@ const ApplicationProcess = ({
     const timer = setTimeout(saveData, 1000);
     return () => clearTimeout(timer);
   }, [formData]);
+
+  // Trigger validation when form data changes for current step
+  useEffect(() => {
+    // Force re-render of validation state when form data changes
+    const validation = validateStep(currentStep);
+    console.log(`Step ${currentStep} validation on form data change:`, {
+      isValid: validation.isValid,
+      errors: validation.errors,
+      missingFields: validation.missingFields
+    });
+  }, [formData, currentStep]);
 
   // Load saved data on mount
   useEffect(() => {
@@ -366,181 +433,521 @@ const ApplicationProcess = ({
   };
 
   // Enhanced validation functions
-  const validateField = (fieldName: string, value: any, fieldType?: string): string => {
+  const validateField = (
+    fieldName: string,
+    value: any,
+    fieldType?: string
+  ): string => {
     switch (fieldName) {
-      case 'firstName':
-      case 'lastName':
-        return !value || value.trim() === '' ? `${fieldName.charAt(0).toUpperCase() + fieldName.slice(1)} is required` : '';
-      case 'email':
-        if (!value) return 'Email is required';
+      case "firstName":
+      case "lastName":
+        return !value || value.trim() === ""
+          ? `${
+              fieldName.charAt(0).toUpperCase() + fieldName.slice(1)
+            } is required`
+          : "";
+      case "email":
+        if (!value) return "Email is required";
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        return !emailRegex.test(value) ? 'Please enter a valid email address' : '';
-      case 'phone':
-        const phoneDigits = value.replace(/\D/g, '');
-        if (!phoneDigits) return 'Phone number is required';
-        return phoneDigits.length !== 10 ? 'Please enter a valid 10-digit phone number' : '';
-      case 'dateOfBirth':
-        if (!value) return 'Date of birth is required';
+        return !emailRegex.test(value)
+          ? "Please enter a valid email address"
+          : "";
+      case "phone":
+        const phoneDigits = value.replace(/\D/g, "");
+        if (!phoneDigits) return "Phone number is required";
+        return phoneDigits.length !== 10
+          ? "Please enter a valid 10-digit phone number"
+          : "";
+      case "dateOfBirth":
+        if (!value) return "Date of birth is required";
         const dobError = validateDOB(value);
         return dobError;
-      case 'ssn':
-        const ssnDigits = value.replace(/\D/g, '');
-        if (!ssnDigits) return 'SSN/TIN/EIN is required';
-        return ssnDigits.length !== 9 ? 'Please enter a valid 9-digit SSN/TIN/EIN' : '';
-      case 'moveInDate':
-        return !value ? 'Move-in date is required' : '';
-      case 'currentStreet':
-      case 'currentCity':
-      case 'currentState':
-        return !value || value.trim() === '' ? 'This field is required' : '';
-      case 'currentZip':
-        if (!value) return 'ZIP code is required';
-        return value.length !== 5 ? 'Please enter a valid 5-digit ZIP code' : '';
-      case 'currentDuration':
-        return !value ? 'Please specify how long you have lived at this address' : '';
-      case 'employment':
-        return !value ? 'Employment status is required' : '';
-      case 'employerName':
-        if (formData.employment !== 'unemployed' && (!value || value.trim() === '')) {
-          return 'Employer name is required';
+      case "ssn":
+        const ssnDigits = value.replace(/\D/g, "");
+        if (!ssnDigits) return "SSN/TIN/EIN is required";
+        return ssnDigits.length !== 9
+          ? "Please enter a valid 9-digit SSN/TIN/EIN"
+          : "";
+      case "moveInDate":
+        return !value ? "Move-in date is required" : "";
+      case "currentStreet":
+      case "currentCity":
+      case "currentState":
+        return !value || value.trim() === "" ? "This field is required" : "";
+      case "currentZip":
+        if (!value) return "ZIP code is required";
+        return value.length !== 5
+          ? "Please enter a valid 5-digit ZIP code"
+          : "";
+      case "currentDuration":
+        return !value
+          ? "Please specify how long you have lived at this address"
+          : "";
+      case "previousStreet":
+      case "previousCity":
+      case "previousState":
+        return !value || value.trim() === "" ? "This field is required" : "";
+      case "previousZip":
+        if (!value) return "ZIP code is required";
+        return value.length !== 5
+          ? "Please enter a valid 5-digit ZIP code"
+          : "";
+      case "employment":
+        return !value ? "Employment status is required" : "";
+      case "employerName":
+        if (
+          formData.employment !== "unemployed" &&
+          (!value || value.trim() === "")
+        ) {
+          return "Employer name is required";
         }
-        return '';
-      case 'monthlyIncome':
-        if (formData.employment !== 'unemployed' && (!value || value.trim() === '')) {
-          return 'Monthly income is required';
+        return "";
+      case "monthlyIncome":
+        if (
+          formData.employment !== "unemployed" &&
+          (!value || value.trim() === "")
+        ) {
+          return "Monthly income is required";
         }
-        return '';
+        return "";
       default:
-        return '';
+        return "";
     }
   };
 
-  const validateStep = (step: number): {isValid: boolean, errors: {[key: string]: string}, missingFields: string[]} => {
-    const errors: {[key: string]: string} = {};
+  const validateStep = (
+    step: number
+  ): {
+    isValid: boolean;
+    errors: { [key: string]: string };
+    missingFields: string[];
+  } => {
+    const errors: { [key: string]: string } = {};
     const missingFields: string[] = [];
 
     switch (step) {
       case 0: // Personal Info
-        const personalFields = ['firstName', 'lastName', 'email', 'phone', 'dateOfBirth', 'ssn', 'moveInDate'];
-        personalFields.forEach(field => {
-          const error = validateField(field, formData[field as keyof typeof formData]);
+        const personalFields = [
+          "firstName",
+          "lastName",
+          "email",
+          "phone",
+          "dateOfBirth",
+          "ssn",
+          "moveInDate",
+        ];
+        personalFields.forEach((field) => {
+          const error = validateField(
+            field,
+            formData[field as keyof typeof formData]
+          );
           if (error) {
             errors[field] = error;
             missingFields.push(field);
           }
         });
-        
+
         // Check DOB error state
         if (dobError) {
-          errors['dateOfBirth'] = dobError;
-          missingFields.push('dateOfBirth');
+          errors["dateOfBirth"] = dobError;
+          missingFields.push("dateOfBirth");
         }
-        
+
         // Check SSN format
-        const ssnError = validateField('ssn', rawSSN);
+        const ssnError = validateField("ssn", rawSSN);
         if (ssnError) {
-          errors['ssn'] = ssnError;
-          missingFields.push('ssn');
+          errors["ssn"] = ssnError;
+          missingFields.push("ssn");
         }
-        
+
         // Check middle initial
         if (formData.middleInitial === undefined) {
-          errors['middleInitial'] = 'Middle initial is required';
-          missingFields.push('middleInitial');
+          errors["middleInitial"] = "Middle initial is required";
+          missingFields.push("middleInitial");
         }
-        
+
         break;
 
       case 1: // Financial Info
-        const employmentError = validateField('employment', formData.employment);
+        console.log("Validating Financial Info:", {
+          employment: formData.employment,
+          employerName: formData.employerName,
+          employers: formData.employers,
+          primaryIncome: formData.employers[0]?.income
+        });
+        
+        const employmentError = validateField(
+          "employment",
+          formData.employment
+        );
         if (employmentError) {
-          errors['employment'] = employmentError;
-          missingFields.push('employment');
+          console.log("Employment error:", employmentError);
+          errors["employment"] = employmentError;
+          missingFields.push("employment");
+        }
+
+        if (formData.employment !== "unemployed") {
+          // Check employer name from both sources
+          const employerName =
+            formData.employerName || formData.employers[0]?.name || "";
+          const employerError = validateField("employerName", employerName);
+          if (employerError) {
+            errors["employerName"] = employerError;
+            missingFields.push("employerName");
+          }
+
+          // Check industry
+          const industry = formData.employers[0]?.industry || "";
+          if (!industry) {
+            errors["industry"] = "Industry is required";
+            missingFields.push("industry");
+          }
+
+          // Check position
+          const position = formData.employers[0]?.position || "";
+          if (!position) {
+            errors["position"] = "Position is required";
+            missingFields.push("position");
+          }
+
+          // Check income from employers array
+          const primaryIncome = formData.employers[0]?.income || "";
+          const incomeError = validateField("monthlyIncome", primaryIncome);
+          if (incomeError) {
+            console.log("Income error:", incomeError);
+            errors["monthlyIncome"] = incomeError;
+            missingFields.push("monthlyIncome");
+          }
         }
         
-        if (formData.employment !== 'unemployed') {
-          // Check employer name from both sources
-          const employerName = formData.employerName || formData.employers[0]?.name || '';
-          const employerError = validateField('employerName', employerName);
-          if (employerError) {
-            errors['employerName'] = employerError;
-            missingFields.push('employerName');
-          }
-          
-          // Check industry
-          const industry = formData.employers[0]?.industry || '';
-          if (!industry) {
-            errors['industry'] = 'Industry is required';
-            missingFields.push('industry');
-          }
-          
-          // Check position
-          const position = formData.employers[0]?.position || '';
-          if (!position) {
-            errors['position'] = 'Position is required';
-            missingFields.push('position');
-          }
-          
-          // Check income from employers array
-          const primaryIncome = formData.employers[0]?.income || '';
-          const incomeError = validateField('monthlyIncome', primaryIncome);
-          if (incomeError) {
-            errors['monthlyIncome'] = incomeError;
-            missingFields.push('monthlyIncome');
-          }
-        }
+        console.log("Financial Info validation result:", { errors, missingFields });
         break;
 
       case 2: // Housing History
-        const housingFields = ['currentStreet', 'currentCity', 'currentState', 'currentZip', 'currentDuration'];
-        housingFields.forEach(field => {
-          const error = validateField(field, formData[field as keyof typeof formData]);
+        console.log("Validating Housing History:", {
+          currentStreet: formData.currentStreet,
+          currentCity: formData.currentCity,
+          currentState: formData.currentState,
+          currentZip: formData.currentZip,
+          currentDuration: formData.currentDuration
+        });
+        
+        const housingFields = [
+          "currentStreet",
+          "currentCity",
+          "currentState",
+          "currentZip",
+          "currentDuration",
+        ];
+        housingFields.forEach((field) => {
+          const fieldValue = formData[field as keyof typeof formData];
+          const error = validateField(field, fieldValue);
+          console.log(`Checking housing field ${field}:`, fieldValue, error);
           if (error) {
             errors[field] = error;
             missingFields.push(field);
           }
         });
-        
-        // Check previous address if needed
-        if (formData.currentDuration === '0-2') {
-          const previousFields = ['previousStreet', 'previousCity', 'previousState', 'previousZip'];
-          previousFields.forEach(field => {
-            const error = validateField(field, formData[field as keyof typeof formData]);
+
+        // Check previous address if needed when "Less than 2 years" is selected
+        if (formData.currentDuration === "0-2") {
+          const previousFields = [
+            "previousStreet",
+            "previousCity",
+            "previousState",
+            "previousZip",
+          ];
+          let hasPreviousAddressError = false;
+          previousFields.forEach((field) => {
+            const error = validateField(
+              field,
+              formData[field as keyof typeof formData]
+            );
             if (error) {
               errors[field] = error;
               missingFields.push(field);
+              hasPreviousAddressError = true;
             }
           });
+          
+          // Only disable Next button if previous address fields are not properly filled
+          if (hasPreviousAddressError) {
+            errors["currentDuration"] =
+              "Please fill in all previous address details";
+            missingFields.push("currentDuration");
+          }
         }
+        
+        console.log("Housing History validation result:", { errors, missingFields });
         break;
 
       case 3: // Lease Holders & Guarantors
         // Check DOB errors for holders and guarantors
-        const holderErrors = Object.values(holderDobErrors).some(error => error !== '');
-        const guarantorErrors = Object.values(guarantorDobErrors).some(error => error !== '');
-        
-        if (holderErrors) {
-          errors['leaseHolders'] = 'Please fix date of birth errors for lease holders';
-          missingFields.push('leaseHolders');
+        const holderErrors = Object.values(holderDobErrors).some(
+          (error) => error !== ""
+        );
+        const guarantorErrors = Object.values(guarantorDobErrors).some(
+          (error) => error !== ""
+        );
+
+        // Validate lease holders if any are added
+        if (formData.leaseHolders.length > 0) {
+          let hasLeaseHolderErrors = false;
+          
+          console.log("Validating lease holders:", formData.leaseHolders);
+          
+          // Check DOB errors
+          if (holderErrors) {
+            errors["leaseHolders"] =
+              "Please fix date of birth errors for lease holders";
+            missingFields.push("leaseHolders");
+            hasLeaseHolderErrors = true;
+          }
+          
+          // Check if all required fields are filled for each lease holder
+          formData.leaseHolders.forEach((holder, index) => {
+            console.log(`Validating lease holder ${index}:`, holder);
+            
+            // Basic personal information fields
+            const basicFields = ['firstName', 'lastName', 'email', 'phone', 'dateOfBirth'];
+            basicFields.forEach(field => {
+              const fieldValue = holder[field as keyof typeof holder];
+              console.log(`Checking lease holder ${index} ${field}:`, fieldValue, typeof fieldValue);
+              if (!fieldValue || fieldValue.toString().trim() === '') {
+                console.log(`Missing field: leaseHolder_${index}_${field}`, fieldValue);
+                errors[`leaseHolder_${index}_${field}`] = `${field} is required`;
+                missingFields.push(`leaseHolder_${index}_${field}`);
+                hasLeaseHolderErrors = true;
+              }
+            });
+            
+            // Employment information fields
+            const employmentFields = ['employmentStatus'];
+            employmentFields.forEach(field => {
+              const fieldValue = holder[field as keyof typeof holder];
+              console.log(`Checking lease holder ${index} ${field}:`, fieldValue, typeof fieldValue);
+              if (!fieldValue || fieldValue.toString().trim() === '') {
+                console.log(`Missing field: leaseHolder_${index}_${field}`, fieldValue);
+                errors[`leaseHolder_${index}_${field}`] = `${field} is required`;
+                missingFields.push(`leaseHolder_${index}_${field}`);
+                hasLeaseHolderErrors = true;
+              }
+            });
+            
+            // If not unemployed, check additional employment fields
+            if (holder.employmentStatus && holder.employmentStatus !== 'unemployed') {
+              const additionalEmploymentFields = ['employerName', 'industry', 'position', 'monthlyIncome'];
+              additionalEmploymentFields.forEach(field => {
+                const fieldValue = holder[field as keyof typeof holder];
+                console.log(`Checking lease holder ${index} ${field}:`, fieldValue, typeof fieldValue);
+                if (!fieldValue || fieldValue.toString().trim() === '') {
+                  console.log(`Missing field: leaseHolder_${index}_${field}`, fieldValue);
+                  errors[`leaseHolder_${index}_${field}`] = `${field} is required`;
+                  missingFields.push(`leaseHolder_${index}_${field}`);
+                  hasLeaseHolderErrors = true;
+                }
+              });
+            }
+            
+            // Current address fields
+            const addressFields = ['currentStreet', 'currentCity', 'currentState', 'currentZip', 'currentDuration'];
+            addressFields.forEach(field => {
+              const fieldValue = holder[field as keyof typeof holder];
+              console.log(`Checking lease holder ${index} ${field}:`, fieldValue, typeof fieldValue);
+              if (!fieldValue || fieldValue.toString().trim() === '') {
+                console.log(`Missing field: leaseHolder_${index}_${field}`, fieldValue);
+                errors[`leaseHolder_${index}_${field}`] = `${field} is required`;
+                missingFields.push(`leaseHolder_${index}_${field}`);
+                hasLeaseHolderErrors = true;
+              }
+            });
+          });
+          
+          console.log("Lease holder validation result:", { hasLeaseHolderErrors, errors, missingFields });
+          
+          // Only disable Next button if there are validation errors
+          if (hasLeaseHolderErrors) {
+            errors["leaseHolders"] = "Please complete all lease holder information";
+            missingFields.push("leaseHolders");
+          }
         }
+
+        // Validate guarantors if any are added
+        if (formData.guarantors.length > 0) {
+          let hasGuarantorErrors = false;
+          
+          console.log("Validating guarantors:", formData.guarantors);
+          
+          // Check DOB errors
+          if (guarantorErrors) {
+            errors["guarantors"] =
+              "Please fix date of birth errors for guarantors";
+            missingFields.push("guarantors");
+            hasGuarantorErrors = true;
+          }
+          
+          // Check if all required fields are filled for each guarantor
+          formData.guarantors.forEach((guarantor, index) => {
+            const requiredFields = ['firstName', 'lastName', 'email', 'phone', 'dateOfBirth'];
+            requiredFields.forEach(field => {
+              const fieldValue = guarantor[field as keyof typeof guarantor];
+              console.log(`Checking guarantor ${index} ${field}:`, fieldValue);
+              if (!fieldValue || fieldValue.toString().trim() === '') {
+                console.log(`Missing field: guarantor_${index}_${field}`);
+                errors[`guarantor_${index}_${field}`] = `${field} is required`;
+                missingFields.push(`guarantor_${index}_${field}`);
+                hasGuarantorErrors = true;
+              }
+            });
+          });
+          
+          console.log("Guarantor validation result:", { hasGuarantorErrors, errors, missingFields });
+          
+          // Only disable Next button if there are validation errors
+          if (hasGuarantorErrors) {
+            errors["guarantors"] = "Please complete all guarantor information";
+            missingFields.push("guarantors");
+          }
+        }
+        break;
+
+      case 4: // Additional Occupants
+        // Validate additional occupants if any are added
+        if (formData.additionalOccupants.length > 0) {
+          let hasOccupantErrors = false;
+          
+          console.log("Validating additional occupants:", formData.additionalOccupants);
+          
+          // Note: DOB error checking for occupants is not implemented yet
+          // This can be added later if needed
+          
+          // Check if all required fields are filled for each additional occupant
+          formData.additionalOccupants.forEach((occupant, index) => {
+            console.log(`Validating additional occupant ${index}:`, occupant);
+            const requiredFields = ['firstName', 'lastName', 'dateOfBirth'];
+            requiredFields.forEach(field => {
+              const fieldValue = occupant[field as keyof typeof occupant];
+              console.log(`Checking additional occupant ${index} ${field}:`, fieldValue, typeof fieldValue);
+              if (!fieldValue || fieldValue.toString().trim() === '') {
+                console.log(`Missing field: occupant_${index}_${field}`, fieldValue);
+                errors[`occupant_${index}_${field}`] = `${field} is required`;
+                missingFields.push(`occupant_${index}_${field}`);
+                hasOccupantErrors = true;
+              }
+            });
+          });
+          
+          console.log("Additional occupants validation result:", { hasOccupantErrors, errors, missingFields });
+          
+          // Only disable Next button if there are validation errors
+          if (hasOccupantErrors) {
+            errors["additionalOccupants"] = "Please complete all additional occupant information";
+            missingFields.push("additionalOccupants");
+          }
+        }
+        break;
+
+      case 5: // Additional Info
+        // Validate pets if any are added
+        if (formData.pets.length > 0) {
+          let hasPetErrors = false;
+          
+          console.log("Validating pets:", formData.pets);
+          
+          // Check if all required fields are filled for each pet
+          formData.pets.forEach((pet, index) => {
+            console.log(`Validating pet ${index}:`, pet);
+            const requiredFields = ['type', 'breed', 'age', 'weight'];
+            requiredFields.forEach(field => {
+              const fieldValue = pet[field as keyof typeof pet];
+              console.log(`Checking pet ${index} ${field}:`, fieldValue, typeof fieldValue);
+              if (!fieldValue || fieldValue.toString().trim() === '') {
+                console.log(`Missing field: pet_${index}_${field}`, fieldValue);
+                errors[`pet_${index}_${field}`] = `${field} is required`;
+                missingFields.push(`pet_${index}_${field}`);
+                hasPetErrors = true;
+              }
+            });
+          });
+          
+          console.log("Pet validation result:", { hasPetErrors, errors, missingFields });
+          
+          // Only disable Next button if there are validation errors
+          if (hasPetErrors) {
+            errors["pets"] = "Please complete all pet information";
+            missingFields.push("pets");
+          }
+        }
+
+        // Validate vehicles if any are added
+        if (formData.vehicles.length > 0) {
+          let hasVehicleErrors = false;
+          
+          console.log("Validating vehicles:", formData.vehicles);
+          
+          // Check if all required fields are filled for each vehicle
+          formData.vehicles.forEach((vehicle, index) => {
+            console.log(`Validating vehicle ${index}:`, vehicle);
+            const requiredFields = ['type', 'make', 'model', 'year', 'color', 'licensePlate'];
+            requiredFields.forEach(field => {
+              const fieldValue = vehicle[field as keyof typeof vehicle];
+              console.log(`Checking vehicle ${index} ${field}:`, fieldValue, typeof fieldValue);
+              if (!fieldValue || fieldValue.toString().trim() === '') {
+                console.log(`Missing field: vehicle_${index}_${field}`, fieldValue);
+                errors[`vehicle_${index}_${field}`] = `${field} is required`;
+                missingFields.push(`vehicle_${index}_${field}`);
+                hasVehicleErrors = true;
+              }
+            });
+          });
+          
+          console.log("Vehicle validation result:", { hasVehicleErrors, errors, missingFields });
+          
+          // Only disable Next button if there are validation errors
+          if (hasVehicleErrors) {
+            errors["vehicles"] = "Please complete all vehicle information";
+            missingFields.push("vehicles");
+          }
+        }
+
+        // Validate emergency contact fields
+        console.log("Validating emergency contact:", formData.emergencyContact);
         
-        if (guarantorErrors) {
-          errors['guarantors'] = 'Please fix date of birth errors for guarantors';
-          missingFields.push('guarantors');
+        const emergencyContactFields = ['name', 'phone', 'relation'];
+        let hasEmergencyContactErrors = false;
+        
+        emergencyContactFields.forEach(field => {
+          const fieldValue = formData.emergencyContact[field as keyof typeof formData.emergencyContact];
+          console.log(`Checking emergency contact ${field}:`, fieldValue, typeof fieldValue);
+          if (!fieldValue || fieldValue.toString().trim() === '') {
+            console.log(`Missing emergency contact field: ${field}`, fieldValue);
+            errors[`emergencyContact_${field}`] = `${field} is required`;
+            missingFields.push(`emergencyContact_${field}`);
+            hasEmergencyContactErrors = true;
+          }
+        });
+        
+        console.log("Emergency contact validation result:", { hasEmergencyContactErrors, errors, missingFields });
+        
+        // Only disable Next button if there are validation errors
+        if (hasEmergencyContactErrors) {
+          errors["emergencyContact"] = "Please complete all emergency contact information";
+          missingFields.push("emergencyContact");
         }
         break;
 
       case 6: // Documents
         if (formData.documents.id.length === 0) {
-          errors['documents'] = 'At least one ID document is required';
-          missingFields.push('documents');
+          errors["documents"] = "At least one ID document is required";
+          missingFields.push("documents");
         }
         break;
 
       case 7: // Review & Submit
         if (!formData.backgroundCheckPermission) {
-          errors['backgroundCheckPermission'] = 'Background check authorization is required';
-          missingFields.push('backgroundCheckPermission');
+          errors["backgroundCheckPermission"] =
+            "Background check authorization is required";
+          missingFields.push("backgroundCheckPermission");
         }
         break;
     }
@@ -548,20 +955,43 @@ const ApplicationProcess = ({
     return {
       isValid: Object.keys(errors).length === 0,
       errors,
-      missingFields
+      missingFields,
     };
   };
 
   const isStepValid = () => {
     const validation = validateStep(currentStep);
     if (currentStep === 1) {
-      console.log('Financial Info Validation:', {
+      console.log("Financial Info Validation:", {
         employment: formData.employment,
         employerName: formData.employerName,
         employersArray: formData.employers,
         primaryIncome: formData.employers[0]?.income,
         validation,
-        isValid: validation.isValid
+        isValid: validation.isValid,
+      });
+    }
+    if (currentStep === 3) {
+      console.log("Lease Holders & Guarantors Validation:", {
+        leaseHolders: formData.leaseHolders,
+        guarantors: formData.guarantors,
+        validation,
+        isValid: validation.isValid,
+      });
+    }
+    if (currentStep === 4) {
+      console.log("Additional Occupants Validation:", {
+        additionalOccupants: formData.additionalOccupants,
+        validation,
+        isValid: validation.isValid,
+      });
+    }
+    if (currentStep === 5) {
+      console.log("Additional Info (Pets & Vehicles) Validation:", {
+        pets: formData.pets,
+        vehicles: formData.vehicles,
+        validation,
+        isValid: validation.isValid,
       });
     }
     return validation.isValid;
@@ -573,15 +1003,18 @@ const ApplicationProcess = ({
     } else if (!isStepValid()) {
       const validation = validateStep(currentStep);
       const errorCount = validation.missingFields.length;
-      const fieldNames = validation.missingFields.slice(0, 3).join(', ');
-      const moreFields = errorCount > 3 ? ` and ${errorCount - 3} more field${errorCount - 3 > 1 ? 's' : ''}` : '';
-      
+      const fieldNames = validation.missingFields.slice(0, 3).join(", ");
+      const moreFields =
+        errorCount > 3
+          ? ` and ${errorCount - 3} more field${errorCount - 3 > 1 ? "s" : ""}`
+          : "";
+
       toast({
         title: "Missing Required Information",
         description: `Please complete: ${fieldNames}${moreFields}`,
         variant: "destructive",
       });
-      
+
       // Update field errors for visual feedback
       setFieldErrors(validation.errors);
     }
@@ -715,14 +1148,14 @@ const ApplicationProcess = ({
   // Real-time field validation
   const handleFieldChange = (fieldName: string, value: any) => {
     const error = validateField(fieldName, value);
-    setFieldErrors(prev => ({
+    setFieldErrors((prev) => ({
       ...prev,
-      [fieldName]: error
+      [fieldName]: error,
     }));
-    
+
     // Clear error when field becomes valid
     if (!error) {
-      setFieldErrors(prev => {
+      setFieldErrors((prev) => {
         const newErrors = { ...prev };
         delete newErrors[fieldName];
         return newErrors;
@@ -732,12 +1165,14 @@ const ApplicationProcess = ({
 
   // Get field error state
   const getFieldError = (fieldName: string): string => {
-    return fieldErrors[fieldName] || '';
+    return fieldErrors[fieldName] || "";
   };
 
   // Get field error styling
   const getFieldErrorStyle = (fieldName: string): string => {
-    return fieldErrors[fieldName] ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : '';
+    return fieldErrors[fieldName]
+      ? "border-red-500 focus:border-red-500 focus:ring-red-500"
+      : "";
   };
 
   const handleHolderDOBChange = (value: string, index: number) => {
@@ -1344,65 +1779,78 @@ const ApplicationProcess = ({
         city: formData.currentCity,
         state: formData.currentState,
         zipCode: formData.currentZip,
-        
+
         // Employment Information
-        employer: formData.employers[0]?.name || '',
-        jobTitle: formData.employers[0]?.position || '',
-        employmentStatus: formData.employers[0]?.employmentStatus || '',
-        annualIncome: parseFloat(formData.employers[0]?.income?.replace(/[^0-9.]/g, '') || '0'),
-        employmentStartDate: formData.employers[0]?.startDate || '',
-        
+        employer: formData.employers[0]?.name || "",
+        jobTitle: formData.employers[0]?.position || "",
+        employmentStatus: formData.employers[0]?.employmentStatus || "",
+        annualIncome: parseFloat(
+          formData.employers[0]?.income?.replace(/[^0-9.]/g, "") || "0"
+        ),
+        employmentStartDate: formData.employers[0]?.startDate || "",
+
         // Rental History
-        previousLandlordName: formData.previousLandlordName || '',
-        previousLandlordPhone: formData.previousLandlordPhone || '',
-        previousRentAmount: parseFloat(formData.previousRentAmount?.replace(/[^0-9.]/g, '') || '0'),
-        rentalHistory: formData.rentalHistory || '',
-        
+        previousLandlordName: formData.previousLandlordName || "",
+        previousLandlordPhone: formData.previousLandlordPhone || "",
+        previousRentAmount: parseFloat(
+          formData.previousRentAmount?.replace(/[^0-9.]/g, "") || "0"
+        ),
+        rentalHistory: formData.rentalHistory || "",
+
         // References
-        reference1Name: formData.references?.[0]?.name || '',
-        reference1Phone: formData.references?.[0]?.phone || '',
-        reference1Relationship: formData.references?.[0]?.relationship || '',
-        reference2Name: formData.references?.[1]?.name || '',
-        reference2Phone: formData.references?.[1]?.phone || '',
-        reference2Relationship: formData.references?.[1]?.relationship || '',
-        
+        reference1Name: formData.references?.[0]?.name || "",
+        reference1Phone: formData.references?.[0]?.phone || "",
+        reference1Relationship: formData.references?.[0]?.relationship || "",
+        reference2Name: formData.references?.[1]?.name || "",
+        reference2Phone: formData.references?.[1]?.phone || "",
+        reference2Relationship: formData.references?.[1]?.relationship || "",
+
         // Property Information
-        propertyId: property?.id || 'general-application',
-        propertyName: property?.name || 'General Application',
+        propertyId: property?.id || "general-application",
+        propertyName: property?.name || "General Application",
         unitId: selectedUnit?.id || null,
         unitNumber: selectedUnit?.unitNumber || null,
-        
+
         // Additional fields
-        notes: formData.notes || '',
+        notes: formData.notes || "",
         creditScore: formData.creditScore || 0,
         hasPets: formData.hasPets || false,
-        petDetails: formData.pets?.map(pet => `${pet.type}: ${pet.name} (${pet.age} years, ${pet.weight} lbs)`).join(', ') || '',
-        emergencyContactName: formData.emergencyContact?.name || '',
-        emergencyContactPhone: formData.emergencyContact?.phone || '',
-        emergencyContactRelationship: formData.emergencyContact?.relation || '',
-        submittedBy: user?.uid || '',
+        petDetails:
+          formData.pets
+            ?.map(
+              (pet) =>
+                `${pet.type}: ${pet.name} (${pet.age} years, ${pet.weight} lbs)`
+            )
+            .join(", ") || "",
+        emergencyContactName: formData.emergencyContact?.name || "",
+        emergencyContactPhone: formData.emergencyContact?.phone || "",
+        emergencyContactRelationship: formData.emergencyContact?.relation || "",
+        submittedBy: user?.uid || "",
       };
 
       const result = await submitApplicationWithDocuments(
         applicationData,
         formData.documents,
-        user?.uid || ''
+        user?.uid || ""
       );
-      
+
       if (result.success) {
         toast({
           title: "Application Submitted Successfully",
-          description: `Your application has been submitted to Firebase with ${result.documentsUploaded || 0} documents uploaded.`,
+          description: `Your application has been submitted to Firebase with ${
+            result.documentsUploaded || 0
+          } documents uploaded.`,
         });
       } else {
-        throw new Error(result.error || 'Failed to submit application');
+        throw new Error(result.error || "Failed to submit application");
       }
     } catch (error) {
-      console.error('Error submitting application to Firebase:', error);
+      console.error("Error submitting application to Firebase:", error);
       toast({
         title: "Firebase Submission Failed",
-        description: "Application was formatted for SafeRent but failed to save to Firebase. Please try again.",
-        variant: "destructive"
+        description:
+          "Application was formatted for SafeRent but failed to save to Firebase. Please try again.",
+        variant: "destructive",
       });
     }
 
@@ -1483,14 +1931,18 @@ const ApplicationProcess = ({
                   value={formData.firstName}
                   onChange={(e) => {
                     setFormData({ ...formData, firstName: e.target.value });
-                    handleFieldChange('firstName', e.target.value);
+                    handleFieldChange("firstName", e.target.value);
                   }}
                   placeholder="Enter first name"
-                  className={`w-full px-4 py-3 border rounded-xl focus:outline-none bg-white/50 backdrop-blur-sm ${getFieldErrorStyle('firstName')}`}
+                  className={`w-full px-4 py-3 border rounded-xl focus:outline-none bg-white/50 backdrop-blur-sm ${getFieldErrorStyle(
+                    "firstName"
+                  )}`}
                   required
                 />
-                {getFieldError('firstName') && (
-                  <p className="text-red-500 text-sm mt-1">{getFieldError('firstName')}</p>
+                {getFieldError("firstName") && (
+                  <p className="text-red-500 text-sm mt-1">
+                    {getFieldError("firstName")}
+                  </p>
                 )}
               </div>
               <div>
@@ -1505,19 +1957,23 @@ const ApplicationProcess = ({
                   value={formData.lastName}
                   onChange={(e) => {
                     setFormData({ ...formData, lastName: e.target.value });
-                    handleFieldChange('lastName', e.target.value);
+                    handleFieldChange("lastName", e.target.value);
                   }}
                   placeholder="Enter last name"
-                  className={`w-full px-4 py-3 border rounded-xl focus:outline-none bg-white/50 backdrop-blur-sm ${getFieldErrorStyle('lastName')}`}
+                  className={`w-full px-4 py-3 border rounded-xl focus:outline-none bg-white/50 backdrop-blur-sm ${getFieldErrorStyle(
+                    "lastName"
+                  )}`}
                   required
                 />
-                {getFieldError('lastName') && (
-                  <p className="text-red-500 text-sm mt-1">{getFieldError('lastName')}</p>
+                {getFieldError("lastName") && (
+                  <p className="text-red-500 text-sm mt-1">
+                    {getFieldError("lastName")}
+                  </p>
                 )}
               </div>
             </div>
             <div>
-              <Label 
+              <Label
                 htmlFor="middleInitial"
                 className="block text-sm font-semibold text-gray-700 mb-2"
               >
@@ -1536,7 +1992,7 @@ const ApplicationProcess = ({
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <Label 
+                <Label
                   htmlFor="email"
                   className="block text-sm font-semibold text-gray-700 mb-2"
                 >
@@ -1548,18 +2004,22 @@ const ApplicationProcess = ({
                   value={formData.email}
                   onChange={(e) => {
                     setFormData({ ...formData, email: e.target.value });
-                    handleFieldChange('email', e.target.value);
+                    handleFieldChange("email", e.target.value);
                   }}
                   placeholder="Enter email"
-                  className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring- bg-gray-50/70 backdrop-blur-sm ${getFieldErrorStyle('email')}`}
+                  className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring- bg-gray-50/70 backdrop-blur-sm ${getFieldErrorStyle(
+                    "email"
+                  )}`}
                   required
                 />
-                {getFieldError('email') && (
-                  <p className="text-red-500 text-sm mt-1">{getFieldError('email')}</p>
+                {getFieldError("email") && (
+                  <p className="text-red-500 text-sm mt-1">
+                    {getFieldError("email")}
+                  </p>
                 )}
               </div>
               <div>
-                <Label 
+                <Label
                   htmlFor="phone"
                   className="block text-sm font-semibold text-gray-700 mb-2"
                 >
@@ -1571,21 +2031,25 @@ const ApplicationProcess = ({
                   onChange={(e) => {
                     const formatted = formatPhoneNumber(e.target.value);
                     setFormData({ ...formData, phone: formatted });
-                    handleFieldChange('phone', formatted);
+                    handleFieldChange("phone", formatted);
                   }}
                   placeholder="(555) 123-4567"
                   maxLength={14}
-                  className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring- bg-white/50 backdrop-blur-sm ${getFieldErrorStyle('phone')}`}
+                  className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring- bg-white/50 backdrop-blur-sm ${getFieldErrorStyle(
+                    "phone"
+                  )}`}
                   required
                 />
-                {getFieldError('phone') && (
-                  <p className="text-red-500 text-sm mt-1">{getFieldError('phone')}</p>
+                {getFieldError("phone") && (
+                  <p className="text-red-500 text-sm mt-1">
+                    {getFieldError("phone")}
+                  </p>
                 )}
               </div>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <Label 
+                <Label
                   htmlFor="dateOfBirth"
                   className="block text-sm font-semibold text-gray-700 mb-2"
                 >
@@ -1597,25 +2061,27 @@ const ApplicationProcess = ({
                   value={formData.dateOfBirth}
                   onChange={(e) => {
                     handleDOBChange(e.target.value);
-                    handleFieldChange('dateOfBirth', e.target.value);
+                    handleFieldChange("dateOfBirth", e.target.value);
                   }}
                   onBlur={(e) => handleDOBBlur(e.target.value)}
                   placeholder="MM/DD/YYYY"
                   maxLength={10}
                   required
                   className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring- bg-white/50 backdrop-blur-sm ${
-                    dobError || getFieldError('dateOfBirth') ? "border-red-500" : "border-gray-200"
+                    dobError || getFieldError("dateOfBirth")
+                      ? "border-red-500"
+                      : "border-gray-200"
                   }`}
                 />
-                {(dobError || getFieldError('dateOfBirth')) && (
+                {(dobError || getFieldError("dateOfBirth")) && (
                   <p className="mt-2 text-sm text-red-600 flex items-center bg-red-50 p-2 rounded-lg">
                     <AlertCircle className="h-4 w-4 mr-1" />
-                    {dobError || getFieldError('dateOfBirth')}
+                    {dobError || getFieldError("dateOfBirth")}
                   </p>
                 )}
               </div>
               <div>
-                <Label 
+                <Label
                   htmlFor="ssn"
                   className="block text-sm font-semibold text-gray-700 mb-2"
                 >
@@ -1636,21 +2102,25 @@ const ApplicationProcess = ({
                     const numbers = e.target.value.replace(/\D/g, "");
                     setRawSSN(numbers);
                     setFormData({ ...formData, ssn: formatSSN(numbers) });
-                    handleFieldChange('ssn', formatSSN(numbers));
+                    handleFieldChange("ssn", formatSSN(numbers));
                   }}
                   placeholder="XXX-XX-XXXX"
                   maxLength={11}
                   required
-                  className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring- bg-white/50 backdrop-blur-sm ${getFieldErrorStyle('ssn')}`}
+                  className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring- bg-white/50 backdrop-blur-sm ${getFieldErrorStyle(
+                    "ssn"
+                  )}`}
                 />
-                {getFieldError('ssn') && (
-                  <p className="text-red-500 text-sm mt-1">{getFieldError('ssn')}</p>
+                {getFieldError("ssn") && (
+                  <p className="text-red-500 text-sm mt-1">
+                    {getFieldError("ssn")}
+                  </p>
                 )}
               </div>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <Label 
+                <Label
                   htmlFor="moveInDate"
                   className="block text-sm font-semibold text-gray-700 mb-2"
                 >
@@ -1701,7 +2171,7 @@ const ApplicationProcess = ({
                 </Popover>
               </div>
               <div>
-                <Label 
+                <Label
                   htmlFor="desiredLeaseTerm"
                   className="block text-sm font-semibold text-gray-700 mb-2"
                 >
@@ -1740,7 +2210,7 @@ const ApplicationProcess = ({
                 }
                 className="data-[state=checked]:bg-blue-600"
               />
-              <Label 
+              <Label
                 htmlFor="isCitizen"
                 className="block text-sm font-semibold text-gray-700"
               >
@@ -1758,7 +2228,6 @@ const ApplicationProcess = ({
       case 1: // Financial Info
         return (
           <div className="space-y-6">
-           
             <div>
               <Label
                 htmlFor="employment"
@@ -1770,13 +2239,13 @@ const ApplicationProcess = ({
                 value={formData.employment}
                 onValueChange={(value) => {
                   setFormData({ ...formData, employment: value });
-                  handleFieldChange('employment', value);
+                  handleFieldChange("employment", value);
                 }}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select employment status" />
                 </SelectTrigger>
-                        <SelectContent className="z-[9999] max-h-60 overflow-y-auto">
+                <SelectContent className="z-[9999] max-h-60 overflow-y-auto">
                   <SelectItem value="full-time">Full-time</SelectItem>
                   <SelectItem value="part-time">Part-time</SelectItem>
                   <SelectItem value="contract">Contract</SelectItem>
@@ -1786,8 +2255,10 @@ const ApplicationProcess = ({
                   <SelectItem value="unemployed">Unemployed</SelectItem>
                 </SelectContent>
               </Select>
-              {getFieldError('employment') && (
-                <p className="text-red-500 text-sm mt-1">{getFieldError('employment')}</p>
+              {getFieldError("employment") && (
+                <p className="text-red-500 text-sm mt-1">
+                  {getFieldError("employment")}
+                </p>
               )}
             </div>
 
@@ -1804,14 +2275,21 @@ const ApplicationProcess = ({
                     id="employerName"
                     value={formData.employerName}
                     onChange={(e) => {
-                      setFormData({ ...formData, employerName: e.target.value });
-                      handleFieldChange('employerName', e.target.value);
+                      setFormData({
+                        ...formData,
+                        employerName: e.target.value,
+                      });
+                      handleFieldChange("employerName", e.target.value);
                     }}
                     placeholder="Enter employer name"
-                    className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring- bg-white/50 backdrop-blur-sm ${getFieldErrorStyle('employerName')}`}
+                    className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring- bg-white/50 backdrop-blur-sm ${getFieldErrorStyle(
+                      "employerName"
+                    )}`}
                   />
-                  {getFieldError('employerName') && (
-                    <p className="text-red-500 text-sm mt-1">{getFieldError('employerName')}</p>
+                  {getFieldError("employerName") && (
+                    <p className="text-red-500 text-sm mt-1">
+                      {getFieldError("employerName")}
+                    </p>
                   )}
                 </div>
 
@@ -1830,7 +2308,7 @@ const ApplicationProcess = ({
                           const updated = [...formData.employers];
                           updated[0] = { ...updated[0], industry: value };
                           setFormData({ ...formData, employers: updated });
-                          handleFieldChange('industry', value);
+                          handleFieldChange("industry", value);
                         }}
                       >
                         <SelectTrigger>
@@ -1847,8 +2325,10 @@ const ApplicationProcess = ({
                           ))}
                         </SelectContent>
                       </Select>
-                      {getFieldError('industry') && (
-                        <p className="text-red-500 text-sm mt-1">{getFieldError('industry')}</p>
+                      {getFieldError("industry") && (
+                        <p className="text-red-500 text-sm mt-1">
+                          {getFieldError("industry")}
+                        </p>
                       )}
                     </div>
                     <div>
@@ -1864,7 +2344,7 @@ const ApplicationProcess = ({
                           const updated = [...formData.employers];
                           updated[0] = { ...updated[0], position: value };
                           setFormData({ ...formData, employers: updated });
-                          handleFieldChange('position', value);
+                          handleFieldChange("position", value);
                         }}
                       >
                         <SelectTrigger>
@@ -1881,8 +2361,10 @@ const ApplicationProcess = ({
                           ))}
                         </SelectContent>
                       </Select>
-                      {getFieldError('position') && (
-                        <p className="text-red-500 text-sm mt-1">{getFieldError('position')}</p>
+                      {getFieldError("position") && (
+                        <p className="text-red-500 text-sm mt-1">
+                          {getFieldError("position")}
+                        </p>
                       )}
                     </div>
                     <div>
@@ -1901,14 +2383,18 @@ const ApplicationProcess = ({
                           value={formData.employers[0]?.income || ""}
                           onChange={(e) => {
                             handleIncomeChange(e.target.value, 0);
-                            handleFieldChange('monthlyIncome', e.target.value);
+                            handleFieldChange("monthlyIncome", e.target.value);
                           }}
                           onBlur={() => handleIncomeBlur(0)}
                           placeholder="20000"
-                          className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring- bg-white/50 backdrop-blur-sm pl-8 ${getFieldErrorStyle('monthlyIncome')}`}
+                          className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring- bg-white/50 backdrop-blur-sm pl-8 ${getFieldErrorStyle(
+                            "monthlyIncome"
+                          )}`}
                         />
-                        {getFieldError('monthlyIncome') && (
-                          <p className="text-red-500 text-sm mt-1">{getFieldError('monthlyIncome')}</p>
+                        {getFieldError("monthlyIncome") && (
+                          <p className="text-red-500 text-sm mt-1">
+                            {getFieldError("monthlyIncome")}
+                          </p>
                         )}
                       </div>
                     </div>
@@ -2162,10 +2648,7 @@ const ApplicationProcess = ({
 
       case 2: // Housing History
         return (
-          <div
-            className="space-y-6 max-h-[60vh] overflow-y-auto"
-          >
-           
+          <div className="space-y-6 max-h-[60vh] overflow-y-auto">
             {/* Current Address */}
             <div className="space-y-4">
               <div className="border-b pb-2">
@@ -2183,13 +2666,17 @@ const ApplicationProcess = ({
                   value={formData.currentStreet}
                   onChange={(e) => {
                     setFormData({ ...formData, currentStreet: e.target.value });
-                    handleFieldChange('currentStreet', e.target.value);
+                    handleFieldChange("currentStreet", e.target.value);
                   }}
                   placeholder="123 Main Street, Apt 4B"
-                  className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring- bg-white/50 backdrop-blur-sm ${getFieldErrorStyle('currentStreet')}`}
+                  className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring- bg-white/50 backdrop-blur-sm ${getFieldErrorStyle(
+                    "currentStreet"
+                  )}`}
                 />
-                {getFieldError('currentStreet') && (
-                  <p className="text-red-500 text-sm mt-1">{getFieldError('currentStreet')}</p>
+                {getFieldError("currentStreet") && (
+                  <p className="text-red-500 text-sm mt-1">
+                    {getFieldError("currentStreet")}
+                  </p>
                 )}
               </div>
               <div className="grid grid-cols-2 gap-4">
@@ -2205,13 +2692,17 @@ const ApplicationProcess = ({
                     value={formData.currentCity}
                     onChange={(e) => {
                       setFormData({ ...formData, currentCity: e.target.value });
-                      handleFieldChange('currentCity', e.target.value);
+                      handleFieldChange("currentCity", e.target.value);
                     }}
                     placeholder="City"
-                    className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring- bg-white/50 backdrop-blur-sm ${getFieldErrorStyle('currentCity')}`}
+                    className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring- bg-white/50 backdrop-blur-sm ${getFieldErrorStyle(
+                      "currentCity"
+                    )}`}
                   />
-                  {getFieldError('currentCity') && (
-                    <p className="text-red-500 text-sm mt-1">{getFieldError('currentCity')}</p>
+                  {getFieldError("currentCity") && (
+                    <p className="text-red-500 text-sm mt-1">
+                      {getFieldError("currentCity")}
+                    </p>
                   )}
                 </div>
                 <div>
@@ -2225,14 +2716,21 @@ const ApplicationProcess = ({
                     id="currentState"
                     value={formData.currentState}
                     onChange={(e) => {
-                      setFormData({ ...formData, currentState: e.target.value });
-                      handleFieldChange('currentState', e.target.value);
+                      setFormData({
+                        ...formData,
+                        currentState: e.target.value,
+                      });
+                      handleFieldChange("currentState", e.target.value);
                     }}
                     placeholder="State"
-                    className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring- bg-white/50 backdrop-blur-sm ${getFieldErrorStyle('currentState')}`}
+                    className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring- bg-white/50 backdrop-blur-sm ${getFieldErrorStyle(
+                      "currentState"
+                    )}`}
                   />
-                  {getFieldError('currentState') && (
-                    <p className="text-red-500 text-sm mt-1">{getFieldError('currentState')}</p>
+                  {getFieldError("currentState") && (
+                    <p className="text-red-500 text-sm mt-1">
+                      {getFieldError("currentState")}
+                    </p>
                   )}
                 </div>
               </div>
@@ -2249,14 +2747,18 @@ const ApplicationProcess = ({
                   onChange={(e) => {
                     const value = e.target.value.replace(/\D/g, "").slice(0, 5);
                     setFormData({ ...formData, currentZip: value });
-                    handleFieldChange('currentZip', value);
+                    handleFieldChange("currentZip", value);
                   }}
                   placeholder="12345"
                   maxLength={5}
-                  className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring- bg-white/50 backdrop-blur-sm ${getFieldErrorStyle('currentZip')}`}
+                  className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring- bg-white/50 backdrop-blur-sm ${getFieldErrorStyle(
+                    "currentZip"
+                  )}`}
                 />
-                {getFieldError('currentZip') && (
-                  <p className="text-red-500 text-sm mt-1">{getFieldError('currentZip')}</p>
+                {getFieldError("currentZip") && (
+                  <p className="text-red-500 text-sm mt-1">
+                    {getFieldError("currentZip")}
+                  </p>
                 )}
               </div>
               <div className="w-64">
@@ -2270,7 +2772,25 @@ const ApplicationProcess = ({
                   value={formData.currentDuration}
                   onValueChange={(value) => {
                     setFormData({ ...formData, currentDuration: value });
-                    handleFieldChange('currentDuration', value);
+                    handleFieldChange("currentDuration", value);
+
+                    // Smooth scroll to previous address form when "Less than 2 years" is selected
+                    if (value === "0-2") {
+                      // Use requestAnimationFrame to ensure DOM is updated
+                      requestAnimationFrame(() => {
+                        setTimeout(() => {
+                          const element =
+                            document.getElementById("twoyearsform");
+                          if (element) {
+                            element.scrollIntoView({
+                              behavior: "smooth",
+                              block: "start",
+                              inline: "nearest",
+                            });
+                          }
+                        }, 200); // Increased delay to ensure the form is fully rendered
+                      });
+                    }
                   }}
                 >
                   <SelectTrigger>
@@ -2281,15 +2801,17 @@ const ApplicationProcess = ({
                     <SelectItem value="2+">More than 2 years</SelectItem>
                   </SelectContent>
                 </Select>
-                {getFieldError('currentDuration') && (
-                  <p className="text-red-500 text-sm mt-1">{getFieldError('currentDuration')}</p>
+                {getFieldError("currentDuration") && (
+                  <p className="text-red-500 text-sm mt-1">
+                    {getFieldError("currentDuration")}
+                  </p>
                 )}
               </div>
             </div>
 
             {/* Previous Address (if lived at current address < 2 years) */}
             {formData.currentDuration === "0-2" && (
-              <div className="space-y-4 border-t pt-4">
+              <div className="space-y-4 border-t pt-4" id="twoyearsform">
                 <div className="border-b pb-2">
                   <h5 className="font-medium text-base">Previous Address</h5>
                 </div>
@@ -2384,7 +2906,6 @@ const ApplicationProcess = ({
       case 3: // Lease Holders & Guarantors (only for full application)
         return (
           <div className="space-y-6">
-          
             {/* Lease Holders */}
             <div className="space-y-4">
               <div className="border-b pb-2">
@@ -3628,8 +4149,6 @@ const ApplicationProcess = ({
       case 4: // Additional Occupants (only for full application)
         return (
           <div className="min-h-[600px] space-y-6">
-           
-
             <div className="space-y-6">
               <div className="bg-secondary/5 p-4 rounded-lg border-l-4 border-secondary">
                 <h4 className="font-semibold text-lg">Additional Occupants</h4>
@@ -3911,7 +4430,6 @@ const ApplicationProcess = ({
       case 5: // Additional Info (only for full application)
         return (
           <div className="space-y-6">
-          
             {/* Pet Information */}
             <div className="space-y-4">
               <div className="border-b pb-2">
@@ -3926,9 +4444,20 @@ const ApplicationProcess = ({
                       id="pets-yes"
                       name="hasPets"
                       checked={formData.hasPets === true}
-                      onChange={() =>
-                        setFormData({ ...formData, hasPets: true })
-                      }
+                      onChange={() => {
+                        setFormData({ 
+                          ...formData, 
+                          hasPets: true,
+                          // Automatically add a pet when "Yes" is selected
+                          pets: formData.pets.length === 0 ? [{
+                            type: "",
+                            breed: "",
+                            age: "",
+                            weight: "",
+                            isServiceAnimal: false
+                          }] : formData.pets
+                        });
+                      }}
                       required
                     />
                     <Label htmlFor="pets-yes">Yes</Label>
@@ -4133,9 +4662,21 @@ const ApplicationProcess = ({
                       id="vehicles-yes"
                       name="hasVehicles"
                       checked={formData.hasVehicles === true}
-                      onChange={() =>
-                        setFormData({ ...formData, hasVehicles: true })
-                      }
+                      onChange={() => {
+                        setFormData({ 
+                          ...formData, 
+                          hasVehicles: true,
+                          // Automatically add a vehicle when "Yes" is selected
+                          vehicles: formData.vehicles.length === 0 ? [{
+                            type: "",
+                            make: "",
+                            model: "",
+                            year: "",
+                            color: "",
+                            licensePlate: ""
+                          }] : formData.vehicles
+                        });
+                      }}
                       required
                     />
                     <Label htmlFor="vehicles-yes">Yes</Label>
@@ -4478,8 +5019,13 @@ const ApplicationProcess = ({
 
             <div className="space-y-6">
               <div className="text-center">
-                <h3 className="text-xl font-semibold text-gray-800 mb-2">Upload Required Documents</h3>
-                <p className="text-gray-600">Please upload your driver's license or ID to complete your application</p>
+                <h3 className="text-xl font-semibold text-gray-800 mb-2">
+                  Upload Required Documents
+                </h3>
+                <p className="text-gray-600">
+                  Please upload your driver's license or ID to complete your
+                  application
+                </p>
               </div>
 
               {/* ID Documents */}
@@ -4488,11 +5034,18 @@ const ApplicationProcess = ({
                   <FileText className="h-5 w-5 mr-2 text-green-600" />
                   Government ID
                 </h4>
-                <p className="text-sm text-gray-600 mb-4">Upload a clear photo of your driver's license, passport, or state ID</p>
+                <p className="text-sm text-gray-600 mb-4">
+                  Upload a clear photo of your driver's license, passport, or
+                  state ID
+                </p>
                 <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-green-400 transition-colors">
                   <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                  <p className="text-gray-600 mb-2">Click to upload or drag and drop</p>
-                  <p className="text-xs text-gray-500">PNG, JPG, PDF up to 10MB</p>
+                  <p className="text-gray-600 mb-2">
+                    Click to upload or drag and drop
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    PNG, JPG, PDF up to 10MB
+                  </p>
                   <input
                     type="file"
                     accept=".png,.jpg,.jpeg,.pdf"
@@ -4505,8 +5058,8 @@ const ApplicationProcess = ({
                         ...formData,
                         documents: {
                           ...formData.documents,
-                          id: [...formData.documents.id, ...files]
-                        }
+                          id: [...formData.documents.id, ...files],
+                        },
                       });
                     }}
                   />
@@ -4519,17 +5072,29 @@ const ApplicationProcess = ({
                 </div>
                 {formData.documents.id.length > 0 && (
                   <div className="mt-4">
-                    <p className="text-sm font-medium text-gray-700 mb-2">Uploaded files:</p>
+                    <p className="text-sm font-medium text-gray-700 mb-2">
+                      Uploaded files:
+                    </p>
                     <div className="space-y-2">
                       {formData.documents.id.map((file, index) => (
-                        <div key={index} className="flex items-center justify-between bg-gray-50 p-2 rounded">
-                          <span className="text-sm text-gray-700">{file.name}</span>
+                        <div
+                          key={index}
+                          className="flex items-center justify-between bg-gray-50 p-2 rounded"
+                        >
+                          <span className="text-sm text-gray-700">
+                            {file.name}
+                          </span>
                           <button
                             onClick={() => {
-                              const newFiles = formData.documents.id.filter((_, i) => i !== index);
+                              const newFiles = formData.documents.id.filter(
+                                (_, i) => i !== index
+                              );
                               setFormData({
                                 ...formData,
-                                documents: { ...formData.documents, id: newFiles }
+                                documents: {
+                                  ...formData.documents,
+                                  id: newFiles,
+                                },
                               });
                             }}
                             className="text-red-500 hover:text-red-700"
@@ -4542,8 +5107,6 @@ const ApplicationProcess = ({
                   </div>
                 )}
               </div>
-
-
             </div>
           </div>
         );
@@ -4551,7 +5114,6 @@ const ApplicationProcess = ({
       case 7: // Review & Submit (only for full application)
         return (
           <div className="space-y-6">
-         
             <div className="text-center space-y-2">
               <FileText className="h-16 w-16 text-primary mx-auto" />
               <h3 className="text-lg font-semibold">Review Your Application</h3>
@@ -5314,18 +5876,17 @@ const ApplicationProcess = ({
               </div>
               <div>
                 <DialogTitle className="text-3xl font-bold text-white">
-            {showResults
-              ? "Pre-qualification Results"
-              : type === "prequalify"
-              ? "Get Pre-Qualified"
-              : "Rental Application"}
-          </DialogTitle>
+                  {showResults
+                    ? "Pre-qualification Results"
+                    : type === "prequalify"
+                    ? "Get Pre-Qualified"
+                    : "Rental Application"}
+                </DialogTitle>
                 <p className="text-green-100 text-lg">
                   Fill out the form below to apply for your dream home
                 </p>
               </div>
             </div>
-           
           </div>
         </DialogHeader>
 
@@ -5345,19 +5906,26 @@ const ApplicationProcess = ({
                     }`}
                   >
                     {step.icon && (
-                      <step.icon className={`h-3 w-3 ${
-                        index === currentStep ? "text-white" : ""
-                      }`} />
+                      <step.icon
+                        className={`h-3 w-3 ${
+                          index === currentStep ? "text-white" : ""
+                        }`}
+                      />
                     )}
-                    <span className={`text-xs font-medium whitespace-nowrap ${
-                      index === currentStep ? "text-white" : ""
-                    }`}>
+                    <span
+                      className={`text-xs font-medium whitespace-nowrap ${
+                        index === currentStep ? "text-white" : ""
+                      }`}
+                    >
                       {/* Show abbreviated text for longer step names */}
-                      {step.title === "Lease Holders & Guarantors" ? "Lease Holders" :
-                       step.title === "Additional Occupants" ? "Occupants" :
-                       step.title === "Additional Info" ? "Additional" :
-                       step.title}
-                  </span>
+                      {step.title === "Lease Holders & Guarantors"
+                        ? "Lease Holders"
+                        : step.title === "Additional Occupants"
+                        ? "Occupants"
+                        : step.title === "Additional Info"
+                        ? "Additional"
+                        : step.title}
+                    </span>
                   </div>
                   {index < steps.length - 1 && (
                     <div className="w-2 h-0.5 bg-blue-300 mx-1 flex-shrink-0" />
@@ -5482,9 +6050,7 @@ const ApplicationProcess = ({
         ) : (
           <>
             {/* Step content - scrollable */}
-            <div
-              className="flex-1 overflow-y-auto bg-white/90 backdrop-blur-md"
-            >
+            <div className="flex-1 overflow-y-auto bg-white/90 backdrop-blur-md">
               <div className="p-6 space-y-6">
                 {/* Section Header */}
                 <div className="mb-6">
@@ -5501,7 +6067,7 @@ const ApplicationProcess = ({
                       {steps[currentStep].title}
                     </h2>
                   </div>
-                  
+
                   {/* Security Banner */}
                   <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 flex items-center space-x-3">
                     <Shield className="h-5 w-5 text-blue-600" />
@@ -5512,9 +6078,7 @@ const ApplicationProcess = ({
                 </div>
 
                 {/* Form Content */}
-                <div className="space-y-6">
-                  {renderStepContent()}
-                </div>
+                <div className="space-y-6">{renderStepContent()}</div>
               </div>
             </div>
 
@@ -5531,8 +6095,8 @@ const ApplicationProcess = ({
               </Button>
 
               {currentStep < steps.length - 1 ? (
-                <Button 
-                  onClick={handleNext} 
+                <Button
+                  onClick={handleNext}
                   disabled={!isStepValid()}
                   className="flex items-center space-x-2 px-8 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white font-semibold rounded-xl hover:from-green-700 hover:to-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2  disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-lg hover:shadow-xl"
                 >
@@ -5540,12 +6104,17 @@ const ApplicationProcess = ({
                   <ArrowRight className="h-4 w-4" />
                 </Button>
               ) : (
-                <Button 
-                  onClick={handleSubmit} 
+                <Button
+                  onClick={handleSubmit}
                   disabled={!isStepValid()}
                   className="flex items-center space-x-2 px-8 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white font-semibold rounded-xl hover:from-green-700 hover:to-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2  disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-lg hover:shadow-xl"
                 >
-                  <span>Submit {type === "prequalify" ? "Pre-qualification" : "Application"}</span>
+                  <span>
+                    Submit{" "}
+                    {type === "prequalify"
+                      ? "Pre-qualification"
+                      : "Application"}
+                  </span>
                   <CheckCircle className="h-4 w-4" />
                 </Button>
               )}

@@ -442,7 +442,7 @@ export function PropertyMap({
       {/* Map Attribution */}
       <div className="absolute bottom-0 left-0 right-0 bg-white/80 backdrop-blur-sm text-xs text-gray-600 p-2 z-10">
         <div className="flex items-center justify-between">
-          <span>© 2022 Cocoon</span>
+          <span>© 2022 rental</span>
           <span>Map data © OpenStreetMap contributors</span>
         </div>
       </div>

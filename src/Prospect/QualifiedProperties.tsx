@@ -474,7 +474,7 @@ const QualifiedProperties: React.FC<QualifiedPropertiesProps> = ({
             <div className="w-12 h-12 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center shadow-2xl">
               <Boxes className="h-6 w-6 text-white" />
             </div>
-            <div className="flex flex-col">
+            <div className="flex flex-col ">
               <h1 className="text-3xl font-bold text-white mb-1">
                 <Star className="h-6 w-6 mr-2 text-green-600" />
                 Available Units
@@ -867,10 +867,12 @@ const QualifiedProperties: React.FC<QualifiedPropertiesProps> = ({
                                   animate={{ opacity: 1, y: 0 }}
                                   exit={{ opacity: 0, y: -10 }}
                                   transition={{ duration: 0.2 }}
-                                  className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-10 overflow-hidden"
+                                  className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-10 overflow-hidden max-h-80 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100"
                                 >
                                   {getAvailableLeaseTerms(unit).map((term) => (
-                                    <div
+                                  <>
+                                  
+                                  <div
                                       key={term.months}
                                       onClick={() => handleLeaseTermSelect(unit.id, term)}
                                       className={`px-4 py-2 cursor-pointer transition-colors duration-150 flex items-center justify-between ${
@@ -906,6 +908,7 @@ const QualifiedProperties: React.FC<QualifiedPropertiesProps> = ({
                                         </span>
                                       )}
                                       </div>
+                                      </>
                                   ))}
                                 </motion.div>
                               )}
@@ -1047,6 +1050,8 @@ const QualifiedProperties: React.FC<QualifiedPropertiesProps> = ({
           setScheduleTourModalOpen(true);
           setShowUnitDetails(false);
         }}
+        onLeaseTermSelect={handleLeaseTermSelect}
+        currentSelectedLeaseTerm={selectedUnitForDetails?.unit ? selectedLeaseTerms[selectedUnitForDetails.unit.id] : null}
         onApply={(unit) => {
           if (selectedUnitForDetails) {
             // Find the full unit data from our units array

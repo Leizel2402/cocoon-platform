@@ -153,7 +153,7 @@ export function SignUp() {
         transition={{ duration: 0.6, delay: 0.1 }}
         className="mt-2 sm:mt-4 sm:mx-auto sm:w-full sm:max-w-md relative z-10"
       >
-        <div className="bg-white/95 backdrop-blur-md py-6 sm:py-8 lg:py-10 px-4 sm:px-6 lg:px-8 shadow-2xl sm:rounded-3xl border border-white/20 max-h-[calc(100vh-8rem)] overflow-y-auto">
+        <div className="bg-white/95 backdrop-blur-md py-6 sm:py-8 lg:py-10 px-4 sm:px-6 lg:px-8 shadow-2xl sm:rounded-3xl border border-white/20 ">
           <form className="space-y-4" onSubmit={handleSubmit}>
             {error && (
               <motion.div

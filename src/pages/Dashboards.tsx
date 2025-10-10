@@ -1906,7 +1906,9 @@ const Dashboards = () => {
               setSelectedProperty(property);
               setSelectedUnit(unit);
               setSelectedLeaseTerm(leaseTerm);
-              setCurrentView('product-selection');
+              // setCurrentView('product-selection');
+              setCurrentView('application-process');
+              setApplicationStep(0);
             }}
             onUnitSelect={(property, unit, leaseTerm) => {
              
