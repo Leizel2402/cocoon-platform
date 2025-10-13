@@ -21,6 +21,7 @@ import { AddySearchBox } from "../components/AddySearch/AddySearchBox";
 import { AddyChat } from "../components/AddyChat/Chat";
 import { FAQSection, FAQItem } from "../components/FAQ";
 import { TestimonialCard } from "../components/TestimonialCard/TestimonialCard";
+import { ContactModal } from "../components/ContactModal";
 import { testimonialsData, faqData } from "../constants/data";
 import heroImage from "../assets/images/hero-apartments.jpg";
 
@@ -43,6 +44,7 @@ export function Home() {
   const [filteredProperties, setFilteredProperties] = useState<Property[]>([]);
 
   const [applicationStep] = useState<number | null>(null);
+  const [isContactModalOpen, setIsContactModalOpen] = useState(false);
   const [currentView, setCurrentView] = useState<
     | "s"
     | "applications"
@@ -678,10 +680,7 @@ export function Home() {
         <FAQSection
           faqData={faqData}
           onBrowseProperties={() => navigate("/property")}
-          onContactSupport={() => {
-            // Add contact support functionality here
-            console.log("Contact support clicked");
-          }}
+          onContactSupport={() => setIsContactModalOpen(true)}
         />
         {/* Testimonials Section */}
         <div className="py-12 sm:py-16 lg:py-20 bg-white">
@@ -767,6 +766,12 @@ export function Home() {
           onNavigateToUnitSelection={() => setCurrentView("unit-selection")}
         />
       )}
+
+      {/* Contact Modal */}
+      <ContactModal
+        isOpen={isContactModalOpen}
+        onClose={() => setIsContactModalOpen(false)}
+      />
     </>
   );
 }

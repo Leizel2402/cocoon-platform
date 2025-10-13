@@ -1,334 +1,737 @@
 import { useState, useEffect } from "react";
-import { collection, query, where, orderBy, getDocs } from "firebase/firestore";
-import { db } from "../lib/firebase";
-import { useAuth } from "../hooks/useAuth";
-import { Application, Property } from "../types";
-import { motion } from "framer-motion";
 import {
-  User,
   FileText,
   Home,
-  DollarSign,
-  TrendingUp,
-  Clock,
   CheckCircle,
+  CreditCard,
+  Settings,
+  Wrench,
+  MessageSquare,
+  Search,
+  Car,
+  Dumbbell,
+  Zap,
+  Bell,
+  Calendar,
+  ChevronRight,
+  Clock,
+  MapPin,
+  DollarSign,
+  Loader2
 } from "lucide-react";
+import { useAuth } from "../hooks/useAuth";
+import {
+  getUserRentPayments,
+  getUserSubscriptions,
+  getUserMaintenanceRequests,
+  getUserMessages,
+  getUserApplications,
+  getUserProperty,
+  calculateUserStats,
+  type RentPayment,
+  type UserSubscription,
+  type MaintenanceRequest,
+  type UserMessage,
+  type UserApplication,
+  type UserProperty
+} from "../services/userDataService";
 import { useNavigate } from "react-router-dom";
 
 export function UserPortal() {
+  const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
+  // State for dynamic data
+  const [rentPayments, setRentPayments] = useState<RentPayment[]>([]);
+  const [subscriptions, setSubscriptions] = useState<UserSubscription[]>([]);
+  const [maintenanceRequests, setMaintenanceRequests] = useState<MaintenanceRequest[]>([]);
+  const [messages, setMessages] = useState<UserMessage[]>([]);
+  const [applications, setApplications] = useState<UserApplication[]>([]);
+  const [userProperty, setUserProperty] = useState<UserProperty | null>(null);
+  const [stats, setStats] = useState({
+    totalApplications: 0,
+    recentApplications: 0,
+    currentRent: 0,
+    currentRentStatus: 'paid' as 'due' | 'paid' | 'overdue',
+    activeSubscriptions: 0,
+    openMaintenanceRequests: 0,
+    unreadMessages: 0
+  });
+  const [dataLoading, setDataLoading] = useState(true);
 
-  const [applications, setApplications] = useState<Application[]>([]);
-  const [properties, setProperties] = useState<Property[]>([]);
-  const [loading, setLoading] = useState(true);
-  const { user } = useAuth();
+  // Dummy data for UI demonstration
+  const dummyRentPayments: RentPayment[] = [
+    {
+      id: '1',
+      amount: 2500,
+      dueDate: new Date('2024-02-01'),
+      status: 'due',
+      property: 'Sunset Apartments - Unit 205',
+      propertyId: 'prop1',
+      unitId: 'unit1',
+      unitNumber: '205'
+    },
+    {
+      id: '2',
+      amount: 2500,
+      dueDate: new Date('2024-01-01'),
+      status: 'paid',
+      property: 'Sunset Apartments - Unit 205',
+      propertyId: 'prop1',
+      unitId: 'unit1',
+      unitNumber: '205'
+    },
+    {
+      id: '3',
+      amount: 2500,
+      dueDate: new Date('2023-12-01'),
+      status: 'paid',
+      property: 'Sunset Apartments - Unit 205',
+      propertyId: 'prop1',
+      unitId: 'unit1',
+      unitNumber: '205'
+    }
+  ];
 
+  const dummySubscriptions: UserSubscription[] = [
+    {
+      id: '1',
+      name: 'Covered Parking',
+      type: 'parking',
+      price: 75,
+      status: 'active',
+      nextBilling: new Date('2024-02-01'),
+      propertyId: 'prop1',
+      unitId: 'unit1'
+    },
+    {
+      id: '2',
+      name: 'Fitness Center',
+      type: 'amenities',
+      price: 25,
+      status: 'active',
+      nextBilling: new Date('2024-02-01'),
+      propertyId: 'prop1',
+      unitId: 'unit1'
+    },
+    {
+      id: '3',
+      name: 'High-Speed Internet',
+      type: 'utilities',
+      price: 89,
+      status: 'active',
+      nextBilling: new Date('2024-02-01'),
+      propertyId: 'prop1',
+      unitId: 'unit1'
+    }
+  ];
+
+  const dummyMaintenanceRequests: MaintenanceRequest[] = [
+    {
+      id: '1',
+      title: 'Kitchen Sink Leak',
+      description: 'Water dripping from under the kitchen sink',
+      status: 'in_progress',
+      priority: 'medium',
+      submittedAt: new Date('2024-01-15'),
+      propertyId: 'prop1',
+      unitId: 'unit1',
+      unitNumber: '205'
+    },
+    {
+      id: '2',
+      title: 'Broken Light Switch',
+      description: 'Light switch in bedroom not working',
+      status: 'open',
+      priority: 'low',
+      submittedAt: new Date('2024-01-18'),
+      propertyId: 'prop1',
+      unitId: 'unit1',
+      unitNumber: '205'
+    }
+  ];
+
+  const dummyMessages: UserMessage[] = [
+    {
+      id: '1',
+      from: 'Property Manager',
+      subject: 'Maintenance Update',
+      message: 'Your kitchen sink repair has been scheduled for tomorrow.',
+      timestamp: new Date('2024-01-20'),
+      isRead: false,
+      isUrgent: false,
+      propertyId: 'prop1'
+    },
+    {
+      id: '2',
+      from: 'Building Management',
+      subject: 'Rent Reminder',
+      message: 'Your rent payment is due in 3 days.',
+      timestamp: new Date('2024-01-19'),
+      isRead: true,
+      isUrgent: true,
+      propertyId: 'prop1'
+    }
+  ];
+
+  const dummyApplications: UserApplication[] = [
+    {
+      id: 'app123456',
+      propertyId: 'prop1',
+      propertyName: 'Sunset Apartments',
+      unitId: 'unit1',
+      unitNumber: '205',
+      status: 'approved',
+      submittedAt: new Date('2024-01-15'),
+      appFeeCents: 7500
+    }
+  ];
+
+  const dummyUserProperty: UserProperty = {
+    id: 'prop1',
+    name: 'Sunset Apartments',
+    address: '123 Sunset Blvd, Los Angeles, CA 90210',
+    unitId: 'unit1',
+    unitNumber: '205',
+    rent: 2500,
+    leaseStart: new Date('2023-06-01'),
+    leaseEnd: new Date('2024-05-31'),
+    status: 'active'
+  };
+
+  const dummyStats = {
+    totalApplications: 1,
+    recentApplications: 1,
+    currentRent: 2500,
+    currentRentStatus: 'due' as 'due' | 'paid' | 'overdue',
+    activeSubscriptions: 3,
+    openMaintenanceRequests: 1,
+    unreadMessages: 1
+  };
+
+  // Fetch user data when user is available
   useEffect(() => {
-    const loadData = async () => {
-      if (!user) return;
+    const fetchUserData = async () => {
+      if (!user) {
+        setDataLoading(false);
+        return;
+      }
 
       try {
-        // Load user's applications
-        const applicationsQuery = query(
-          collection(db, "applications"),
-          where("user_id", "==", user.uid),
-          orderBy("created_at", "desc")
-        );
-        const applicationsSnapshot = await getDocs(applicationsQuery);
+        setDataLoading(true);
+        
+        // For now, use dummy data for UI demonstration
+        // TODO: Replace with real Firebase data when collections are set up
+        setRentPayments(dummyRentPayments);
+        setSubscriptions(dummySubscriptions);
+        setMaintenanceRequests(dummyMaintenanceRequests);
+        setMessages(dummyMessages);
+        setApplications(dummyApplications);
+        setUserProperty(dummyUserProperty);
+        setStats(dummyStats);
 
-        const applicationsData = applicationsSnapshot.docs.map((doc) => {
-          const data = doc.data();
-          return {
-            id: doc.id,
-            ...data,
-            created_at: data.created_at?.toDate
-              ? data.created_at.toDate()
-              : new Date(),
-          };
-        }) as Application[];
+        // Uncomment below when Firebase collections are ready:
+        /*
+        const [
+          rentPaymentsData,
+          subscriptionsData,
+          maintenanceRequestsData,
+          messagesData,
+          applicationsData,
+          userPropertyData,
+          statsData
+        ] = await Promise.all([
+          getUserRentPayments(user.uid),
+          getUserSubscriptions(user.uid),
+          getUserMaintenanceRequests(user.uid),
+          getUserMessages(user.uid),
+          getUserApplications(user.uid),
+          getUserProperty(user.uid),
+          calculateUserStats(user.uid)
+        ]);
 
-        // Load properties
-        const propertiesResponse = await fetch("/data/properties.json");
-        const propertiesData: Property[] = await propertiesResponse.json();
-
-        // Enrich applications with property data
-        const enrichedApplications = applicationsData.map((app) => ({
-          ...app,
-          property: propertiesData.find((p) => p.id === app.property_id),
-        }));
-
-        setApplications(enrichedApplications);
-        setProperties(propertiesData);
+        setRentPayments(rentPaymentsData);
+        setSubscriptions(subscriptionsData);
+        setMaintenanceRequests(maintenanceRequestsData);
+        setMessages(messagesData);
+        setApplications(applicationsData);
+        setUserProperty(userPropertyData);
+        setStats(statsData);
+        */
       } catch (error) {
-        console.error("Error loading user data:", error);
+        console.error('Error fetching user data:', error);
+        // Fallback to dummy data on error
+        setRentPayments(dummyRentPayments);
+        setSubscriptions(dummySubscriptions);
+        setMaintenanceRequests(dummyMaintenanceRequests);
+        setMessages(dummyMessages);
+        setApplications(dummyApplications);
+        setUserProperty(dummyUserProperty);
+        setStats(dummyStats);
       } finally {
-        setLoading(false);
+        setDataLoading(false);
       }
     };
 
-    loadData();
+    fetchUserData();
   }, [user]);
 
-  // Calculate stats
-  const totalApplications = applications.length;
-  const recentApplications = applications.filter((app) => {
-    const daysDiff =
-      (new Date().getTime() - app.created_at.getTime()) / (1000 * 3600 * 24);
-    return daysDiff <= 30;
-  }).length;
-
-  const avgRentApplied =
-    applications.length > 0
-      ? Math.round(
-          applications.reduce(
-            (sum, app) => sum + (app.property?.rent || 0),
-            0
-          ) / applications.length
-        )
-      : 0;
-
-  if (loading) {
+  // Show loading state while authentication or data is loading
+  if (authLoading || dataLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-4 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600 text-lg">Loading your portal...</p>
+          <Loader2 className="h-8 w-8 animate-spin text-green-600 mx-auto mb-4" />
+          <p className="text-gray-600">Loading your portal...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show login prompt if no user
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <Home className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Welcome to Cocoon</h2>
+          <p className="text-gray-600 mb-6">Please sign in to access your renter portal</p>
+          <button className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 font-semibold transition-colors">
+            Sign In
+          </button>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-8">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          className="mb-8"
-        >
-          <div className="bg-white rounded-3xl shadow-xl p-8">
-            <div className="flex items-center">
-              <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-4 rounded-2xl shadow-lg">
-                <User className="h-10 w-10 text-white" />
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+      {/* Top Navigation Bar */}
+   
+
+      {/* Header Banner */}
+      <div className="bg-gradient-to-r from-green-600 via-green-500 to-emerald-600 text-white">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              {/* <Home className="h-6 w-6" /> */}
+              <div>
+                <h1 className="text-2xl font-bold">Renter Portal</h1>
+                <p className="text-sm text-green-50">
+                  Welcome back, {user.displayName || user.email} • {stats.activeSubscriptions} active services
+                  {userProperty && (
+                    <span className="ml-2">• {userProperty.name}</span>
+                  )}
+                </p>
               </div>
-              <div className="ml-6">
-                <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                  Welcome back!
-                </h1>
-                <p className="text-gray-600 text-xl mt-2">{user?.email}</p>
-                <div className="flex items-center mt-2">
-                  <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">
-                    Tenant Account
+            </div>
+            <div className="flex items-center space-x-3">
+              {stats.unreadMessages > 0 && (
+                <div className="relative">
+                  <Bell className="h-5 w-5" />
+                  <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                    {stats.unreadMessages}
                   </span>
+                </div>
+              )}
+              <button className="px-6 py-2 bg-white text-green-600 rounded-lg hover:bg-green-50 font-semibold transition-all duration-200 shadow-lg text-sm">
+                Find New Home
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Property Info Card */}
+        <div className="mb-6">
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+            <div className="flex items-start justify-between mb-4">
+              <div className="flex items-center space-x-3">
+                <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
+                  <Home className="h-6 w-6 text-green-600" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold text-gray-900">
+                    {userProperty ? userProperty.name : 'No Active Lease'}
+                  </h2>
+                  <div className="flex items-center text-gray-600 text-sm mt-1">
+                    <MapPin className="h-4 w-4 mr-1" />
+                    <span>
+                      {userProperty ? (
+                        <>
+                          {userProperty.unitNumber && `Unit ${userProperty.unitNumber} • `}
+                          {userProperty.address}
+                        </>
+                      ) : (
+                        user.email
+                      )}
+                    </span>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="flex items-center space-x-2">
+                {userProperty ? (
+                  <>
+                    <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${
+                      userProperty.status === 'active' 
+                        ? 'bg-green-50 text-green-700 border-green-200' 
+                        : 'bg-gray-50 text-gray-700 border-gray-200'
+                    }`}>
+                      {userProperty.status === 'active' ? '✓ Active Lease' : 'Lease Expired'}
+                    </span>
+                    <span className="px-3 py-1 bg-blue-50 text-blue-700 rounded-full text-xs font-semibold border border-blue-200">
+                      ✓ Verified
+                    </span>
+                  </>
+                ) : (
+                  <span className="px-3 py-1 bg-yellow-50 text-yellow-700 rounded-full text-xs font-semibold border border-yellow-200">
+                    No Active Lease
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* Quick Stats Grid */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
+              <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-gray-600 text-xs font-medium">Rent Due</p>
+                  <DollarSign className="h-4 w-4 text-gray-400" />
+                </div>
+                <p className="text-2xl font-bold text-gray-900">${stats.currentRent}</p>
+                <p className="text-xs text-gray-500 mt-1">Feb 1, 2024</p>
+              </div>
+              
+              <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-gray-600 text-xs font-medium">Services</p>
+                  <Settings className="h-4 w-4 text-gray-400" />
+                </div>
+                <p className="text-2xl font-bold text-gray-900">{stats.activeSubscriptions}</p>
+                <p className="text-xs text-gray-500 mt-1">Active</p>
+              </div>
+              
+              <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-gray-600 text-xs font-medium">Requests</p>
+                  <Wrench className="h-4 w-4 text-gray-400" />
+                </div>
+                <p className="text-2xl font-bold text-gray-900">{stats.openMaintenanceRequests}</p>
+                <p className="text-xs text-gray-500 mt-1">Open</p>
+              </div>
+              
+              <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-gray-600 text-xs font-medium">Messages</p>
+                  <MessageSquare className="h-4 w-4 text-gray-400" />
+                </div>
+                <p className="text-2xl font-bold text-gray-900">{stats.unreadMessages}</p>
+                <p className="text-xs text-gray-500 mt-1">Unread</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Main Grid */}
+        <div className="grid lg:grid-cols-3 gap-6">
+          {/* Left Column */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Quick Actions */}
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+              <div className="flex items-center mb-5">
+                <Settings className="h-5 w-5 text-green-600 mr-2" />
+                <h3 className="text-lg font-bold text-gray-900">Quick Actions</h3>
+              </div>
+              
+              <div className="grid grid-cols-3 gap-3">
+                <button className="p-4 bg-green-50 hover:bg-green-100 border border-green-200 rounded-xl transition-all duration-200 group">
+                  <div className="w-12 h-12 bg-white rounded-lg flex items-center justify-center mb-3 mx-auto shadow-sm">
+                    <CreditCard className="h-6 w-6 text-green-600" />
+                  </div>
+                  <p className="font-semibold text-gray-900 text-sm text-center">Pay Rent</p>
+                  <p className="text-xs text-gray-500 mt-1 text-center">Due in 3 days</p>
+                </button>
+
+                <button onClick={() =>  navigate('/maintenance')} className="p-4 bg-red-50 hover:bg-red-100 border border-red-200 rounded-xl transition-all duration-200 group">
+                  <div className="w-12 h-12 bg-white rounded-lg flex items-center justify-center mb-3 mx-auto shadow-sm">
+                    <Wrench className="h-6 w-6 text-red-600" />
+                  </div>
+                  <p className="font-semibold text-gray-900 text-sm text-center">Maintenance</p>
+                  <p className="text-xs text-gray-500 mt-1 text-center">Report issue</p>
+                </button>
+
+                <button className="p-4 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-xl transition-all duration-200 group">
+                  <div className="w-12 h-12 bg-white rounded-lg flex items-center justify-center mb-3 mx-auto shadow-sm">
+                    <MessageSquare className="h-6 w-6 text-blue-600" />
+                  </div>
+                  <p className="font-semibold text-gray-900 text-sm text-center">Messages</p>
+                  <p className="text-xs text-gray-500 mt-1 text-center">{stats.unreadMessages} unread</p>
+                </button>
+
+                <button className="p-4 bg-purple-50 hover:bg-purple-100 border border-purple-200 rounded-xl transition-all duration-200 group">
+                  <div className="w-12 h-12 bg-white rounded-lg flex items-center justify-center mb-3 mx-auto shadow-sm">
+                    <Settings className="h-6 w-6 text-purple-600" />
+                  </div>
+                  <p className="font-semibold text-gray-900 text-sm text-center">Services</p>
+                  <p className="text-xs text-gray-500 mt-1 text-center">Manage</p>
+                </button>
+
+                <button className="p-4 bg-orange-50 hover:bg-orange-100 border border-orange-200 rounded-xl transition-all duration-200 group">
+                  <div className="w-12 h-12 bg-white rounded-lg flex items-center justify-center mb-3 mx-auto shadow-sm">
+                    <FileText className="h-6 w-6 text-orange-600" />
+                  </div>
+                  <p className="font-semibold text-gray-900 text-sm text-center">Documents</p>
+                  <p className="text-xs text-gray-500 mt-1 text-center">View lease</p>
+                </button>
+
+                <button onClick={() => navigate('/property')} className="p-4 bg-teal-50 hover:bg-teal-100 border border-teal-200 rounded-xl transition-all duration-200 group">
+                  <div className="w-12 h-12 bg-white rounded-lg flex items-center justify-center mb-3 mx-auto shadow-sm">
+                    <Search className="h-6 w-6 text-teal-600" />
+                  </div>
+                  <p className="font-semibold text-gray-900 text-sm text-center">Find Home</p>
+                  <p className="text-xs text-gray-500 mt-1 text-center">Browse</p>
+                </button>
+              </div>
+            </div>
+
+            {/* Rent Payment Card */}
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+              <div className="bg-gray-50 p-6 text-gray-800 border-b border-gray-100">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <p className="text-gray-600 text-sm mb-1">Next Payment Due</p>
+                    <h3 className="text-4xl font-bold text-gray-900">
+                      ${rentPayments.length > 0 ? rentPayments[0].amount.toLocaleString() : '0'}
+                    </h3>
+                  </div>
+                  <div className="w-16 h-16 bg-blue-100 rounded-2xl flex items-center justify-center">
+                    <Calendar className="h-8 w-8 text-blue-600" />
+                  </div>
+                </div>
+                <div className="flex items-center justify-between">
+                  <p className="text-sm text-gray-600">
+                    Due: {rentPayments.length > 0 ? rentPayments[0].dueDate.toLocaleDateString() : 'No payments due'}
+                  </p>
+                  {rentPayments.length > 0 && (
+                    <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-semibold">
+                      {(() => {
+                        const daysLeft = Math.ceil((rentPayments[0].dueDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
+                        return daysLeft > 0 ? `${daysLeft} days left` : daysLeft === 0 ? 'Due today' : `${Math.abs(daysLeft)} days overdue`;
+                      })()}
+                    </span>
+                  )}
+                </div>
+              </div>
+              
+              <div className="p-6">
+                <button className="w-full py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-xl font-semibold transition-all duration-200 shadow-sm">
+                  Pay Now
+                </button>
+                
+                <div className="mt-6 pt-6 border-t border-gray-100">
+                  <h4 className="text-sm font-bold text-gray-900 mb-4">Payment History</h4>
+                  <div className="space-y-3">
+                    {rentPayments.filter(p => p.status === 'paid').slice(0, 5).map((payment) => (
+                      <div key={payment.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                        <div className="flex items-center space-x-3">
+                          <CheckCircle className="h-5 w-5 text-green-600" />
+                          <div>
+                            <p className="text-sm font-semibold text-gray-900">${payment.amount.toLocaleString()}</p>
+                            <p className="text-xs text-gray-500">{payment.dueDate.toLocaleDateString()}</p>
+                          </div>
+                        </div>
+                        <span className="text-xs px-3 py-1 bg-green-100 text-green-700 rounded-full font-semibold">
+                          Paid
+                        </span>
+                      </div>
+                    ))}
+                    {rentPayments.filter(p => p.status === 'paid').length === 0 && (
+                      <p className="text-sm text-gray-500 text-center py-4">No payment history available</p>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
+
+            {/* Maintenance Requests */}
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+              <div className="flex items-center justify-between mb-5">
+                <div className="flex items-center">
+                  <Wrench className="h-5 w-5 text-red-600 mr-2" />
+                  <h3 className="text-lg font-bold text-gray-900">Maintenance Requests</h3>
+                </div>
+                <button className="text-sm text-green-600 hover:text-green-700 font-semibold flex items-center">
+                  View All <ChevronRight className="h-4 w-4 ml-1" />
+                </button>
+              </div>
+
+              <div className="space-y-3">
+                {maintenanceRequests.length > 0 ? (
+                  maintenanceRequests.map((request) => (
+                    <div key={request.id} className="p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center space-x-3">
+                          <Wrench className={`h-5 w-5 ${
+                            request.status === 'in_progress' ? 'text-blue-600' : 
+                            request.status === 'completed' ? 'text-green-600' : 'text-gray-400'
+                          }`} />
+                          <div>
+                            <h4 className="font-semibold text-gray-900 text-sm">{request.title}</h4>
+                            <p className="text-xs text-gray-500 mt-1">
+                              Submitted {request.submittedAt.toLocaleDateString()}
+                            </p>
+                          </div>
+                        </div>
+                        <span className={`text-xs px-3 py-1 rounded-full font-semibold ${
+                          request.priority === 'urgent' ? 'bg-red-100 text-red-700 border border-red-200' :
+                          request.priority === 'high' ? 'bg-orange-100 text-orange-700 border border-orange-200' :
+                          request.priority === 'medium' ? 'bg-yellow-100 text-yellow-700 border border-yellow-200' :
+                          'bg-gray-100 text-gray-700 border border-gray-200'
+                        }`}>
+                          {request.priority}
+                        </span>
+                      </div>
+                      <span className={`inline-block text-xs px-3 py-1 rounded-full font-semibold ${
+                        request.status === 'in_progress' ? 'bg-blue-100 text-blue-700 border border-blue-200' : 
+                        request.status === 'completed' ? 'bg-green-100 text-green-700 border border-green-200' :
+                        'bg-gray-100 text-gray-700 border border-gray-200'
+                      }`}>
+                        {request.status.replace('_', ' ')}
+                      </span>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-sm text-gray-500 text-center py-4">No maintenance requests</p>
+                )}
+              </div>
+
+              <button className="w-full mt-4 py-3 border-2 border-dashed border-gray-300 rounded-xl text-gray-600 hover:border-red-400 hover:text-red-600 hover:bg-red-50 transition-all duration-200 font-medium">
+                + New Maintenance Request
+              </button>
+            </div>
           </div>
-        </motion.div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.1 }}
-            className="bg-white rounded-2xl shadow-xl p-6 hover:shadow-2xl transition-all duration-300 "
-          >
-            <div className="flex items-center">
-              <div className="bg-blue-100 p-3 rounded-xl">
-                <FileText className="h-8 w-8 text-blue-600" />
+          {/* Right Column */}
+          <div className="space-y-6">
+            {/* Property Services */}
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+              <div className="flex items-center justify-between mb-5">
+                <div className="flex items-center">
+                  <Settings className="h-5 w-5 text-green-600 mr-2" />
+                  <h3 className="text-lg font-bold text-gray-900">Property Services</h3>
+                </div>
               </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">
-                  Total Applications
-                </p>
-                <p className="text-3xl font-bold text-gray-900">
-                  {totalApplications}
-                </p>
+              
+              <div className="space-y-3">
+                {subscriptions.map((sub) => (
+                  <div key={sub.id} className="p-4 bg-gray-50 rounded-xl border border-gray-100">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center space-x-3">
+                        {sub.type === 'parking' && <Car className="h-5 w-5 text-blue-600" />}
+                        {sub.type === 'amenities' && <Dumbbell className="h-5 w-5 text-green-600" />}
+                        {sub.type === 'utilities' && <Zap className="h-5 w-5 text-yellow-600" />}
+                        <p className="text-sm font-semibold text-gray-900">{sub.name}</p>
+                      </div>
+                      <p className="text-base font-bold text-gray-900">${sub.price}</p>
+                    </div>
+                    <p className="text-xs text-gray-500 ml-8">Next billing: {sub.nextBilling.toLocaleDateString()}</p>
+                  </div>
+                ))}
               </div>
+              
+              <button className="w-full mt-4 py-2 text-sm text-green-600 hover:text-green-700 font-semibold border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                Manage Services
+              </button>
             </div>
-          </motion.div>
 
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
-            className="bg-white rounded-2xl shadow-xl p-6 hover:shadow-2xl transition-all duration-300"
-          >
-            <div className="flex items-center">
-              <div className="bg-green-100 p-3 rounded-xl">
-                <TrendingUp className="h-8 w-8 text-green-600" />
+            {/* Messages */}
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+              <div className="flex items-center justify-between mb-5">
+                <div className="flex items-center">
+                  <MessageSquare className="h-5 w-5 text-blue-600 mr-2" />
+                  <h3 className="text-lg font-bold text-gray-900">Messages</h3>
+                </div>
+                {stats.unreadMessages > 0 && (
+                  <span className="px-2.5 py-1 bg-red-500 text-white text-xs rounded-full font-bold">
+                    {stats.unreadMessages}
+                  </span>
+                )}
               </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">This Month</p>
-                <p className="text-3xl font-bold text-gray-900">
-                  {recentApplications}
-                </p>
-              </div>
-            </div>
-          </motion.div>
 
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.3 }}
-            className="bg-white rounded-2xl shadow-xl p-6 hover:shadow-2xl transition-all duration-300"
-          >
-            <div className="flex items-center">
-              <div className="bg-purple-100 p-3 rounded-xl">
-                <DollarSign className="h-8 w-8 text-purple-600" />
+              <div className="space-y-3">
+                {messages.length > 0 ? (
+                  messages.map((msg) => (
+                    <div key={msg.id} className={`p-4 rounded-xl border-l-4 ${
+                      msg.isUrgent ? 'bg-red-50 border-red-500' : 
+                      !msg.isRead ? 'bg-blue-50 border-blue-500' : 'bg-gray-50 border-gray-300'
+                    }`}>
+                      <div className="flex items-start justify-between mb-2">
+                        <p className="text-sm font-semibold text-gray-900">{msg.subject}</p>
+                        {!msg.isRead && <div className="w-2 h-2 bg-blue-500 rounded-full mt-1"></div>}
+                      </div>
+                      <p className="text-xs text-gray-600 mb-2">From: {msg.from}</p>
+                      <p className="text-xs text-gray-700 mb-2">{msg.message}</p>
+                      <p className="text-xs text-gray-500 flex items-center">
+                        <Clock className="h-3 w-3 mr-1" />
+                        {msg.timestamp.toLocaleDateString()}
+                      </p>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-sm text-gray-500 text-center py-4">No messages</p>
+                )}
               </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">
-                  Avg. Rent Applied
-                </p>
-                <p className="text-3xl font-bold text-gray-900">
-                  {avgRentApplied > 0
-                    ? `$${avgRentApplied.toLocaleString()}`
-                    : "$0"}
-                </p>
-              </div>
+
+              <button className="w-full mt-4 py-2 text-sm text-green-600 hover:text-green-700 font-semibold border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                View All Messages
+              </button>
             </div>
-          </motion.div>
+
+            {/* Applications Summary */}
+            <div className="bg-gradient-to-br from-green-600 to-emerald-600 rounded-2xl shadow-lg p-6 text-white">
+              <div className="flex items-center mb-5">
+                <FileText className="h-5 w-5 mr-2" />
+                <h3 className="text-lg font-bold">Applications</h3>
+              </div>
+              
+              <div className="space-y-4 mb-5">
+                <div className="flex justify-between items-center">
+                  <span className="text-green-50 text-sm">Total Submitted</span>
+                  <span className="text-3xl font-bold">{stats.totalApplications}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-green-50 text-sm">This Month</span>
+                  <span className="text-3xl font-bold">{stats.recentApplications}</span>
+                </div>
+                {applications.length > 0 && (
+                  <div className="pt-4 border-t border-white/20">
+                    <p className="text-green-50 text-xs mb-2">Recent Applications:</p>
+                    <div className="space-y-2">
+                      {applications.slice(0, 2).map((app) => (
+                        <div key={app.id} className="flex justify-between items-center text-xs">
+                          <span className="text-green-50 truncate">{app.propertyName}</span>
+                          <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
+                            app.status === 'approved' ? 'bg-green-500 text-white' :
+                            app.status === 'pending' ? 'bg-yellow-500 text-white' :
+                            app.status === 'rejected' ? 'bg-red-500 text-white' :
+                            'bg-gray-500 text-white'
+                          }`}>
+                            {app.status.replace('_', ' ')}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+              
+              <button className="w-full py-2.5 bg-white/20 backdrop-blur-sm hover:bg-white/30 rounded-lg text-sm font-semibold transition-colors">
+                View Applications
+              </button>
+            </div>
+          </div>
         </div>
-
-        {/* Quick Actions */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.4 }}
-          className="bg-white rounded-2xl shadow-xl p-8 mb-8"
-        >
-          <h2 className="text-2xl font-bold text-gray-900 mb-6">
-            Quick Actions
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <motion.a
-              onClick={() => navigate("/")}
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              className="flex cursor-pointer items-center p-4 bg-gradient-to-r from-blue-50 to-blue-100 rounded-xl hover:from-blue-100 hover:to-blue-200 transition-all duration-200 group"
-            >
-              <Home className="h-8 w-8 text-blue-600 mr-4 group-hover:scale-110 transition-transform" />
-              <div>
-                <h3 className="font-semibold text-gray-900">
-                  Browse Properties
-                </h3>
-                <p className="text-sm text-gray-600">Find your next home</p>
-              </div>
-            </motion.a>
-
-            <motion.a
-              onClick={() => navigate("/apply")}
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              className="flex  cursor-pointer items-center p-4 bg-gradient-to-r from-green-50 to-green-100 rounded-xl hover:from-green-100 hover:to-green-200 transition-all duration-200 group"
-            >
-              <FileText className="h-8 w-8 text-green-600 mr-4 group-hover:scale-110 transition-transform" />
-              <div>
-                <h3 className="font-semibold text-gray-900">New Application</h3>
-                <p className="text-sm text-gray-600">Apply for a property</p>
-              </div>
-            </motion.a>
-
-            <motion.a
-              onClick={() => navigate("/my-applications")}
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              className="flex cursor-pointer items-center p-4 bg-gradient-to-r from-purple-50 to-purple-100 rounded-xl hover:from-purple-100 hover:to-purple-200 transition-all duration-200 group"
-            >
-              <Clock className="h-8 w-8 text-purple-600 mr-4 group-hover:scale-110 transition-transform" />
-              <div>
-                <h3 className="font-semibold text-gray-900">My Applications</h3>
-                <p className="text-sm text-gray-600">Track your applications</p>
-              </div>
-            </motion.a>
-          </div>
-        </motion.div>
-
-        {/* Recent Applications */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.5 }}
-          className="bg-white rounded-2xl shadow-xl p-8"
-        >
-          <h2 className="text-2xl font-bold text-gray-900 mb-6">
-            Recent Applications
-          </h2>
-
-          {applications.length > 0 ? (
-            <div className="space-y-4">
-              {applications.slice(0, 3).map((application, index) => (
-                <motion.div
-                  key={application.id}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ duration: 0.3, delay: index * 0.1 }}
-                  className="flex items-center p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors"
-                >
-                  <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-500 rounded-xl flex items-center justify-center mr-4">
-                    <Home className="h-8 w-8 text-white" />
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="font-semibold text-gray-900">
-                      {application.property?.title || "Property Application"}
-                    </h3>
-                    <p className="text-gray-600">
-                      {application.property?.city},{" "}
-                      {application.property?.state}
-                    </p>
-                    <p className="text-sm text-gray-500">
-                      Applied on{" "}
-                      {new Date(application.created_at).toLocaleDateString()}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-bold text-blue-600">
-                      ${application.property?.rent.toLocaleString()}
-                    </p>
-                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                      <CheckCircle className="h-3 w-3 mr-1" />
-                      Submitted
-                    </span>
-                  </div>
-                </motion.div>
-              ))}
-
-              {applications.length > 3 && (
-                <motion.a
-                  onClick={() => navigate("/my-applications")}
-                  whileHover={{ scale: 1.02 }}
-                  className="block text-center py-3 text-blue-600 hover:text-blue-700 font-medium"
-                >
-                  View all {applications.length} applications →
-                </motion.a>
-              )}
-            </div>
-          ) : (
-            <div className="text-center py-8">
-              <div className="bg-gray-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
-                <FileText className="h-8 w-8 text-gray-400" />
-              </div>
-              <h3 className="text-lg font-medium text-gray-900 mb-2">
-                No applications yet
-              </h3>
-              <p className="text-gray-600 mb-4">
-                Start browsing properties to submit your first application
-              </p>
-              <motion.a
-                onClick={() => navigate("/")}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl hover:from-blue-700 hover:to-purple-700 transition-all duration-200 font-medium shadow-lg hover:shadow-xl"
-              >
-                Browse Properties
-              </motion.a>
-            </div>
-          )}
-        </motion.div>
       </div>
     </div>
   );

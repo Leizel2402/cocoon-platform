@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import { Button } from "../components/ui/Button";
@@ -26,7 +26,7 @@ import DashboardMap from "../components/DashboardMap";
 // import SubmissionsDashboard from "../components/SubmissionsDashboard";
 // import AccountManagement from '../landlord/shared/AccountManagement';
 import { useToast } from "../hooks/use-toast";
-import { generateMockComparisonUnits } from "../lib/mockUnits";
+// import { generateMockComparisonUnits } from "../lib/mockUnits";
 import PropertyDetailsModal from "../components/rentar/unitSelecttion/PropertyDetailsModal";
 import ScheduleTourModal from "../components/rentar/unitSelecttion/ScheduleTourModal";
 import { saveSearch } from "../services/savedSearchService";
@@ -36,6 +36,126 @@ import SearchFilters from "../components/PropertyAllFilter";
 import ProductSelection from "../components/ProductSelection";
 import PaymentPage from "../components/payment/PaymentPage";
 import PrequalificationInfo from "../Prospect/PrequalificationInfo";
+import {
+  geocodeSearchTerm,
+  searchPropertiesByName,
+  isLocationSearch,
+  getSearchSuggestions,
+  SearchSuggestion,
+} from "../services/geocodingService";
+import AutoSuggest from "../components/AutoSuggest";
+
+// Helper function to determine if a search term is a country name
+const isCountryName = (searchTerm: string): boolean => {
+  const countryNames = [
+    "united states",
+    "usa",
+    "us",
+    "america",
+    "canada",
+    "mexico",
+    "brazil",
+    "argentina",
+    "chile",
+    "colombia",
+    "peru",
+    "venezuela",
+    "united kingdom",
+    "uk",
+    "england",
+    "scotland",
+    "wales",
+    "ireland",
+    "france",
+    "germany",
+    "spain",
+    "italy",
+    "portugal",
+    "netherlands",
+    "belgium",
+    "switzerland",
+    "austria",
+    "poland",
+    "czech republic",
+    "hungary",
+    "romania",
+    "bulgaria",
+    "croatia",
+    "serbia",
+    "slovakia",
+    "slovenia",
+    "russia",
+    "ukraine",
+    "belarus",
+    "estonia",
+    "latvia",
+    "lithuania",
+    "finland",
+    "sweden",
+    "norway",
+    "denmark",
+    "china",
+    "japan",
+    "south korea",
+    "north korea",
+    "india",
+    "pakistan",
+    "bangladesh",
+    "sri lanka",
+    "thailand",
+    "vietnam",
+    "philippines",
+    "indonesia",
+    "malaysia",
+    "singapore",
+    "myanmar",
+    "cambodia",
+    "laos",
+    "australia",
+    "new zealand",
+    "fiji",
+    "papua new guinea",
+    "south africa",
+    "egypt",
+    "nigeria",
+    "kenya",
+    "morocco",
+    "tunisia",
+    "algeria",
+    "ethiopia",
+    "ghana",
+    "tanzania",
+    "israel",
+    "palestine",
+    "jordan",
+    "lebanon",
+    "syria",
+    "iraq",
+    "iran",
+    "saudi arabia",
+    "uae",
+    "qatar",
+    "kuwait",
+    "bahrain",
+    "turkey",
+    "greece",
+    "cyprus",
+    "armenia",
+    "georgia",
+    "azerbaijan",
+    "afghanistan",
+    "uzbekistan",
+    "kazakhstan",
+    "kyrgyzstan",
+    "tajikistan",
+    "turkmenistan",
+    "mongolia",
+  ];
+
+  return countryNames.some(
+    (country) => country.includes(searchTerm) || searchTerm.includes(country)
+  );
+};
 
 const Dashboards = () => {
   const { user, loading } = useAuth();
@@ -74,26 +194,39 @@ const Dashboards = () => {
   >("dashboard");
   const [applicationStep, setApplicationStep] = useState<number | null>(null);
   const [comparisonUnits, setComparisonUnits] = useState<any[]>([]);
-  const [selectedUnitsForComparison, setSelectedUnitsForComparison] = useState<any[]>([]);
   const [selectedProperty, setSelectedProperty] = useState<any>(null);
   const [selectedUnit, setSelectedUnit] = useState<any>(null);
   const [selectedLeaseTerm, setSelectedLeaseTerm] = useState<any>(null);
   const [paymentData, setPaymentData] = useState<any>(null);
-  const [_editingProperty] = useState<Record<string, any> | null>(null);
   const [scheduleTourModalOpen, setScheduleTourModalOpen] = useState(false);
   const [selectedPropertyForTour, setSelectedPropertyForTour] =
     useState<any>(null);
   const [searchLocation, setSearchLocation] = useState("");
-  const [userLocation] = useState("Austin, TX"); // Default to Austin, would be IP-based in production
+  const [userLocation] = useState(""); // Default to Austin, would be IP-based in production
   const [isPrequalified] = useState(false);
   const [selectedLanguage] = useState<"EN" | "ES" | "FR" | "DE">("EN");
   const { t } = useTranslation(selectedLanguage);
+
+  // Search and geocoding state
+  const [searchCoordinates, setSearchCoordinates] = useState<
+    [number, number] | null
+  >(null);
+  const [isGeocoding, setIsGeocoding] = useState(false);
+  const [geocodingError, setGeocodingError] = useState<string | null>(null);
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [suggestions, setSuggestions] = useState<SearchSuggestion[]>([]);
+  const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
+  const [justSelectedSuggestion, setJustSelectedSuggestion] = useState(false);
+  const [hasActiveSearch, setHasActiveSearch] = useState(false);
 
   // Save Search Modal states
   const [showSaveSearchModal, setShowSaveSearchModal] = useState(false);
   const [searchName, setSearchName] = useState("");
   const [savingSearch, setSavingSearch] = useState(false);
 
+  // Search functions will be defined after databaseProperties is declared
+
+  // Search effect will be defined after search functions are declared
 
   // Simple in-app view history for back navigation
   // const [viewHistory, setViewHistory] = useState<(typeof currentView)[]>([]);
@@ -171,7 +304,7 @@ const Dashboards = () => {
         moveInDate,
         subscriptionsEnabled: true, // Default to enabled
         filteredPropertiesCount: filteredProperties.length,
-        filteredPropertyIds: filteredProperties.map((p) => p.id),
+        filteredPropertyIds: filteredProperties.map((p: any) => p.id),
       };
 
       const result = await saveSearch(user.uid, searchData);
@@ -205,70 +338,71 @@ const Dashboards = () => {
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 5000]);
   const [selectedBeds, setSelectedBeds] = useState<string[]>([]);
   const [selectedBaths, setSelectedBaths] = useState<string[]>([]);
+
   const [selectedHomeTypes, setSelectedHomeTypes] = useState<string[]>([]);
   const [moveInDate, setMoveInDate] = useState<Date>();
   const [showAllFilters, setShowAllFilters] = useState(false);
-  
+
   // Enhanced search summary state
   const [searchSummary, setSearchSummary] = useState({
     activeFilters: 0,
     totalResults: 0,
     lastUpdated: new Date(),
-    filterDetails: [] as Array<{type: string, value: string, label: string}>,
+    filterDetails: [] as Array<{ type: string; value: string; label: string }>,
     searchInsights: {
       averagePrice: 0,
-      priceRange: {min: 0, max: 0},
+      priceRange: { min: 0, max: 0 },
       popularAmenities: [] as string[],
-      topLocations: [] as string[]
-    }
+      topLocations: [] as string[],
+    },
   });
 
   // Helper function for filter management
   const removeFilter = (filterType: string) => {
     switch (filterType) {
-      case 'location':
-        setSearchLocation('');
+      case "location":
+        setSearchLocation("");
         break;
-      case 'price':
+      case "price":
         setPriceRange([0, 5000]);
         break;
-      case 'beds':
+      case "beds":
         setSelectedBeds([]);
         break;
-      case 'baths':
+      case "baths":
         setSelectedBaths([]);
         break;
-      case 'homeTypes':
+      case "homeTypes":
         setSelectedHomeTypes([]);
         break;
-      case 'moveInDate':
+      case "moveInDate":
         setMoveInDate(undefined);
         break;
-      case 'amenities':
+      case "amenities":
         setSelectedAmenities([]);
         break;
-      case 'features':
+      case "features":
         setSelectedFeatures([]);
         break;
-      case 'petPolicy':
-        setPetPolicy('');
+      case "petPolicy":
+        setPetPolicy("");
         break;
-      case 'parking':
+      case "parking":
         setParkingType([]);
         break;
-      case 'utilities':
+      case "utilities":
         setUtilityPolicy([]);
         break;
-      case 'specialties':
+      case "specialties":
         setAdditionalSpecialties([]);
         break;
-      case 'laundry':
+      case "laundry":
         setLaundryFacilities([]);
         break;
-      case 'rating':
-        setSelectedRating('');
+      case "rating":
+        setSelectedRating("");
         break;
-      case 'propertyFeatures':
+      case "propertyFeatures":
         setPropertyFeatures([]);
         break;
     }
@@ -310,9 +444,228 @@ const Dashboards = () => {
   const [propertiesLoading, setPropertiesLoading] = useState(true);
 
   // Units data state
-  const [unitsData, setUnitsData] = useState<any[]>([]);
   const [unitsLoading, setUnitsLoading] = useState(false);
   const [unitsError, setUnitsError] = useState<string | null>(null);
+
+  // Handle search functionality - memoized to prevent infinite loops
+  const handleSearch = React.useCallback(
+    async (searchTerm: string) => {
+      if (!searchTerm || searchTerm.trim().length === 0) {
+        setSearchCoordinates(null);
+        setGeocodingError(null);
+        setSearchResults([]);
+        return;
+      }
+
+      const trimmedTerm = searchTerm.trim();
+
+      try {
+        setIsGeocoding(true);
+        setGeocodingError(null);
+
+        // Check if it's a location search or property name search
+        if (isLocationSearch(trimmedTerm)) {
+          // Geocode the location
+          const result = await geocodeSearchTerm(trimmedTerm);
+
+          if ("error" in result) {
+            setGeocodingError(result.message);
+            setSearchCoordinates(null);
+          } else {
+            setSearchCoordinates([result.lng, result.lat]);
+            setGeocodingError(null);
+
+            // Check if this is a country search and provide appropriate feedback
+            const isCountrySearch = isCountryName(trimmedTerm.toLowerCase());
+            if (isCountrySearch) {
+              // Check if any properties exist in this country
+              const countryProperties = databaseProperties.filter(
+                (property) =>
+                  property.country &&
+                  property.country
+                    .toLowerCase()
+                    .includes(trimmedTerm.toLowerCase())
+              );
+
+              if (countryProperties.length === 0) {
+                toast({
+                  title: "No properties found",
+                  description: `We don't have any properties in ${trimmedTerm} yet. Try searching for a specific city or state.`,
+                  variant: "destructive",
+                });
+              } else {
+                toast({
+                  title: "Location found",
+                  description: `Found ${countryProperties.length} properties in ${trimmedTerm}`,
+                });
+              }
+            } else {
+              toast({
+                title: "Location found",
+                description: `Centered map on ${trimmedTerm}`,
+              });
+            }
+          }
+        } else {
+          // Search for properties by name
+          const propertyResults = searchPropertiesByName(
+            databaseProperties,
+            trimmedTerm
+          );
+          setSearchResults(propertyResults);
+          setSearchCoordinates(null);
+
+          if (propertyResults.length > 0) {
+            toast({
+              title: "Properties found",
+              description: `Found ${propertyResults.length} properties matching "${trimmedTerm}"`,
+            });
+          } else {
+            toast({
+              title: "No properties found",
+              description: `No properties found matching "${trimmedTerm}"`,
+              variant: "destructive",
+            });
+          }
+        }
+      } catch (error) {
+        console.error("Search error:", error);
+        setGeocodingError("Search failed. Please try again.");
+        setSearchCoordinates(null);
+        setSearchResults([]);
+      } finally {
+        setIsGeocoding(false);
+      }
+    },
+    [databaseProperties, toast]
+  );
+
+  // Debounced search handler - memoized to prevent infinite loops
+  const debouncedSearch = React.useCallback(
+    (() => {
+      let timeoutId: NodeJS.Timeout;
+      return (searchTerm: string) => {
+        clearTimeout(timeoutId);
+        timeoutId = setTimeout(() => handleSearch(searchTerm), 500);
+      };
+    })(),
+    [handleSearch]
+  );
+
+  // Load suggestions as user types
+  const loadSuggestions = React.useCallback(
+    async (searchTerm: string) => {
+      if (searchTerm.length < 2) {
+        setSuggestions([]);
+        return;
+      }
+
+      setIsLoadingSuggestions(true);
+      try {
+        const newSuggestions = await getSearchSuggestions(
+          searchTerm,
+          databaseProperties
+        );
+        setSuggestions(newSuggestions);
+      } catch (error) {
+        console.error("Error loading suggestions:", error);
+        setSuggestions([]);
+      } finally {
+        setIsLoadingSuggestions(false);
+      }
+    },
+    [databaseProperties]
+  );
+
+  // Debounced suggestions loader
+  const debouncedLoadSuggestions = React.useCallback(
+    (() => {
+      let timeoutId: NodeJS.Timeout;
+      return (searchTerm: string) => {
+        clearTimeout(timeoutId);
+        timeoutId = setTimeout(() => loadSuggestions(searchTerm), 300);
+      };
+    })(),
+    [loadSuggestions]
+  );
+
+  // Handle search input change
+  const handleSearchInputChange = (value: string) => {
+    setSearchLocation(value);
+    debouncedLoadSuggestions(value);
+    // Don't clear search results when typing - keep existing map visible
+    // Only clear if the input is completely empty
+    if (!value.trim()) {
+      setSearchCoordinates(null);
+      setSearchResults([]);
+      setGeocodingError(null);
+    }
+  };
+
+  // Handle suggestion selection
+  const handleSuggestionSelect = (suggestion: SearchSuggestion) => {
+    // Set flag to prevent search effect from interfering
+    setJustSelectedSuggestion(true);
+
+    // Set flag to indicate we have an active search
+    setHasActiveSearch(true);
+
+    // Update the search input
+    setSearchLocation(suggestion.text);
+
+    if (suggestion.type === "location" && suggestion.coordinates) {
+      // For location suggestions, directly set coordinates and clear other results
+      setSearchCoordinates(suggestion.coordinates);
+      setGeocodingError(null);
+      setSearchResults([]);
+      toast({
+        title: "Location selected",
+        description: `Centered map on ${suggestion.text}`,
+      });
+    } else if (suggestion.type === "property" && suggestion.property) {
+      // For property suggestions, set the property results and clear coordinates
+      setSearchResults([suggestion.property]);
+      setSearchCoordinates(null);
+      setGeocodingError(null);
+      // toast({
+      //   title: "Property selected",
+      //   description: `Showing ${suggestion.text}`,
+      // });
+    }
+
+    // Clear suggestions after selection
+    setSuggestions([]);
+
+    // Reset the flag after a short delay
+    setTimeout(() => setJustSelectedSuggestion(false), 100);
+  };
+
+  // Handle manual search trigger (search button or Enter key)
+  const handleManualSearch = () => {
+    if (searchLocation && searchLocation.trim().length > 0) {
+      // Set flag to indicate we have an active search
+      setHasActiveSearch(true);
+
+      // Clear any existing results first
+      setSearchCoordinates(null);
+      setSearchResults([]);
+      setGeocodingError(null);
+
+      // Trigger the search
+      handleSearch(searchLocation.trim());
+    }
+  };
+
+  // Clear search results when search input is cleared
+  useEffect(() => {
+    if (!searchLocation) {
+      setSearchCoordinates(null);
+      setGeocodingError(null);
+      setSearchResults([]);
+      setSuggestions([]);
+      setHasActiveSearch(false); // Reset active search flag
+    }
+  }, [searchLocation]);
 
   // Load properties from Firebase
   useEffect(() => {
@@ -346,7 +699,7 @@ const Dashboards = () => {
           if (availableProperties.length === 0) {
             throw new Error("No available properties found");
           }
-        
+
           // Create a new query snapshot with only available properties
           querySnapshot = {
             docs: availableProperties,
@@ -362,13 +715,13 @@ const Dashboards = () => {
           // Fallback to listings collection
           const listingsQuery = query(collection(db, "listings"), limit(20));
           querySnapshot = await getDocs(listingsQuery);
-        
+
           // Filter available listings in memory
           const availableListings = querySnapshot.docs.filter((doc) => {
             const data = doc.data();
             return data.available === true;
           });
-        
+
           if (availableListings.length > 0) {
             querySnapshot = {
               docs: availableListings,
@@ -391,8 +744,8 @@ const Dashboards = () => {
         }
 
         // Transform Firebase data to match expected format
-       
-        const transformedProperties = querySnapshot.docs.map((doc: any, index: number) => {
+
+        const transformedProperties = querySnapshot.docs.map((doc: any) => {
           const prop = doc.data();
           // Handle different data structures from listings vs properties
           if (collectionName === "listings") {
@@ -402,16 +755,14 @@ const Dashboards = () => {
               id: doc.id,
               name: prop.title || "",
               address: prop.address || "",
-              priceRange: prop.rent
-                ? `$${prop.rent.toLocaleString()}`
-                : "",
+              priceRange: prop.rent ? `$${prop.rent.toLocaleString()}` : "",
               beds: prop.bedrooms
                 ? `${prop.bedrooms} ${prop.bedrooms === 1 ? "Bed" : "Beds"}`
                 : "",
               rating: prop.rating || 0,
               amenities: prop.amenities || [],
               image: prop.images?.[0] || "",
-              coordinates: prop.coordinates || [0, 0] as [number, number],
+              coordinates: prop.coordinates || ([0, 0] as [number, number]),
               propertyType: prop.propertyType || "",
               isRentWiseNetwork: prop.isRentWiseNetwork || false,
               rent_amount: prop.rent,
@@ -433,10 +784,12 @@ const Dashboards = () => {
             let zip_code = "";
             let country = "";
 
-            if (typeof prop.address === 'string') {
+            if (typeof prop.address === "string") {
               addressString = prop.address;
-            } else if (prop.address && typeof prop.address === 'object') {
-              addressString = `${prop.address.line1}${prop.address.line2 ? ', ' + prop.address.line2 : ''}`;
+            } else if (prop.address && typeof prop.address === "object") {
+              addressString = `${prop.address.line1}${
+                prop.address.line2 ? ", " + prop.address.line2 : ""
+              }`;
               city = prop.address.city || "";
               state = prop.address.region || "";
               zip_code = prop.address.postalCode || "";
@@ -546,7 +899,9 @@ const Dashboards = () => {
     // Handle property details
     if (propertyId && databaseProperties.length > 0) {
       // Find the property by ID
-      const foundProperty = databaseProperties.find((p) => p.id === propertyId);
+      const foundProperty = databaseProperties.find(
+        (p: any) => p.id === propertyId
+      );
 
       if (foundProperty) {
         setSelectedProperty(foundProperty);
@@ -620,74 +975,74 @@ const Dashboards = () => {
   }, [searchParams, databaseProperties, toast]);
 
   // Load units data from Firebase
-  const loadUnitsData = async () => {
-    try {
-      // setUnitsLoading(true);
+  // const loadUnitsData = async () => {
+  //   try {
+  //     // setUnitsLoading(true);
 
-      // Load from units collection (your actual unit data)
-      const unitsQuery = query(collection(db, "units"), limit(50));
-      const querySnapshot = await getDocs(unitsQuery);
+  //     // Load from units collection (your actual unit data)
+  //     const unitsQuery = query(collection(db, "units"), limit(50));
+  //     const querySnapshot = await getDocs(unitsQuery);
 
-      if (querySnapshot.empty) {
-        setUnitsData([]);
-        return;
-      }
+  //     if (querySnapshot.empty) {
+  //       setUnitsData([]);
+  //       return;
+  //     }
 
-      // Transform Firebase units data to match UnitsComparison format
-      const transformedUnits = querySnapshot.docs.map((doc) => {
-        const unit = doc.data();
+  //     // Transform Firebase units data to match UnitsComparison format
+  //     const transformedUnits = querySnapshot.docs.map((doc) => {
+  //       const unit = doc.data();
 
-        // Based on your Firestore console data structure:
-        // amenities, available, availableDate, bathrooms, bedrooms, createdAt, deposit, description, images, propertyId
-        return {
-          id: doc.id,
-          unitNumber: unit.unitNumber || `Unit ${doc.id.slice(-4)}`,
-          bedrooms: unit.bedrooms || 0,
-          bathrooms: unit.bathrooms || 0,
-          sqft: unit.squareFeet || unit.sqft || 0,
-          available: unit.available !== false,
-          availableDate: unit.availableDate || new Date().toISOString(),
-          floorPlan: unit.floorPlan || "",
-          rent: unit.rent || unit.rentAmount || 0,
-          deposit: unit.deposit || 0,
-          leaseTerms: unit.leaseTerms || [
-            {
-              months: 12,
-              rent: unit.rent || unit.rentAmount || 0,
-              popular: true,
-              savings: null,
-              concession: null,
-            },
-          ],
-          amenities: unit.amenities || [],
-          images: unit.images || [],
-          qualified: unit.qualified !== false,
-          qualifiedStatus: unit.qualifiedStatus || "qualified" as const,
-          parkingIncluded: unit.parkingIncluded || false,
-          petFriendly: unit.petFriendly || false,
-          furnished: unit.furnished || false,
-          floor: unit.floor || 0,
-          view: unit.view || "",
-          description: unit.description || "",
-          propertyId: unit.propertyId || "",
-        };
-      });
+  //       // Based on your Firestore console data structure:
+  //       // amenities, available, availableDate, bathrooms, bedrooms, createdAt, deposit, description, images, propertyId
+  //       return {
+  //         id: doc.id,
+  //         unitNumber: unit.unitNumber || `Unit ${doc.id.slice(-4)}`,
+  //         bedrooms: unit.bedrooms || 0,
+  //         bathrooms: unit.bathrooms || 0,
+  //         sqft: unit.squareFeet || unit.sqft || 0,
+  //         available: unit.available !== false,
+  //         availableDate: unit.availableDate || new Date().toISOString(),
+  //         floorPlan: unit.floorPlan || "",
+  //         rent: unit.rent || unit.rentAmount || 0,
+  //         deposit: unit.deposit || 0,
+  //         leaseTerms: unit.leaseTerms || [
+  //           {
+  //             months: 12,
+  //             rent: unit.rent || unit.rentAmount || 0,
+  //             popular: true,
+  //             savings: null,
+  //             concession: null,
+  //           },
+  //         ],
+  //         amenities: unit.amenities || [],
+  //         images: unit.images || [],
+  //         qualified: unit.qualified !== false,
+  //         qualifiedStatus: unit.qualifiedStatus || "qualified" as const,
+  //         parkingIncluded: unit.parkingIncluded || false,
+  //         petFriendly: unit.petFriendly || false,
+  //         furnished: unit.furnished || false,
+  //         floor: unit.floor || 0,
+  //         view: unit.view || "",
+  //         description: unit.description || "",
+  //         propertyId: unit.propertyId || "",
+  //       };
+  //     });
 
-      setUnitsData(transformedUnits);
-    } catch (error) {
-      console.error("Error loading units from Firebase:", error);
-      setUnitsData([]);
-    } finally {
-      // setUnitsLoading(false);
-    }
-  };
+  //     setUnitsData(transformedUnits);
+  //   } catch (error) {
+  //     console.error("Error loading units from Firebase:", error);
+  //     setUnitsData([]);
+  //   } finally {
+  //     // setUnitsLoading(false);
+  //   }
+  // };
 
   // Load units for a specific property with proper error handling
   const loadUnitsForProperty = async (propertyId: string) => {
     try {
       setUnitsLoading(true);
       setUnitsError(null);
-      
+
       // Load units from Firebase that match the property ID
       const unitsQuery = query(
         collection(db, "units")
@@ -746,7 +1101,6 @@ const Dashboards = () => {
         setUnitsError("No units found for this property");
       }
 
-      setUnitsData(propertyUnits);
       return propertyUnits;
     } catch (error) {
       console.error("Error loading units for property:", error);
@@ -763,54 +1117,58 @@ const Dashboards = () => {
   // Real-time filter updates and search summary
   useEffect(() => {
     let activeFilters = 0;
-    const filterDetails: Array<{type: string, value: string, label: string}> = [];
+    const filterDetails: Array<{ type: string; value: string; label: string }> =
+      [];
 
     // Location filter
     if (searchLocation.trim()) {
       activeFilters++;
       filterDetails.push({
-        type: 'location',
+        type: "location",
         value: searchLocation,
-        label: `Location: ${searchLocation}`
+        label: `Location: ${searchLocation}`,
       });
     }
 
     // Price range filter
     if (priceRange[0] !== 0 || priceRange[1] !== 5000) {
       activeFilters++;
-      const priceLabel = priceRange[1] === 5000 
-        ? `Price: Up To $${(priceRange[1]/1000).toFixed(1)}k`
-        : `Price: $${priceRange[0].toLocaleString()} - $${priceRange[1].toLocaleString()}`;
+      const priceLabel =
+        priceRange[1] === 5000
+          ? `Price: Up To $${(priceRange[1] / 1000).toFixed(1)}k`
+          : `Price: $${priceRange[0].toLocaleString()} - $${priceRange[1].toLocaleString()}`;
       filterDetails.push({
-        type: 'price',
+        type: "price",
         value: `${priceRange[0]}-${priceRange[1]}`,
-        label: priceLabel
+        label: priceLabel,
       });
     }
 
     // Bedrooms filter
     if (selectedBeds.length > 0) {
       activeFilters++;
-      const bedLabel = selectedBeds.length === 1 
-        ? `Beds: ${selectedBeds[0]}`
-        : `Beds: ${selectedBeds.join(', ')}`;
+      const bedLabel =
+        selectedBeds.length === 1
+          ? `Beds: ${selectedBeds[0]}`
+          : `Beds: ${selectedBeds.join(", ")}`;
       filterDetails.push({
-        type: 'beds',
-        value: selectedBeds.join(','),
-        label: bedLabel
+        type: "beds",
+        value: selectedBeds.join(","),
+        label: bedLabel,
       });
     }
 
     // Bathrooms filter
     if (selectedBaths.length > 0) {
       activeFilters++;
-      const bathLabel = selectedBaths.length === 1 
-        ? `Baths: ${selectedBaths[0]}`
-        : `Baths: ${selectedBaths.join(', ')}`;
+      const bathLabel =
+        selectedBaths.length === 1
+          ? `Baths: ${selectedBaths[0]}`
+          : `Baths: ${selectedBaths.join(", ")}`;
       filterDetails.push({
-        type: 'baths',
-        value: selectedBaths.join(','),
-        label: bathLabel
+        type: "baths",
+        value: selectedBaths.join(","),
+        label: bathLabel,
       });
     }
 
@@ -818,9 +1176,9 @@ const Dashboards = () => {
     if (selectedHomeTypes.length > 0) {
       activeFilters++;
       filterDetails.push({
-        type: 'homeTypes',
-        value: selectedHomeTypes.join(','),
-        label: `Property Types: ${selectedHomeTypes.join(', ')}`
+        type: "homeTypes",
+        value: selectedHomeTypes.join(","),
+        label: `Property Types: ${selectedHomeTypes.join(", ")}`,
       });
     }
 
@@ -828,9 +1186,9 @@ const Dashboards = () => {
     if (moveInDate) {
       activeFilters++;
       filterDetails.push({
-        type: 'moveInDate',
+        type: "moveInDate",
         value: moveInDate.toISOString(),
-        label: `Move-in: ${moveInDate.toLocaleDateString()}`
+        label: `Move-in: ${moveInDate.toLocaleDateString()}`,
       });
     }
 
@@ -838,9 +1196,9 @@ const Dashboards = () => {
     if (selectedAmenities.length > 0) {
       activeFilters++;
       filterDetails.push({
-        type: 'amenities',
-        value: selectedAmenities.join(','),
-        label: `Amenities: ${selectedAmenities.join(', ')}`
+        type: "amenities",
+        value: selectedAmenities.join(","),
+        label: `Amenities: ${selectedAmenities.join(", ")}`,
       });
     }
 
@@ -848,9 +1206,9 @@ const Dashboards = () => {
     if (selectedFeatures.length > 0) {
       activeFilters++;
       filterDetails.push({
-        type: 'features',
-        value: selectedFeatures.join(','),
-        label: `Features: ${selectedFeatures.join(', ')}`
+        type: "features",
+        value: selectedFeatures.join(","),
+        label: `Features: ${selectedFeatures.join(", ")}`,
       });
     }
 
@@ -858,9 +1216,9 @@ const Dashboards = () => {
     if (petPolicy) {
       activeFilters++;
       filterDetails.push({
-        type: 'petPolicy',
+        type: "petPolicy",
         value: petPolicy,
-        label: `Pet Policy: ${petPolicy}`
+        label: `Pet Policy: ${petPolicy}`,
       });
     }
 
@@ -868,9 +1226,9 @@ const Dashboards = () => {
     if (parkingType.length > 0) {
       activeFilters++;
       filterDetails.push({
-        type: 'parking',
-        value: parkingType.join(','),
-        label: `Parking: ${parkingType.join(', ')}`
+        type: "parking",
+        value: parkingType.join(","),
+        label: `Parking: ${parkingType.join(", ")}`,
       });
     }
 
@@ -878,9 +1236,9 @@ const Dashboards = () => {
     if (utilityPolicy.length > 0) {
       activeFilters++;
       filterDetails.push({
-        type: 'utilities',
-        value: utilityPolicy.join(','),
-        label: `Utilities: ${utilityPolicy.join(', ')}`
+        type: "utilities",
+        value: utilityPolicy.join(","),
+        label: `Utilities: ${utilityPolicy.join(", ")}`,
       });
     }
 
@@ -888,9 +1246,9 @@ const Dashboards = () => {
     if (additionalSpecialties.length > 0) {
       activeFilters++;
       filterDetails.push({
-        type: 'specialties',
-        value: additionalSpecialties.join(','),
-        label: `Specialties: ${additionalSpecialties.join(', ')}`
+        type: "specialties",
+        value: additionalSpecialties.join(","),
+        label: `Specialties: ${additionalSpecialties.join(", ")}`,
       });
     }
 
@@ -898,9 +1256,9 @@ const Dashboards = () => {
     if (laundryFacilities.length > 0) {
       activeFilters++;
       filterDetails.push({
-        type: 'laundry',
-        value: laundryFacilities.join(','),
-        label: `Laundry: ${laundryFacilities.join(', ')}`
+        type: "laundry",
+        value: laundryFacilities.join(","),
+        label: `Laundry: ${laundryFacilities.join(", ")}`,
       });
     }
 
@@ -908,9 +1266,9 @@ const Dashboards = () => {
     if (selectedRating) {
       activeFilters++;
       filterDetails.push({
-        type: 'rating',
+        type: "rating",
         value: selectedRating,
-        label: `Rating: ${selectedRating}+ stars`
+        label: `Rating: ${selectedRating}+ stars`,
       });
     }
 
@@ -918,32 +1276,85 @@ const Dashboards = () => {
     if (propertyFeatures.length > 0) {
       activeFilters++;
       filterDetails.push({
-        type: 'propertyFeatures',
-        value: propertyFeatures.join(','),
-        label: `Property Features: ${propertyFeatures.join(', ')}`
+        type: "propertyFeatures",
+        value: propertyFeatures.join(","),
+        label: `Property Features: ${propertyFeatures.join(", ")}`,
       });
     }
 
-    setSearchSummary(prev => ({
+    setSearchSummary((prev) => ({
       ...prev,
       activeFilters,
       filterDetails,
-      lastUpdated: new Date()
+      lastUpdated: new Date(),
     }));
   }, [
-    searchLocation, selectedBeds, selectedBaths, selectedHomeTypes, 
-    selectedAmenities, selectedFeatures, petPolicy, parkingType, 
-    utilityPolicy, additionalSpecialties, laundryFacilities, 
-    selectedRating, propertyFeatures, priceRange, moveInDate
+    searchLocation,
+    selectedBeds,
+    selectedBaths,
+    selectedHomeTypes,
+    selectedAmenities,
+    selectedFeatures,
+    petPolicy,
+    parkingType,
+    utilityPolicy,
+    additionalSpecialties,
+    laundryFacilities,
+    selectedRating,
+    propertyFeatures,
+    priceRange,
+    moveInDate,
   ]);
 
   // Filter properties based on selected filters
   const filteredProperties = featuredProperties.filter((property) => {
-    // Search location filter
-    const locationMatch =
-      !searchLocation ||
-      property.name?.toLowerCase().includes(searchLocation.toLowerCase()) ||
-      property.address?.toLowerCase().includes(searchLocation.toLowerCase());
+    // If we have search results from property name search, only process those
+    // BUT still apply all filters (bed, bath, price, etc.)
+    if (searchResults.length > 0) {
+      const isMatch = searchResults.some((result) => result.id === property.id);
+      if (isMatch) {
+        // Continue to apply filters instead of returning early
+      } else {
+        // Property not in search results, skip it
+        return false;
+      }
+    }
+
+    // Search location filter - handle different search scenarios
+    let locationMatch = true; // Default to showing all properties
+
+    if (hasActiveSearch && searchLocation.trim()) {
+      // We have an active search with a location
+      if (searchCoordinates !== null) {
+        // We have coordinates from geocoding (e.g., country, city, address)
+        // For now, we'll show all properties since we don't have geographic proximity filtering
+        // In a real implementation, you'd filter by distance from searchCoordinates
+        // For countries, we should check if any properties exist in that country
+        const searchTerm = searchLocation.toLowerCase();
+
+        // Check if the search term is a country name
+        const isCountrySearch = isCountryName(searchTerm);
+
+        if (isCountrySearch) {
+          // For country searches, check if any properties exist in that country
+          locationMatch =
+            property.country &&
+            property.country.toLowerCase().includes(searchTerm);
+        } else {
+          // For city/address searches, check city, state, and address fields
+          locationMatch =
+            (property.city &&
+              property.city.toLowerCase().includes(searchTerm)) ||
+            (property.state &&
+              property.state.toLowerCase().includes(searchTerm)) ||
+            (property.address &&
+              property.address.toLowerCase().includes(searchTerm));
+        }
+      } else if (geocodingError) {
+        // Geocoding failed - show no results
+        locationMatch = false;
+      }
+    }
 
     // Price filter - handle both database and sample data formats
     let priceInRange = true;
@@ -980,25 +1391,29 @@ const Dashboards = () => {
     const bedsMatch =
       selectedBeds.length === 0 ||
       selectedBeds.some((bed) => {
-        if (bed === "Studio")
+        if (bed === "Studio") {
           return property.beds?.includes("Studio") || property.bedrooms === 0;
-        if (bed === "4+")
+        } else if (bed === "4+") {
           return property.beds?.includes("4") || property.bedrooms >= 4;
-        return (
-          property.beds?.includes(bed) || property.bedrooms === parseInt(bed)
-        );
+        } else {
+          return (
+            property.beds?.includes(bed) || property.bedrooms === parseInt(bed)
+          );
+        }
       });
 
     // Bathrooms filter
     const bathsMatch =
       selectedBaths.length === 0 ||
       selectedBaths.some((bath) => {
-        if (bath === "4+") return property.bathrooms >= 4;
-        if (bath.includes("+")) {
+        if (bath === "4+") {
+          return property.bathrooms >= 4;
+        } else if (bath.includes("+")) {
           const minBaths = parseFloat(bath.replace("+", ""));
           return property.bathrooms >= minBaths;
+        } else {
+          return property.bathrooms === parseFloat(bath);
         }
-        return property.bathrooms === parseFloat(bath);
       });
 
     // Home type filter using the actual propertyType field
@@ -1017,16 +1432,19 @@ const Dashboards = () => {
     // Features filter - use amenities array since features field doesn't exist in Firebase
     const featuresMatch =
       selectedFeatures.length === 0 ||
-      selectedFeatures.every((feature) => 
-        property.features?.includes(feature) ||
-        property.amenities?.some((amenity: string) => 
-          amenity.toLowerCase().includes(feature.toLowerCase()) ||
-          feature.toLowerCase().includes(amenity.toLowerCase())
-        )
+      selectedFeatures.every(
+        (feature) =>
+          property.features?.includes(feature) ||
+          property.amenities?.some(
+            (amenity: string) =>
+              amenity.toLowerCase().includes(feature.toLowerCase()) ||
+              feature.toLowerCase().includes(amenity.toLowerCase())
+          )
       );
 
     // Pet policy filter - check pet_friendly field from Firebase
-    const petPolicyMatch = !petPolicy || 
+    const petPolicyMatch =
+      !petPolicy ||
       (petPolicy === "Pet Friendly" && property.pet_friendly) ||
       (petPolicy === "No Pets" && !property.pet_friendly) ||
       property.petPolicy === petPolicy;
@@ -1034,55 +1452,71 @@ const Dashboards = () => {
     // Parking type filter - check amenities for parking
     const parkingMatch =
       parkingType.length === 0 ||
-      parkingType.some((parking) => 
-        property.parkingType?.includes(parking) ||
-        property.amenities?.some((amenity: string) => 
-          amenity.toLowerCase().includes(parking.toLowerCase()) ||
-          (parking.toLowerCase().includes("parking") && amenity.toLowerCase().includes("parking"))
-        )
+      parkingType.some(
+        (parking) =>
+          property.parkingType?.includes(parking) ||
+          property.amenities?.some(
+            (amenity: string) =>
+              amenity.toLowerCase().includes(parking.toLowerCase()) ||
+              (parking.toLowerCase().includes("parking") &&
+                amenity.toLowerCase().includes("parking"))
+          )
       );
 
     // Utility policy filter - check amenities for utilities
     const utilityMatch =
       utilityPolicy.length === 0 ||
-      utilityPolicy.some((utility) =>
-        property.utilityPolicy?.includes(utility) ||
-        property.amenities?.some((amenity: string) => 
-          amenity.toLowerCase().includes(utility.toLowerCase())
-        )
+      utilityPolicy.some(
+        (utility) =>
+          property.utilityPolicy?.includes(utility) ||
+          property.amenities?.some((amenity: string) =>
+            amenity.toLowerCase().includes(utility.toLowerCase())
+          )
       );
 
     // Square footage filter - check both possible field names
     const squareFootageMatch =
-      !property.square_feet && !property.squareFootage ||
-      ((property.square_feet && property.square_feet >= squareFootage[0] && property.square_feet <= squareFootage[1]) ||
-       (property.squareFootage && property.squareFootage >= squareFootage[0] && property.squareFootage <= squareFootage[1]));
+      (!property.square_feet && !property.squareFootage) ||
+      (property.square_feet &&
+        property.square_feet >= squareFootage[0] &&
+        property.square_feet <= squareFootage[1]) ||
+      (property.squareFootage &&
+        property.squareFootage >= squareFootage[0] &&
+        property.squareFootage <= squareFootage[1]);
 
     // Year built filter - check both possible field names
     const yearBuiltMatch =
-      !property.year_built && !property.yearBuilt ||
-      ((property.year_built && property.year_built >= yearBuilt[0] && property.year_built <= yearBuilt[1]) ||
-       (property.yearBuilt && property.yearBuilt >= yearBuilt[0] && property.yearBuilt <= yearBuilt[1]));
+      (!property.year_built && !property.yearBuilt) ||
+      (property.year_built &&
+        property.year_built >= yearBuilt[0] &&
+        property.year_built <= yearBuilt[1]) ||
+      (property.yearBuilt &&
+        property.yearBuilt >= yearBuilt[0] &&
+        property.yearBuilt <= yearBuilt[1]);
 
     // Additional specialties filter - check amenities for specialties
     const specialtiesMatch =
       additionalSpecialties.length === 0 ||
-      additionalSpecialties.some((specialty) =>
-        property.specialties?.includes(specialty) ||
-        property.amenities?.some((amenity: string) => 
-          amenity.toLowerCase().includes(specialty.toLowerCase())
-        )
+      additionalSpecialties.some(
+        (specialty) =>
+          property.specialties?.includes(specialty) ||
+          property.amenities?.some((amenity: string) =>
+            amenity.toLowerCase().includes(specialty.toLowerCase())
+          )
       );
 
     // Laundry facilities filter - check amenities for laundry
     const laundryMatch =
       laundryFacilities.length === 0 ||
-      laundryFacilities.some((laundry) =>
-        property.laundryFacilities?.includes(laundry) ||
-        property.amenities?.some((amenity: string) => 
-          amenity.toLowerCase().includes(laundry.toLowerCase()) ||
-          (laundry.toLowerCase().includes("laundry") && amenity.toLowerCase().includes("laundry"))
-        )
+      laundryFacilities.some(
+        (laundry) =>
+          property.laundryFacilities?.includes(laundry) ||
+          property.amenities?.some(
+            (amenity: string) =>
+              amenity.toLowerCase().includes(laundry.toLowerCase()) ||
+              (laundry.toLowerCase().includes("laundry") &&
+                amenity.toLowerCase().includes("laundry"))
+          )
       );
 
     // Rating filter
@@ -1093,18 +1527,19 @@ const Dashboards = () => {
     // Property features filter - check amenities for features
     const propertyFeaturesMatch =
       propertyFeatures.length === 0 ||
-      propertyFeatures.some((feature) =>
-        property.propertyFeatures?.includes(feature) ||
-        property.amenities?.some((amenity: string) => 
-          amenity.toLowerCase().includes(feature.toLowerCase())
-        )
+      propertyFeatures.some(
+        (feature) =>
+          property.propertyFeatures?.includes(feature) ||
+          property.amenities?.some((amenity: string) =>
+            amenity.toLowerCase().includes(feature.toLowerCase())
+          )
       );
 
     // RentWise Network filter
     const rentwiseMatch =
       !showOnlyRentWise || property.isRentWiseNetwork === true;
 
-    return (
+    const finalResult =
       locationMatch &&
       priceInRange &&
       bedsMatch &&
@@ -1121,15 +1556,16 @@ const Dashboards = () => {
       laundryMatch &&
       ratingMatch &&
       propertyFeaturesMatch &&
-      rentwiseMatch
-    );
+      rentwiseMatch;
+
+    return finalResult;
   });
 
   // Update search summary with filtered results count
   useEffect(() => {
-    setSearchSummary(prev => ({
+    setSearchSummary((prev) => ({
       ...prev,
-      totalResults: filteredProperties.length
+      totalResults: filteredProperties.length,
     }));
   }, [filteredProperties.length]);
 
@@ -1146,7 +1582,6 @@ const Dashboards = () => {
   }, [user, devBypass]);
 
   useEffect(() => {
-
     // if (!loading && !user && !devBypass) {
     //   navigate("/signin");
     // }
@@ -1247,7 +1682,6 @@ const Dashboards = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100">
       <main>
-
         {currentView === "dashboard" ? (
           <div>
             {/* Modern Hero Section */}
@@ -1292,12 +1726,23 @@ const Dashboards = () => {
             <section className="bg-white/95 backdrop-blur-md border-b border-gray-200 shadow-lg py-4 sticky top-16 z-40 px-4 md:px-8">
               <div className="container mx-auto  px-auto">
                 <div className="flex items-center space-x-0 xl:space-x-4 flex-wrap 2xl:gap-0 gap-3">
-                  <Input
-                    placeholder="City, neighborhood..."
-                    value={searchLocation}
-                    onChange={(e) => setSearchLocation(e.target.value)}
-                    className="w-64 px-4 py-3 rounded-lg border-gray-200 focus:border-green-500 focus:ring-2 focus:ring-green-200 bg-white/80 backdrop-blur-sm"
-                  />
+                  <div className="relative">
+                    <AutoSuggest
+                      value={searchLocation}
+                      onChange={handleSearchInputChange}
+                      onSelect={handleSuggestionSelect}
+                      onSearch={handleManualSearch}
+                      suggestions={suggestions}
+                      isLoading={isLoadingSuggestions}
+                      placeholder="City, neighborhood, or property name..."
+                      className="w-64"
+                    />
+                  </div>
+                  {geocodingError && (
+                    <div className="absolute top-full left-0 mt-2 bg-red-50 border border-red-200 rounded-lg p-2 text-sm text-red-700 max-w-64 z-50">
+                      {geocodingError}
+                    </div>
+                  )}
 
                   {/* Price Filter Popover - Matching the shared image design */}
                   <Popover>
@@ -1348,12 +1793,18 @@ const Dashboards = () => {
                                     <div
                                       className="h-3 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full absolute"
                                       style={{
-                                        left: `${(priceRange[0] / 5000) * 100}%`,
-                                        width: `${((priceRange[1] - priceRange[0]) / 5000) * 100}%`,
+                                        left: `${
+                                          (priceRange[0] / 5000) * 100
+                                        }%`,
+                                        width: `${
+                                          ((priceRange[1] - priceRange[0]) /
+                                            5000) *
+                                          100
+                                        }%`,
                                       }}
                                     />
                                   </div>
-                                  
+
                                   {/* Min slider */}
                                   <input
                                     type="range"
@@ -1363,12 +1814,15 @@ const Dashboards = () => {
                                     value={priceRange[0]}
                                     onChange={(e) => {
                                       const newMin = parseInt(e.target.value);
-                                      const newMax = Math.max(newMin + 100, priceRange[1]);
+                                      const newMax = Math.max(
+                                        newMin + 100,
+                                        priceRange[1]
+                                      );
                                       setPriceRange([newMin, newMax]);
                                     }}
                                     className="absolute top-0 w-full h-3 opacity-0 cursor-pointer z-10"
                                   />
-                                  
+
                                   {/* Max slider */}
                                   <input
                                     type="range"
@@ -1378,7 +1832,10 @@ const Dashboards = () => {
                                     value={priceRange[1]}
                                     onChange={(e) => {
                                       const newMax = parseInt(e.target.value);
-                                      const newMin = Math.min(newMax - 100, priceRange[0]);
+                                      const newMin = Math.min(
+                                        newMax - 100,
+                                        priceRange[0]
+                                      );
                                       setPriceRange([newMin, newMax]);
                                     }}
                                     className="absolute top-0 w-full h-3 opacity-0 cursor-pointer z-20"
@@ -1398,7 +1855,9 @@ const Dashboards = () => {
                           <div className="flex flex-row gap-4">
                             {/* Minimum Price */}
                             <div className="relative w-1/2">
-                              <label className="block text-sm font-medium text-gray-700 mb-2">Minimum</label>
+                              <label className="block text-sm font-medium text-gray-700 mb-2">
+                                Minimum
+                              </label>
                               <div className="relative">
                                 <input
                                   type="number"
@@ -1407,22 +1866,27 @@ const Dashboards = () => {
                                   step="100"
                                   value={priceRange[0]}
                                   onChange={(e) => {
-                                    const newMin = parseInt(e.target.value) || 0;
-                                    const newMax = Math.max(newMin + 100, priceRange[1]);
+                                    const newMin =
+                                      parseInt(e.target.value) || 0;
+                                    const newMax = Math.max(
+                                      newMin + 100,
+                                      priceRange[1]
+                                    );
                                     setPriceRange([newMin, newMax]);
                                   }}
                                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                                   placeholder="0"
                                 />
-                                
+
                                 {/* Spinner Controls */}
-                              
                               </div>
                             </div>
 
                             {/* Maximum Price */}
                             <div className="relative w-1/2">
-                              <label className="block text-sm font-medium text-gray-700 mb-2">Maximum</label>
+                              <label className="block text-sm font-medium text-gray-700 mb-2">
+                                Maximum
+                              </label>
                               <div className="relative">
                                 <input
                                   type="number"
@@ -1431,22 +1895,23 @@ const Dashboards = () => {
                                   step="100"
                                   value={priceRange[1]}
                                   onChange={(e) => {
-                                    const newMax = parseInt(e.target.value) || 0;
-                                    const newMin = Math.min(newMax - 100, priceRange[0]);
+                                    const newMax =
+                                      parseInt(e.target.value) || 0;
+                                    const newMin = Math.min(
+                                      newMax - 100,
+                                      priceRange[0]
+                                    );
                                     setPriceRange([newMin, newMax]);
                                   }}
                                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                                   placeholder="5000"
                                 />
-                                
-                               
                               </div>
                             </div>
                           </div>
                         </div>
 
                         {/* Quick Range Buttons */}
-                     
 
                         {/* Action Buttons */}
                         <div className="flex items-center justify-between pt-4 border-t border-gray-200">
@@ -1457,7 +1922,6 @@ const Dashboards = () => {
                           >
                             Reset
                           </Button>
-                       
                         </div>
                       </div>
                     </PopoverContent>
@@ -1648,7 +2112,7 @@ const Dashboards = () => {
                     </Button>
 
                     <Button
-                      onClick={() => setShowAllFilters(false)}
+                      onClick={handleManualSearch}
                       className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white text-sm px-6 py-3 rounded-lg shadow-lg hover:shadow-xl transition-all duration-200"
                     >
                       <Search className="h-4 w-4 mr-1" />
@@ -1709,13 +2173,15 @@ const Dashboards = () => {
             </section>
 
             {/* Modern Main Content Area - Map + Listings */}
-            <section    className="flex flex-col xl:flex-row h-auto xl:h-screen-minus-140">
+            <section className="flex flex-col xl:flex-row h-auto xl:h-screen-minus-140">
               {/* Map Section - Left Side */}
               <div className="xl:w-[60%] w-full bg-gradient-to-br from-gray-50 to-gray-100 relative">
                 <DashboardMap
                   properties={filteredProperties}
                   isPrequalified={isPrequalified}
                   language={selectedLanguage}
+                  searchCoordinates={searchCoordinates}
+                  searchLocation={searchLocation}
                   onPropertySelect={(property) => {
                     setCurrentView("unit-selection");
                   }}
@@ -1753,7 +2219,11 @@ const Dashboards = () => {
                             <div className="flex items-center space-x-2">
                               <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
                               <span className="text-sm font-medium text-gray-600">
-                                {searchSummary.activeFilters} filter{searchSummary.activeFilters > 1 ? 's' : ''} applied
+                                {searchSummary.activeFilters} filter
+                                {searchSummary.activeFilters > 1
+                                  ? "s"
+                                  : ""}{" "}
+                                applied
                               </span>
                             </div>
                             <button
@@ -1769,7 +2239,10 @@ const Dashboards = () => {
                                 setPetPolicy("");
                                 setParkingType([]);
                                 setUtilityPolicy([]);
-                                setSquareFootage([500, 3000] as [number, number]);
+                                setSquareFootage([500, 3000] as [
+                                  number,
+                                  number
+                                ]);
                                 setYearBuilt([1980, 2024] as [number, number]);
                                 setAdditionalSpecialties([]);
                                 setLaundryFacilities([]);
@@ -1782,25 +2255,39 @@ const Dashboards = () => {
                               Remove all filters
                             </button>
                           </div>
-                          
+
                           {/* Filter Chips */}
                           <div className="flex flex-wrap gap-2">
-                            {searchSummary.filterDetails.map((filter, index) => (
-                              <div
-                                key={index}
-                                className="group flex items-center space-x-2 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-lg px-3 py-2 text-sm transition-all duration-200"
-                              >
-                                <span className="text-gray-700 font-medium">{filter.label}</span>
-                                <button
-                                  onClick={() => removeFilter(filter.type)}
-                                  className="text-gray-400 hover:text-red-500 transition-colors ml-1 opacity-0 group-hover:opacity-100"
+                            {searchSummary.filterDetails.map(
+                              (filter, index) => (
+                                <div
+                                  key={index}
+                                  className="group flex items-center space-x-2 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-lg px-3 py-2 text-sm transition-all duration-200"
                                 >
-                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                  </svg>
-                                </button>
-                              </div>
-                            ))}
+                                  <span className="text-gray-700 font-medium">
+                                    {filter.label}
+                                  </span>
+                                  <button
+                                    onClick={() => removeFilter(filter.type)}
+                                    className="text-gray-400 hover:text-red-500 transition-colors ml-1 opacity-0 group-hover:opacity-100"
+                                  >
+                                    <svg
+                                      className="w-4 h-4"
+                                      fill="none"
+                                      stroke="currentColor"
+                                      viewBox="0 0 24 24"
+                                    >
+                                      <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={2}
+                                        d="M6 18L18 6M6 6l12 12"
+                                      />
+                                    </svg>
+                                  </button>
+                                </div>
+                              )
+                            )}
                           </div>
                         </div>
                       )}
@@ -1832,18 +2319,21 @@ const Dashboards = () => {
                           <MapPin className="h-12 w-12 text-green-600" />
                         </div>
                         <h3 className="text-2xl font-bold text-gray-900 mb-4">
-                          {databaseProperties.length === 0 ? "No Properties Available" : "No Properties Match Your Filters"}
+                          {databaseProperties.length === 0
+                            ? "No Properties Available"
+                            : "No Properties Match Your Filters"}
                         </h3>
                         <p className="text-gray-600 text-lg mb-6">
-                          {databaseProperties.length === 0 
+                          {databaseProperties.length === 0
                             ? "No properties are currently available in the database. Please check back later or contact support."
-                            : "Try adjusting your search criteria to find more properties."
-                          }
+                            : "Try adjusting your search criteria to find more properties."}
                         </p>
                         {databaseProperties.length === 0 && (
                           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 max-w-md mx-auto">
                             <p className="text-sm text-blue-800">
-                              <strong>Tip:</strong> If you're a landlord, you can add properties through the property management section.
+                              <strong>Tip:</strong> If you're a landlord, you
+                              can add properties through the property management
+                              section.
                             </p>
                           </div>
                         )}
@@ -1874,23 +2364,23 @@ const Dashboards = () => {
             </section>
           </div>
         ) : currentView === "prequalification-info" ? (
-        <PrequalificationInfo onBack={() => setCurrentView('dashboard')} />
+          <PrequalificationInfo onBack={() => setCurrentView("dashboard")} />
         ) : // <PrequalificationInfo onBack={() => setCurrentView('dashboard')} />
         currentView === "unit-selection" ? (
           <QualifiedProperties
-          onUnitSelect={(property, unit) => {
-            setSelectedProperty(property);
-            setSelectedUnit(unit);
-            setCurrentView('application-process');
-          }}
-          // onNavigateToLeaseHolders={() => {
-          //   setCurrentView('application-process');
-          //   setApplicationStep(3); // Step 3 is "Lease Holders & Guarantors"
-          // }}
-          // onNavigateToGuarantors={() => {
-          //   setCurrentView('application-process');
-          //   setApplicationStep(3); // Step 3 is "Lease Holders & Guarantors"
-          // }}
+            onUnitSelect={(property, unit) => {
+              setSelectedProperty(property);
+              setSelectedUnit(unit);
+              setCurrentView("application-process");
+            }}
+            // onNavigateToLeaseHolders={() => {
+            //   setCurrentView('application-process');
+            //   setApplicationStep(3); // Step 3 is "Lease Holders & Guarantors"
+            // }}
+            // onNavigateToGuarantors={() => {
+            //   setCurrentView('application-process');
+            //   setApplicationStep(3); // Step 3 is "Lease Holders & Guarantors"
+            // }}
             onCompareUnits={(units) => {
               setComparisonUnits(units);
               setCurrentView("unit-comparison");
@@ -1907,17 +2397,16 @@ const Dashboards = () => {
               setSelectedUnit(unit);
               setSelectedLeaseTerm(leaseTerm);
               // setCurrentView('product-selection');
-              setCurrentView('application-process');
+              setCurrentView("application-process");
               setApplicationStep(0);
             }}
-            onUnitSelect={(property, unit, leaseTerm) => {
-             
+            onUnitSelect={() => {
               // Navigate to next step in application process
               setCurrentView("application-process");
               setApplicationStep(2); // Move to next application step
             }}
-            onShowDetails={(property, unit) => {
-              
+            onShowDetails={() => {
+              // Show details functionality
             }}
           />
         ) : currentView === "product-selection" ? (
@@ -1927,7 +2416,11 @@ const Dashboards = () => {
             selectedLeaseTerm={selectedLeaseTerm?.months || 12}
             selectedLeaseTermRent={selectedLeaseTerm?.rent}
             applicantData={{
-              unitType: selectedUnit?.bedrooms ? `${selectedUnit.bedrooms} bedroom${selectedUnit.bedrooms > 1 ? 's' : ''}` : "Any",
+              unitType: selectedUnit?.bedrooms
+                ? `${selectedUnit.bedrooms} bedroom${
+                    selectedUnit.bedrooms > 1 ? "s" : ""
+                  }`
+                : "Any",
               petDescription: "", // This should come from application data
               petName: "",
               petBreed: "",
@@ -1966,10 +2459,8 @@ const Dashboards = () => {
             onApplyNow={() => {
               setCurrentView("unit-selection");
             }}
-            onViewUnits={async (property) => {
-              setSelectedProperty(property);
+            onViewUnits={async () => {
               // Load units for this specific property
-             
               setCurrentView("unit-selection");
             }}
           />
@@ -2031,7 +2522,6 @@ const Dashboards = () => {
           navigate("/property", { replace: true });
         }}
       />
-
 
       {/* Save Search Modal */}
       {showSaveSearchModal && (
