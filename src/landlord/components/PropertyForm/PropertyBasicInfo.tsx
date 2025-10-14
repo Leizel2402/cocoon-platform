@@ -1,14 +1,13 @@
 import React, { useState } from 'react';
-import { PropertyFormData, US_STATES, PROPERTY_TYPES, PROPERTY_AMENITIES } from '../../types/propertyForm';
+import { PropertyFormData, US_STATES, PROPERTY_TYPES, PROPERTY_AMENITIES, LEASE_TERM_OPTIONS, LEASE_TERM_MONTHS, SECURITY_DEPOSIT_OPTIONS, SECURITY_DEPOSIT_MONTHS } from '../../types/propertyForm';
 import { Input } from '../../../components/ui/input';
 import { Label } from '../../../components/ui/lable';
 import { Button } from '../../../components/ui/Button';
-import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../../components/ui/select';
 import { Textarea } from '../../../components/ui/textarea';
 import { Checkbox } from '../../../components/ui/checkbox';
 import { Badge } from '../../../components/ui/badge';
-import { MapPin, Building, Globe, Home, Star, X, Plus } from 'lucide-react';
+import { MapPin, Building, Globe, Home, Star, X, Plus, Camera, FileText } from 'lucide-react';
 
 interface PropertyBasicInfoProps {
   data: PropertyFormData;
@@ -168,51 +167,83 @@ const PropertyBasicInfo: React.FC<PropertyBasicInfoProps> = ({ data, onChange, e
   };
 
   return (
-    <Card className="w-full">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Building className="h-5 w-5" />
-          Basic Property Information
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-6">
+    <div className="space-y-8">
+      {/* Header */}
+      <div className="flex items-center gap-3 mb-6">
+        <div className="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center">
+          <Building className="h-5 w-5 text-green-600" />
+        </div>
+        <div>
+          <h2 className="text-xl font-bold text-gray-900">Basic Property Information</h2>
+          <p className="text-sm text-gray-600">Enter the essential details about your property</p>
+        </div>
+      </div>
+
+      <div className="space-y-8">
         {/* Property Name */}
-        <div className="space-y-2">
-          <Label htmlFor="propertyName">Property Name *</Label>
+        <div>
+          <Label
+            htmlFor="propertyName"
+            className="block text-sm font-semibold text-gray-700 mb-2"
+          >
+            Property Name *
+          </Label>
           <Input
             id="propertyName"
             value={data.name}
             onChange={(e) => onChange({ ...data, name: e.target.value })}
             placeholder="Enter property name"
-            className={errors?.name ? 'border-red-500' : ''}
+            className={`w-full px-4 py-3 border rounded-xl focus:outline-none bg-white/50 backdrop-blur-sm ${
+              errors?.name ? 'border-red-500 focus:ring-red-200' : 'border-gray-200 focus:ring-green-200'
+            }`}
+            required
           />
-          {errors?.name && <p className="text-sm text-red-500">{errors.name}</p>}
+          {errors?.name && (
+            <p className="text-red-500 text-sm mt-1">{errors.name}</p>
+          )}
         </div>
 
         {/* Property Title */}
-        <div className="space-y-2">
-          <Label htmlFor="propertyTitle">Property Title *</Label>
+        <div>
+          <Label
+            htmlFor="propertyTitle"
+            className="block text-sm font-semibold text-gray-700 mb-2"
+          >
+            Property Title *
+          </Label>
           <Input
             id="propertyTitle"
             value={data.title}
             onChange={(e) => onChange({ ...data, title: e.target.value })}
             placeholder="Enter property title for listings"
-            className={errors?.title ? 'border-red-500' : ''}
+            className={`w-full px-4 py-3 border rounded-xl focus:outline-none bg-white/50 backdrop-blur-sm ${
+              errors?.title ? 'border-red-500 focus:ring-red-200' : 'border-gray-200 focus:ring-green-200'
+            }`}
+            required
           />
-          {errors?.title && <p className="text-sm text-red-500">{errors.title}</p>}
+          {errors?.title && (
+            <p className="text-red-500 text-sm mt-1">{errors.title}</p>
+          )}
         </div>
 
         {/* Property Type */}
-        <div className="space-y-2">
-          <Label htmlFor="propertyType">Property Type *</Label>
+        <div>
+          <Label
+            htmlFor="propertyType"
+            className="block text-sm font-semibold text-gray-700 mb-2"
+          >
+            Property Type *
+          </Label>
           <Select
             value={data.property_type}
             onValueChange={(value) => onChange({ ...data, property_type: value, propertyType: value })}
           >
-            <SelectTrigger className={errors?.property_type ? 'border-red-500' : ''}>
+            <SelectTrigger className={`w-full px-4 py-3 border rounded-xl focus:outline-none bg-white/50 backdrop-blur-sm ${
+              errors?.property_type ? 'border-red-500 focus:ring-red-200' : 'border-gray-200 focus:ring-green-200'
+            }`}>
               <SelectValue placeholder="Select property type" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="z-[9999] max-h-60 overflow-y-auto">
               {PROPERTY_TYPES.map((type) => (
                 <SelectItem key={type} value={type}>
                   {type}
@@ -220,64 +251,101 @@ const PropertyBasicInfo: React.FC<PropertyBasicInfoProps> = ({ data, onChange, e
               ))}
             </SelectContent>
           </Select>
-          {errors?.property_type && <p className="text-sm text-red-500">{errors.property_type}</p>}
+          {errors?.property_type && (
+            <p className="text-red-500 text-sm mt-1">{errors.property_type}</p>
+          )}
         </div>
 
         {/* Address Section */}
-        <div className="space-y-4">
-          <div className="flex items-center gap-2">
-            <MapPin className="h-4 w-4" />
-            <h3 className="text-lg font-semibold">Address</h3>
+        <div className="space-y-6">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+              <MapPin className="h-4 w-4 text-blue-600" />
+            </div>
+            <h3 className="text-lg font-semibold text-gray-900">Address Information</h3>
           </div>
 
           {/* Address Line 1 */}
-          <div className="space-y-2">
-            <Label htmlFor="addressLine1">Street Address *</Label>
+          <div>
+            <Label
+              htmlFor="addressLine1"
+              className="block text-sm font-semibold text-gray-700 mb-2"
+            >
+              Street Address *
+            </Label>
             <Input
               id="addressLine1"
               value={data.address.line1}
               onChange={(e) => handleAddressChange('line1', e.target.value)}
               placeholder="123 Main Street"
-              className={errors?.address?.line1 ? 'border-red-500' : ''}
+              className={`w-full px-4 py-3 border rounded-xl focus:outline-none bg-white/50 backdrop-blur-sm ${
+                errors?.address?.line1 ? 'border-red-500 focus:ring-red-200' : 'border-gray-200 focus:ring-green-200'
+              }`}
+              required
             />
-            {errors?.address?.line1 && <p className="text-sm text-red-500">{errors.address.line1}</p>}
+            {errors?.address?.line1 && (
+              <p className="text-red-500 text-sm mt-1">{errors.address.line1}</p>
+            )}
           </div>
 
           {/* Address Line 2 */}
-          <div className="space-y-2">
-            <Label htmlFor="addressLine2">Address Line 2 (Optional)</Label>
+          <div>
+            <Label
+              htmlFor="addressLine2"
+              className="block text-sm font-semibold text-gray-700 mb-2"
+            >
+              Address Line 2 (Optional)
+            </Label>
             <Input
               id="addressLine2"
               value={data.address.line2 || ''}
               onChange={(e) => handleAddressChange('line2', e.target.value)}
               placeholder="Apt 4B, Suite 200, etc."
+              className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-green-200 bg-white/50 backdrop-blur-sm"
             />
           </div>
 
           {/* City, State, ZIP */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="city">City *</Label>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div>
+              <Label
+                htmlFor="city"
+                className="block text-sm font-semibold text-gray-700 mb-2"
+              >
+                City *
+              </Label>
               <Input
                 id="city"
                 value={data.address.city}
                 onChange={(e) => handleAddressChange('city', e.target.value)}
                 placeholder="San Francisco"
-                className={errors?.address?.city ? 'border-red-500' : ''}
+                className={`w-full px-4 py-3 border rounded-xl focus:outline-none bg-white/50 backdrop-blur-sm ${
+                  errors?.address?.city ? 'border-red-500 focus:ring-red-200' : 'border-gray-200 focus:ring-green-200'
+                }`}
+                required
               />
-              {errors?.address?.city && <p className="text-sm text-red-500">{errors.address.city}</p>}
+              {errors?.address?.city && (
+                <p className="text-red-500 text-sm mt-1">{errors.address.city}</p>
+              )}
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="region">State *</Label>
+            <div>
+              <Label
+                htmlFor="region"
+                className="block text-sm font-semibold text-gray-700 mb-2"
+              >
+                State *
+              </Label>
               <Select
                 value={data.address.region}
                 onValueChange={(value) => handleAddressChange('region', value)}
               >
-                <SelectTrigger className={errors?.address?.region ? 'border-red-500' : ''}>
+                <SelectTrigger className={`w-full px-4 py-3 border rounded-xl focus:outline-none bg-white/50 backdrop-blur-sm ${
+                  errors?.address?.region ? 'border-red-500 focus:ring-red-200' : 'border-gray-200 focus:ring-green-200'
+                }`}>
                   <SelectValue placeholder="Select state" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="z-[9999] max-h-60 overflow-y-auto">
                   {US_STATES.map((state) => (
                     <SelectItem key={state} value={state}>
                       {state}
@@ -285,49 +353,73 @@ const PropertyBasicInfo: React.FC<PropertyBasicInfoProps> = ({ data, onChange, e
                   ))}
                 </SelectContent>
               </Select>
-              {errors?.address?.region && <p className="text-sm text-red-500">{errors.address.region}</p>}
+              {errors?.address?.region && (
+                <p className="text-red-500 text-sm mt-1">{errors.address.region}</p>
+              )}
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="postalCode">ZIP Code *</Label>
+            <div>
+              <Label
+                htmlFor="postalCode"
+                className="block text-sm font-semibold text-gray-700 mb-2"
+              >
+                ZIP Code *
+              </Label>
               <Input
                 id="postalCode"
                 value={data.address.postalCode}
                 onChange={(e) => handleAddressChange('postalCode', e.target.value)}
                 placeholder="94102"
-                className={errors?.address?.postalCode ? 'border-red-500' : ''}
+                className={`w-full px-4 py-3 border rounded-xl focus:outline-none bg-white/50 backdrop-blur-sm ${
+                  errors?.address?.postalCode ? 'border-red-500 focus:ring-red-200' : 'border-gray-200 focus:ring-green-200'
+                }`}
+                required
               />
-              {errors?.address?.postalCode && <p className="text-sm text-red-500">{errors.address.postalCode}</p>}
+              {errors?.address?.postalCode && (
+                <p className="text-red-500 text-sm mt-1">{errors.address.postalCode}</p>
+              )}
             </div>
           </div>
 
           {/* Country */}
-          <div className="space-y-2">
-            <Label htmlFor="country">Country *</Label>
+          <div>
+            <Label
+              htmlFor="country"
+              className="block text-sm font-semibold text-gray-700 mb-2"
+            >
+              Country *
+            </Label>
             <Input
               id="country"
               value={data.address.country}
               onChange={(e) => handleAddressChange('country', e.target.value)}
               placeholder="United States"
-              className={errors?.address?.country ? 'border-red-500' : ''}
+              className={`w-full px-4 py-3 border rounded-xl focus:outline-none bg-white/50 backdrop-blur-sm ${
+                errors?.address?.country ? 'border-red-500 focus:ring-red-200' : 'border-gray-200 focus:ring-green-200'
+              }`}
+              required
             />
-            {errors?.address?.country && <p className="text-sm text-red-500">{errors.address.country}</p>}
+            {errors?.address?.country && (
+              <p className="text-red-500 text-sm mt-1">{errors.address.country}</p>
+            )}
           </div>
         </div>
 
         {/* Location Section */}
-        <div className="space-y-4">
-          <div className="flex items-center gap-2">
-            <MapPin className="h-4 w-4" />
-            <h3 className="text-lg font-semibold">Location Coordinates</h3>
+        <div className="space-y-6">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
+              <MapPin className="h-4 w-4 text-purple-600" />
+            </div>
+            <h3 className="text-lg font-semibold text-gray-900">Location Coordinates</h3>
           </div>
 
-          <div className="flex gap-2">
+          <div className="flex gap-3">
             <Button
               type="button"
               variant="outline"
-              onClick={getCurrentLocation}
-              className="flex-1"
+              onClick={() => getCurrentLocation()}
+              className="flex-1 px-4 py-3 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors"
             >
               Use Current Location
             </Button>
@@ -335,15 +427,21 @@ const PropertyBasicInfo: React.FC<PropertyBasicInfoProps> = ({ data, onChange, e
               type="button"
               variant="outline"
               onClick={() => setShowLocationInput(!showLocationInput)}
+              className="px-4 py-3 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors"
             >
               {showLocationInput ? 'Hide' : 'Manual Entry'}
             </Button>
           </div>
 
           {showLocationInput && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="latitude">Latitude *</Label>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <Label
+                  htmlFor="latitude"
+                  className="block text-sm font-semibold text-gray-700 mb-2"
+                >
+                  Latitude *
+                </Label>
                 <Input
                   id="latitude"
                   type="number"
@@ -351,13 +449,23 @@ const PropertyBasicInfo: React.FC<PropertyBasicInfoProps> = ({ data, onChange, e
                   value={data.location.lat || ''}
                   onChange={(e) => handleLocationChange('lat', parseFloat(e.target.value) || 0)}
                   placeholder="37.7749"
-                  className={errors?.location?.lat ? 'border-red-500' : ''}
+                  className={`w-full px-4 py-3 border rounded-xl focus:outline-none bg-white/50 backdrop-blur-sm ${
+                    errors?.location?.lat ? 'border-red-500 focus:ring-red-200' : 'border-gray-200 focus:ring-green-200'
+                  }`}
+                  required
                 />
-                {errors?.location?.lat && <p className="text-sm text-red-500">{errors.location.lat}</p>}
+                {errors?.location?.lat && (
+                  <p className="text-red-500 text-sm mt-1">{errors.location.lat}</p>
+                )}
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="longitude">Longitude *</Label>
+              <div>
+                <Label
+                  htmlFor="longitude"
+                  className="block text-sm font-semibold text-gray-700 mb-2"
+                >
+                  Longitude *
+                </Label>
                 <Input
                   id="longitude"
                   type="number"
@@ -365,16 +473,21 @@ const PropertyBasicInfo: React.FC<PropertyBasicInfoProps> = ({ data, onChange, e
                   value={data.location.lng || ''}
                   onChange={(e) => handleLocationChange('lng', parseFloat(e.target.value) || 0)}
                   placeholder="-122.4194"
-                  className={errors?.location?.lng ? 'border-red-500' : ''}
+                  className={`w-full px-4 py-3 border rounded-xl focus:outline-none bg-white/50 backdrop-blur-sm ${
+                    errors?.location?.lng ? 'border-red-500 focus:ring-red-200' : 'border-gray-200 focus:ring-green-200'
+                  }`}
+                  required
                 />
-                {errors?.location?.lng && <p className="text-sm text-red-500">{errors.location.lng}</p>}
+                {errors?.location?.lng && (
+                  <p className="text-red-500 text-sm mt-1">{errors.location.lng}</p>
+                )}
               </div>
             </div>
           )}
 
           {/* Display current coordinates */}
           {(data.location.lat && data.location.lng) && (
-            <div className="p-3 bg-gray-50 rounded-lg">
+            <div className="p-4 bg-gray-50 rounded-xl border border-gray-200">
               <p className="text-sm text-gray-600">
                 <strong>Current Location:</strong> {data.location.lat.toFixed(6)}, {data.location.lng.toFixed(6)}
               </p>
@@ -383,16 +496,23 @@ const PropertyBasicInfo: React.FC<PropertyBasicInfoProps> = ({ data, onChange, e
         </div>
 
         {/* Property Details Section */}
-        <div className="space-y-4">
-          <div className="flex items-center gap-2">
-            <Home className="h-4 w-4" />
-            <h3 className="text-lg font-semibold">Property Details</h3>
+        <div className="space-y-6">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
+              <Home className="h-4 w-4 text-green-600" />
+            </div>
+            <h3 className="text-lg font-semibold text-gray-900">Property Details</h3>
           </div>
 
           {/* Property Details Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="bedrooms">Bedrooms *</Label>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div>
+              <Label
+                htmlFor="bedrooms"
+                className="block text-sm font-semibold text-gray-700 mb-2"
+              >
+                Bedrooms *
+              </Label>
               <Input
                 id="bedrooms"
                 type="number"
@@ -400,13 +520,23 @@ const PropertyBasicInfo: React.FC<PropertyBasicInfoProps> = ({ data, onChange, e
                 max="10"
                 value={data.bedrooms}
                 onChange={(e) => onChange({ ...data, bedrooms: parseInt(e.target.value) || 0 })}
-                className={errors?.bedrooms ? 'border-red-500' : ''}
+                className={`w-full px-4 py-3 border rounded-xl focus:outline-none bg-white/50 backdrop-blur-sm ${
+                  errors?.bedrooms ? 'border-red-500 focus:ring-red-200' : 'border-gray-200 focus:ring-green-200'
+                }`}
+                required
               />
-              {errors?.bedrooms && <p className="text-sm text-red-500">{errors.bedrooms}</p>}
+              {errors?.bedrooms && (
+                <p className="text-red-500 text-sm mt-1">{errors.bedrooms}</p>
+              )}
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="bathrooms">Bathrooms *</Label>
+            <div>
+              <Label
+                htmlFor="bathrooms"
+                className="block text-sm font-semibold text-gray-700 mb-2"
+              >
+                Bathrooms *
+              </Label>
               <Input
                 id="bathrooms"
                 type="number"
@@ -415,30 +545,50 @@ const PropertyBasicInfo: React.FC<PropertyBasicInfoProps> = ({ data, onChange, e
                 step="0.5"
                 value={data.bathrooms}
                 onChange={(e) => onChange({ ...data, bathrooms: parseFloat(e.target.value) || 0 })}
-                className={errors?.bathrooms ? 'border-red-500' : ''}
+                className={`w-full px-4 py-3 border rounded-xl focus:outline-none bg-white/50 backdrop-blur-sm ${
+                  errors?.bathrooms ? 'border-red-500 focus:ring-red-200' : 'border-gray-200 focus:ring-green-200'
+                }`}
+                required
               />
-              {errors?.bathrooms && <p className="text-sm text-red-500">{errors.bathrooms}</p>}
+              {errors?.bathrooms && (
+                <p className="text-red-500 text-sm mt-1">{errors.bathrooms}</p>
+              )}
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="squareFeet">Square Feet *</Label>
+            <div>
+              <Label
+                htmlFor="squareFeet"
+                className="block text-sm font-semibold text-gray-700 mb-2"
+              >
+                Square Feet *
+              </Label>
               <Input
                 id="squareFeet"
                 type="number"
                 min="0"
                 value={data.square_feet}
                 onChange={(e) => onChange({ ...data, square_feet: parseInt(e.target.value) || 0 })}
-                className={errors?.square_feet ? 'border-red-500' : ''}
+                className={`w-full px-4 py-3 border rounded-xl focus:outline-none bg-white/50 backdrop-blur-sm ${
+                  errors?.square_feet ? 'border-red-500 focus:ring-red-200' : 'border-gray-200 focus:ring-green-200'
+                }`}
+                required
               />
-              {errors?.square_feet && <p className="text-sm text-red-500">{errors.square_feet}</p>}
+              {errors?.square_feet && (
+                <p className="text-red-500 text-sm mt-1">{errors.square_feet}</p>
+              )}
             </div>
           </div>
 
           {/* Rent Amount */}
-          <div className="space-y-2">
-            <Label htmlFor="rentAmount">Base Rent Amount *</Label>
+          <div>
+            <Label
+              htmlFor="rentAmount"
+              className="block text-sm font-semibold text-gray-700 mb-2"
+            >
+              Base Rent Amount *
+            </Label>
             <div className="relative">
-              <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
+              <span className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500 text-lg">$</span>
               <Input
                 id="rentAmount"
                 type="text"
@@ -448,17 +598,29 @@ const PropertyBasicInfo: React.FC<PropertyBasicInfoProps> = ({ data, onChange, e
                   onChange({ ...data, rent_amount: value });
                 }}
                 placeholder="2,500"
-                className={`pl-8 ${errors?.rent_amount ? 'border-red-500' : ''}`}
+                className={`w-full pl-8 pr-4 py-3 border rounded-xl focus:outline-none bg-white/50 backdrop-blur-sm ${
+                  errors?.rent_amount ? 'border-red-500 focus:ring-red-200' : 'border-gray-200 focus:ring-green-200'
+                }`}
+                required
               />
             </div>
-            {errors?.rent_amount && <p className="text-sm text-red-500">{errors.rent_amount}</p>}
+            {errors?.rent_amount && (
+              <p className="text-red-500 text-sm mt-1">{errors.rent_amount}</p>
+            )}
           </div>
 
           {/* Rating */}
-          <div className="space-y-2">
-            <Label htmlFor="rating">Property Rating *</Label>
-            <div className="flex items-center gap-2">
-              <Star className="h-4 w-4 text-yellow-500" />
+          <div>
+            <Label
+              htmlFor="rating"
+              className="block text-sm font-semibold text-gray-700 mb-2"
+            >
+              Property Rating *
+            </Label>
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 bg-yellow-100 rounded-lg flex items-center justify-center">
+                <Star className="h-4 w-4 text-yellow-600" />
+              </div>
               <Input
                 id="rating"
                 type="number"
@@ -467,76 +629,265 @@ const PropertyBasicInfo: React.FC<PropertyBasicInfoProps> = ({ data, onChange, e
                 step="0.1"
                 value={data.rating}
                 onChange={(e) => onChange({ ...data, rating: parseFloat(e.target.value) || 0 })}
-                className={errors?.rating ? 'border-red-500' : ''}
+                className={`w-24 px-4 py-3 border rounded-xl focus:outline-none bg-white/50 backdrop-blur-sm ${
+                  errors?.rating ? 'border-red-500 focus:ring-red-200' : 'border-gray-200 focus:ring-green-200'
+                }`}
+                required
               />
               <span className="text-sm text-gray-500">/ 5.0</span>
             </div>
-            {errors?.rating && <p className="text-sm text-red-500">{errors.rating}</p>}
+            {errors?.rating && (
+              <p className="text-red-500 text-sm mt-1">{errors.rating}</p>
+            )}
           </div>
 
           {/* Availability and Features */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="flex items-center space-x-2">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="flex items-center space-x-3 p-4 bg-gray-50 rounded-xl border border-gray-200">
               <Checkbox
                 id="isAvailable"
                 checked={data.is_available}
                 onCheckedChange={(checked) => onChange({ ...data, is_available: !!checked })}
+                className="w-5 h-5"
               />
-              <Label htmlFor="isAvailable">Property is currently available</Label>
+              <Label htmlFor="isAvailable" className="text-sm font-medium text-gray-700">
+                Property is currently available
+              </Label>
             </div>
 
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-3 p-4 bg-gray-50 rounded-xl border border-gray-200">
               <Checkbox
                 id="petFriendly"
                 checked={data.pet_friendly}
                 onCheckedChange={(checked) => onChange({ ...data, pet_friendly: !!checked })}
+                className="w-5 h-5"
               />
-              <Label htmlFor="petFriendly">Pet friendly</Label>
+              <Label htmlFor="petFriendly" className="text-sm font-medium text-gray-700">
+                Pet friendly
+              </Label>
             </div>
 
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-3 p-4 bg-gray-50 rounded-xl border border-gray-200">
               <Checkbox
                 id="isRentWiseNetwork"
                 checked={data.isRentWiseNetwork}
                 onCheckedChange={(checked) => onChange({ ...data, isRentWiseNetwork: !!checked })}
+                className="w-5 h-5"
               />
-              <Label htmlFor="isRentWiseNetwork">Part of RentWise Network</Label>
+              <Label htmlFor="isRentWiseNetwork" className="text-sm font-medium text-gray-700">
+                Part of RentWise Network
+              </Label>
             </div>
           </div>
 
           {/* Available Date */}
           {data.is_available && (
-            <div className="space-y-2">
-              <Label htmlFor="availableDate">Available Date</Label>
+            <div>
+              <Label
+                htmlFor="availableDate"
+                className="block text-sm font-semibold text-gray-700 mb-2"
+              >
+                Available Date
+              </Label>
               <Input
                 id="availableDate"
                 type="date"
                 value={data.available_date || ''}
                 onChange={(e) => onChange({ ...data, available_date: e.target.value || null })}
+                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-green-200 bg-white/50 backdrop-blur-sm"
               />
             </div>
           )}
         </div>
 
+        {/* Lease Terms Section */}
+        <div className="space-y-6">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+              <FileText className="h-4 w-4 text-blue-600" />
+            </div>
+            <h3 className="text-lg font-semibold text-gray-900">Default Lease Terms</h3>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <Label
+                htmlFor="leaseTerm"
+                className="block text-sm font-semibold text-gray-700 mb-2"
+              >
+                Default Lease Term *
+              </Label>
+              <Select
+                value={data.lease_term_months.toString()}
+                onValueChange={(value) => {
+                  const months = parseInt(value);
+                  onChange({ ...data, lease_term_months: months });
+                }}
+              >
+                <SelectTrigger className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-green-200 bg-white/50 backdrop-blur-sm">
+                  <SelectValue placeholder="Select lease term" />
+                </SelectTrigger>
+                <SelectContent className="z-[9999] max-h-60 overflow-y-auto">
+                  {LEASE_TERM_OPTIONS.map((term) => (
+                    <SelectItem key={term} value={LEASE_TERM_MONTHS[term].toString()}>
+                      {term}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label
+                htmlFor="securityDeposit"
+                className="block text-sm font-semibold text-gray-700 mb-2"
+              >
+                Security Deposit *
+              </Label>
+              <Select
+                value={data.security_deposit_months.toString()}
+                onValueChange={(value) => {
+                  const months = parseFloat(value);
+                  onChange({ ...data, security_deposit_months: months });
+                }}
+              >
+                <SelectTrigger className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-green-200 bg-white/50 backdrop-blur-sm">
+                  <SelectValue placeholder="Select security deposit" />
+                </SelectTrigger>
+                <SelectContent className="z-[9999] max-h-60 overflow-y-auto">
+                  {SECURITY_DEPOSIT_OPTIONS.map((option) => (
+                    <SelectItem key={option} value={SECURITY_DEPOSIT_MONTHS[option].toString()}>
+                      {option}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {/* Rent Payment Options */}
+          <div className="space-y-4">
+            <Label className="text-base font-semibold">Rent Payment Requirements</Label>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="flex items-center space-x-3 p-4 bg-gray-50 rounded-xl border border-gray-200">
+                <Checkbox
+                  id="firstMonthRequired"
+                  checked={data.first_month_rent_required}
+                  onCheckedChange={(checked) => onChange({ ...data, first_month_rent_required: !!checked })}
+                  className="w-5 h-5"
+                />
+                <Label htmlFor="firstMonthRequired" className="text-sm font-medium text-gray-700">
+                  First month rent required upfront
+                </Label>
+              </div>
+
+              <div className="flex items-center space-x-3 p-4 bg-gray-50 rounded-xl border border-gray-200">
+                <Checkbox
+                  id="lastMonthRequired"
+                  checked={data.last_month_rent_required}
+                  onCheckedChange={(checked) => onChange({ ...data, last_month_rent_required: !!checked })}
+                  className="w-5 h-5"
+                />
+                <Label htmlFor="lastMonthRequired" className="text-sm font-medium text-gray-700">
+                  Last month rent required upfront
+                </Label>
+              </div>
+            </div>
+          </div>
+
+          {/* Available Lease Term Options */}
+          <div className="space-y-4">
+            <div>
+              <Label className="text-base font-semibold">Available Lease Term Options</Label>
+              <p className="text-sm text-gray-600">Select all lease terms you're willing to offer</p>
+            </div>
+
+            {/* Selected Lease Terms */}
+            {data.lease_term_options.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {data.lease_term_options.map((term, index) => (
+                  <Badge
+                    key={index}
+                    variant="secondary"
+                    className="flex items-center gap-1"
+                  >
+                    {term}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const updated = data.lease_term_options.filter((_, i) => i !== index);
+                        onChange({ ...data, lease_term_options: updated });
+                      }}
+                      className="ml-1 hover:text-red-500"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </Badge>
+                ))}
+              </div>
+            )}
+
+            {/* Lease Term Selection */}
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
+              {LEASE_TERM_OPTIONS.map((term) => (
+                <div key={term} className="flex items-center space-x-2">
+                  <Checkbox
+                    id={`lease-term-${term}`}
+                    checked={data.lease_term_options.includes(term)}
+                    onCheckedChange={(checked) => {
+                      if (checked) {
+                        onChange({ ...data, lease_term_options: [...data.lease_term_options, term] });
+                      } else {
+                        onChange({ ...data, lease_term_options: data.lease_term_options.filter(t => t !== term) });
+                      }
+                    }}
+                  />
+                  <Label 
+                    htmlFor={`lease-term-${term}`}
+                    className="text-sm cursor-pointer"
+                  >
+                    {term}
+                  </Label>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
         {/* Property Description */}
-        <div className="space-y-2">
-          <Label htmlFor="description">Property Description *</Label>
+        <div>
+          <Label
+            htmlFor="description"
+            className="block text-sm font-semibold text-gray-700 mb-2"
+          >
+            Property Description *
+          </Label>
           <Textarea
             id="description"
             value={data.description}
             onChange={(e) => onChange({ ...data, description: e.target.value })}
             placeholder="Describe the property, its features, location, and what makes it special..."
             rows={4}
-            className={errors?.description ? 'border-red-500' : ''}
+            className={`w-full px-4 py-3 border rounded-xl focus:outline-none bg-white/50 backdrop-blur-sm resize-none ${
+              errors?.description ? 'border-red-500 focus:ring-red-200' : 'border-gray-200 focus:ring-green-200'
+            }`}
+            required
           />
-          {errors?.description && <p className="text-sm text-red-500">{errors.description}</p>}
+          {errors?.description && (
+            <p className="text-red-500 text-sm mt-1">{errors.description}</p>
+          )}
         </div>
 
         {/* Property Images */}
-        <div className="space-y-4">
-          <div>
-            <Label className="text-base font-semibold">Property Images</Label>
-            <p className="text-sm text-gray-600">Add multiple images to showcase your property</p>
+        <div className="space-y-6">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center">
+              <Camera className="h-4 w-4 text-orange-600" />
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900">Property Images</h3>
+              <p className="text-sm text-gray-600">Add multiple images to showcase your property</p>
+            </div>
           </div>
 
           <div 
@@ -710,8 +1061,8 @@ const PropertyBasicInfo: React.FC<PropertyBasicInfoProps> = ({ data, onChange, e
             </div>
           </div>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 };
 

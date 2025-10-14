@@ -158,7 +158,7 @@ function App() {
           <Route
             path="/learning-center"
             element={
-              <ProtectedRoute requiredRole="renter">
+              <ProtectedRoute requiredRoles={['prospect', 'renter', 'landlord_admin', 'landlord_employee', 'cocoon_admin', 'cocoon_employee']}>
                 <LearningCenter />
               </ProtectedRoute>
             }
@@ -190,7 +190,7 @@ function App() {
             }
           />
           <Route
-            path="/landlord-properties"
+            path="/dashboard"
             element={
               <ProtectedRoute requiredRoles={['landlord_admin', 'landlord_employee']}>
                 <LandlordPropertyManagement />

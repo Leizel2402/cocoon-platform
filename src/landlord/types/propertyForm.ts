@@ -32,6 +32,12 @@ export interface PropertyFormData {
   description: string; // Property description
   rating: number; // Property rating
   isRentWiseNetwork: boolean; // RentWise Network status
+  // Lease Terms
+  lease_term_months: number; // Default lease term in months
+  lease_term_options: string[]; // Available lease term options
+  security_deposit_months: number; // Security deposit in months of rent
+  first_month_rent_required: boolean; // First month rent required upfront
+  last_month_rent_required: boolean; // Last month rent required upfront
   socialFeeds?: {
     instagram?: string;
     tiktok?: string;
@@ -52,6 +58,13 @@ export interface UnitFormData {
   amenities: string[];
   images: string[];
   description: string;
+  // Lease Terms for Unit
+  lease_term_months: number; // Lease term in months
+  security_deposit_months: number; // Security deposit in months of rent
+  first_month_rent_required: boolean; // First month rent required upfront
+  last_month_rent_required: boolean; // Last month rent required upfront
+  pet_deposit: number; // Pet deposit amount
+  application_fee: number; // Application fee
 }
 
 // Listing form data interface
@@ -67,6 +80,15 @@ export interface ListingFormData {
   amenities: string[];
   available: boolean;
   availableDate?: Date;
+  // Lease Terms for Listing
+  lease_term_months: number; // Lease term in months
+  security_deposit_months: number; // Security deposit in months of rent
+  first_month_rent_required: boolean; // First month rent required upfront
+  last_month_rent_required: boolean; // Last month rent required upfront
+  pet_deposit: number; // Pet deposit amount
+  application_fee: number; // Application fee
+  lease_start_date?: string; // Preferred lease start date
+  lease_end_date?: string; // Preferred lease end date
 }
 
 // Complete property creation data
@@ -99,24 +121,39 @@ export interface PropertyFormErrors {
     property_type?: string;
     description?: string;
     rating?: string;
+    lease_term_months?: string;
+    security_deposit_months?: string;
+    lease_term_options?: string;
   };
   units?: {
-    unitNumber?: string;
-    bedrooms?: string;
-    bathrooms?: string;
-    squareFeet?: string;
-    rent?: string;
-    deposit?: string;
-    description?: string;
+    [key: number]: {
+      unitNumber?: string;
+      bedrooms?: string;
+      bathrooms?: string;
+      squareFeet?: string;
+      rent?: string;
+      deposit?: string;
+      description?: string;
+      lease_term_months?: string;
+      security_deposit_months?: string;
+      pet_deposit?: string;
+      application_fee?: string;
+    };
   };
   listings?: {
-    title?: string;
-    description?: string;
-    rent?: string;
-    deposit?: string;
-    bedrooms?: string;
-    bathrooms?: string;
-    squareFeet?: string;
+    [key: number]: {
+      title?: string;
+      description?: string;
+      rent?: string;
+      deposit?: string;
+      bedrooms?: string;
+      bathrooms?: string;
+      squareFeet?: string;
+      lease_term_months?: string;
+      security_deposit_months?: string;
+      pet_deposit?: string;
+      application_fee?: string;
+    };
   };
 }
 
@@ -249,3 +286,55 @@ export const US_STATES = [
 ] as const;
 
 export type USState = typeof US_STATES[number];
+
+// Lease term options
+export const LEASE_TERM_OPTIONS = [
+  'Month-to-Month',
+  '3 Months',
+  '6 Months', 
+  '9 Months',
+  '12 Months',
+  '15 Months',
+  '18 Months',
+  '24 Months',
+  '36 Months',
+  'Flexible'
+] as const;
+
+export type LeaseTermOption = typeof LEASE_TERM_OPTIONS[number];
+
+// Lease term months mapping
+export const LEASE_TERM_MONTHS: Record<string, number> = {
+  'Month-to-Month': 1,
+  '3 Months': 3,
+  '6 Months': 6,
+  '9 Months': 9,
+  '12 Months': 12,
+  '15 Months': 15,
+  '18 Months': 18,
+  '24 Months': 24,
+  '36 Months': 36,
+  'Flexible': 12 // Default to 12 months for flexible
+};
+
+// Security deposit options
+export const SECURITY_DEPOSIT_OPTIONS = [
+  '1 Month',
+  '1.5 Months', 
+  '2 Months',
+  '2.5 Months',
+  '3 Months',
+  'Custom Amount'
+] as const;
+
+export type SecurityDepositOption = typeof SECURITY_DEPOSIT_OPTIONS[number];
+
+// Security deposit months mapping
+export const SECURITY_DEPOSIT_MONTHS: Record<string, number> = {
+  '1 Month': 1,
+  '1.5 Months': 1.5,
+  '2 Months': 2,
+  '2.5 Months': 2.5,
+  '3 Months': 3,
+  'Custom Amount': 1 // Default to 1 month for custom
+};

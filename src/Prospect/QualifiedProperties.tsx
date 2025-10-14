@@ -467,64 +467,39 @@ const QualifiedProperties: React.FC<QualifiedPropertiesProps> = ({
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-      {/* Header */}
-      <div className="sticky top-16 z-30 bg-gradient-to-r from-green-600 via-emerald-600 to-teal-600 text-white py-4 px-6 shadow-2xl ">
-        <div className="container mx-auto flex flex-col sm:flex-row  items-center justify-between">
-          <div className="flex items-center space-x-4">
-            <div className="w-12 h-12 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center shadow-2xl">
-              <Boxes className="h-6 w-6 text-white" />
+      {/* Header Banner */}
+      <div className="sticky top-16 z-30 bg-gradient-to-r from-green-600 via-green-600 to-emerald-600 text-white">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
+                <Boxes className="h-6 w-6 text-green-600" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold">Available Units</h1>
+                <p className="text-sm text-green-50">
+                  {selectedProperty.name} - {qualifiedUnits.length} qualified units available
+                </p>
+              </div>
             </div>
-            <div className="flex flex-col ">
-              <h1 className="text-3xl font-bold text-white mb-1">
-                <Star className="h-6 w-6 mr-2 text-green-600" />
-                Available Units
-              </h1>
-              <span className="text-sm">
-                {selectedProperty.name} - {qualifiedUnits.length} qualified units available
-              </span>
+            <div className="flex items-center space-x-3">
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => onCompareUnits?.(comparisonUnits)}
+                disabled={comparisonUnits.length === 0}
+                className={`flex items-center px-6 py-3 rounded-lg font-semibold transition-all duration-200 shadow-lg hover:shadow-xl ${
+                  comparisonUnits.length > 0
+                    ? "bg-white text-green-600 hover:bg-green-100"
+                    : "bg-gray-100 text-gray-400 border border-gray-200 cursor-not-allowed"
+                }`}
+              >
+                <Heart className={`h-5 w-5 mr-2 ${comparisonUnits.length > 0 ? "fill-current" : ""}`} />
+                Compare Units ({comparisonUnits.length}/5)
+              </motion.button>
             </div>
           </div>
-          
-          <div className="flex items-center space-x-4">
-            {/* Comparison Queue Thumbnails */}
-            {/* {comparisonUnits.length > 0 && (
-              <div className="flex items-center space-x-2">
-                <span className="text-sm text-white/80">Selected:</span>
-                <div className="flex space-x-1">
-                  {comparisonUnits.slice(0, 3).map(({ unit }) => (
-                    <div
-                      key={unit.id}
-                      className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center text-xs font-bold text-white border border-white/30"
-                      title={`Unit ${unit.unitNumber}`}
-                    >
-                      {unit.unitNumber}
-                    </div>
-                  ))}
-                  {comparisonUnits.length > 3 && (
-                    <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center text-xs font-bold text-white border border-white/30">
-                      +{comparisonUnits.length - 3}
-                    </div>
-                  )}
-                </div>
-              </div>
-            )} */}
-            
-          <motion.button
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            onClick={() => onCompareUnits?.(comparisonUnits)}
-            disabled={comparisonUnits.length === 0}
-            className={`flex items-center px-6 py-3 rounded-lg sm:mt-0 mt-3 font-semibold transition-all duration-200 shadow-lg hover:shadow-xl ${
-              comparisonUnits.length > 0
-                ? "bg-white text-green-600 hover:bg-green-100"
-                : "bg-gray-100 text-gray-400 border border-gray-200 cursor-not-allowed"
-            }`}
-          >
-              <Heart className={`h-5 w-5 mr-2 ${comparisonUnits.length > 0 ? "fill-current" : ""}`} />
-            Compare Units ({comparisonUnits.length}/5)
-          </motion.button>
         </div>
-      </div>
       </div>
 
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">

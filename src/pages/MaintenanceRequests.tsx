@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { useAuth } from '../hooks/useAuth';
 import { motion } from 'framer-motion';
 import { 
   Wrench, 
@@ -9,21 +8,25 @@ import {
   AlertTriangle, 
   XCircle,
   Calendar,
-  Camera,
   MapPin,
   Search,
   Eye,
   MessageSquare,
-  ArrowLeft,
   Loader2,
   Phone,
-  X
+  X,
+  ChevronDown,
+  Upload,
+  Zap,
+  Home,
+  Building,
+  Settings,
+  FileText
 } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/input';
 import { Textarea } from '../components/ui/textarea';
 import { useToast } from '../hooks/use-toast';
-import { useNavigate } from 'react-router-dom';
 
 interface MaintenanceRequest {
   id: string;
@@ -32,7 +35,7 @@ interface MaintenanceRequest {
   category: 'plumbing' | 'electrical' | 'hvac' | 'appliance' | 'structural' | 'other';
   priority: 'low' | 'medium' | 'high' | 'emergency';
   status: 'submitted' | 'in_progress' | 'completed' | 'cancelled';
-  images: string[];
+  images: File[];
   submittedAt: Date;
   scheduledDate?: Date;
   completedDate?: Date;
@@ -42,15 +45,15 @@ interface MaintenanceRequest {
 }
 
 export function MaintenanceRequests() {
-  const { user } = useAuth();
   const { toast } = useToast();
-  const navigate = useNavigate();
   const [requests, setRequests] = useState<MaintenanceRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [showNewRequestForm, setShowNewRequestForm] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<'all' | 'submitted' | 'in_progress' | 'completed'>('all');
   const [selectedRequest, setSelectedRequest] = useState<MaintenanceRequest | null>(null);
+  const [uploadedImages, setUploadedImages] = useState<File[]>([]);
+  const [imagePreviewUrls, setImagePreviewUrls] = useState<string[]>([]);
 
   // Form state
   const [newRequest, setNewRequest] = useState({
@@ -60,6 +63,13 @@ export function MaintenanceRequests() {
     priority: 'medium' as MaintenanceRequest['priority'],
     images: [] as File[]
   });
+
+  // Cleanup image URLs on unmount
+  useEffect(() => {
+    return () => {
+      imagePreviewUrls.forEach(url => URL.revokeObjectURL(url));
+    };
+  }, [imagePreviewUrls]);
 
   // Mock data - in real app, this would come from Firebase
   useEffect(() => {
@@ -156,6 +166,26 @@ export function MaintenanceRequests() {
     }
   };
 
+  // Image upload handlers
+  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files || []);
+    if (files.length > 0) {
+      const newFiles = [...uploadedImages, ...files].slice(0, 5); // Max 5 images
+      setUploadedImages(newFiles);
+      
+      // Create preview URLs
+      const newPreviewUrls = newFiles.map(file => URL.createObjectURL(file));
+      setImagePreviewUrls(newPreviewUrls);
+    }
+  };
+
+  const removeImage = (index: number) => {
+    const newFiles = uploadedImages.filter((_, i) => i !== index);
+    const newPreviewUrls = imagePreviewUrls.filter((_, i) => i !== index);
+    setUploadedImages(newFiles);
+    setImagePreviewUrls(newPreviewUrls);
+  };
+
   const handleSubmitRequest = () => {
     if (!newRequest.title || !newRequest.description) {
       toast({
@@ -170,7 +200,7 @@ export function MaintenanceRequests() {
       id: Date.now().toString(),
       ...newRequest,
       status: 'submitted',
-      images: [],
+      images: uploadedImages,
       submittedAt: new Date(),
       propertyAddress: '1200 Autumn Willow Dr, Austin, TX 78745',
       unitNumber: 'Apt 205'
@@ -184,6 +214,8 @@ export function MaintenanceRequests() {
       priority: 'medium',
       images: []
     });
+    setUploadedImages([]);
+    setImagePreviewUrls([]);
     setShowNewRequestForm(false);
 
     toast({
@@ -192,21 +224,74 @@ export function MaintenanceRequests() {
     });
   };
 
+  // Custom Select Component
+  const CustomSelect = ({ 
+    value, 
+    onChange, 
+    options, 
+    placeholder 
+  }: { 
+    value: string; 
+    onChange: (value: string) => void; 
+    options: { value: string; label: string; icon?: React.ReactNode }[]; 
+    placeholder: string; 
+  }) => {
+    const [isOpen, setIsOpen] = useState(false);
+    const selectedOption = options.find(opt => opt.value === value);
+
+    return (
+      <div className="relative">
+        <button
+          type="button"
+          onClick={() => setIsOpen(!isOpen)}
+          className="w-full p-3 border border-gray-200 rounded-xl focus:border-green-500 focus:ring-green-200 bg-white text-left flex items-center justify-between"
+        >
+          <div className="flex items-center space-x-2">
+            {selectedOption?.icon}
+            <span className={selectedOption ? 'text-gray-900' : 'text-gray-500'}>
+              {selectedOption?.label || placeholder}
+            </span>
+          </div>
+          <ChevronDown className={`h-4 w-4 text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+        </button>
+        
+        {isOpen && (
+          <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg">
+            {options.map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() => {
+                  onChange(option.value);
+                  setIsOpen(false);
+                }}
+                className="w-full p-3 text-left hover:bg-gray-50 flex items-center space-x-2 first:rounded-t-xl last:rounded-b-xl"
+              >
+                {option.icon}
+                <span className="text-gray-900">{option.label}</span>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <Loader2 className="h-8 w-8 animate-spin text-green-600 mx-auto mb-4" />
-          <p className="text-gray-600">Loading maintenance requests...</p>
+            <p className="text-gray-600">Loading maintenance requests...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50">
       {/* Header Banner */}
-      <div className="bg-gradient-to-r from-green-600 via-green-500 to-emerald-600 text-white">
+      <div className="sticky top-16 z-30 bg-gradient-to-r from-green-600 via-green-600 to-emerald-600 text-white">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
@@ -219,24 +304,24 @@ export function MaintenanceRequests() {
               >
                 <ArrowLeft className="h-5 w-5" />
               </button> */}
-              <div>
+            <div>
                 <h1 className="text-2xl font-bold">Maintenance Requests</h1>
                 <p className="text-sm text-green-50">
-                  Submit and track maintenance requests for your property
-                </p>
-              </div>
+                Submit and track maintenance requests for your property
+              </p>
+            </div>
             </div>
             <div className="flex items-center space-x-3">
-              <Button
-                onClick={() => setShowNewRequestForm(true)}
+            <Button
+              onClick={() => setShowNewRequestForm(true)}
                 className="bg-white text-green-600 hover:bg-green-50 font-semibold transition-all duration-200 shadow-lg"
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                New Request
-              </Button>
-            </div>
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              New Request
+            </Button>
           </div>
         </div>
+      </div>
       </div>
 
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -297,7 +382,7 @@ export function MaintenanceRequests() {
           </div>
         </div> */}
 
-        {/* Search and Filter Bar */}
+      {/* Search and Filter Bar */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-6">
           <div className="flex flex-col md:flex-row gap-4">
             {/* Search */}
@@ -337,116 +422,211 @@ export function MaintenanceRequests() {
                   </span> */}
                 </Button>
               ))}
-            </div>
           </div>
         </div>
+      </div>
 
       {/* New Request Form Modal */}
       {showNewRequestForm && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="flex justify-between items-center p-6 border-b">
-              <h2 className="text-xl font-semibold">Submit Maintenance Request</h2>
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            className="bg-white rounded-2xl max-w-4xl w-full max-h-auto overflow-hidden shadow-2xl"
+          >
+            {/* Modal Header */}
+            <div className="bg-gradient-to-r from-green-600 to-emerald-600 text-white p-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
+                    <Wrench className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-bold">Submit Maintenance Request</h2>
+                    <p className="text-green-50 text-sm">Report an issue with your property</p>
+                  </div>
+                </div>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => setShowNewRequestForm(false)}
+                  className="text-white hover:bg-white/20"
               >
-                <X className="h-4 w-4" />
+                  <X className="h-5 w-5" />
               </Button>
+              </div>
             </div>
             
-            <div className="p-6 space-y-6">
+            {/* Modal Content */}
+            <div className="p-6 space-y-6 max-h-[70vh] overflow-y-auto">
+              {/* Property Info */}
+              <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
+                <div className="flex items-center space-x-3">
+                  <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
+                    <MapPin className="h-4 w-4 text-green-600" />
+                  </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Title *
-                </label>
-                <Input
-                  placeholder="Brief description of the issue"
-                  value={newRequest.title}
-                  onChange={(e) => setNewRequest(prev => ({ ...prev, title: e.target.value }))}
-                />
+                    <p className="text-sm font-medium text-gray-900">Property</p>
+                    <p className="text-sm text-gray-600">1200 Autumn Willow Dr, Austin, TX 78745 • Apt 205</p>
+                  </div>
+                </div>
               </div>
 
-              <div>
+              {/* Title Field */}
+              <div className="space-y-2">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Description *
+                  Issue Title *
+                </label>
+                <Input
+                  placeholder="e.g., Kitchen sink is leaking"
+                  value={newRequest.title}
+                  onChange={(e) => setNewRequest(prev => ({ ...prev, title: e.target.value }))}
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+                <p className="text-xs text-gray-500">Brief description of the problem</p>
+              </div>
+
+              {/* Description Field */}
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Detailed Description *
                 </label>
                 <Textarea
-                  placeholder="Detailed description of the problem..."
+                  placeholder="Please provide as much detail as possible about the issue..."
                   value={newRequest.description}
                   onChange={(e) => setNewRequest(prev => ({ ...prev, description: e.target.value }))}
                   rows={4}
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 />
+                <p className="text-xs text-gray-500">Include when the issue started, how often it occurs, etc.</p>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
+              {/* Category and Priority */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Category
                   </label>
-                  <select
+                  <CustomSelect
                     value={newRequest.category}
-                    onChange={(e) => setNewRequest(prev => ({ ...prev, category: e.target.value as MaintenanceRequest['category'] }))}
-                    className="w-full p-2 border border-gray-200 rounded-lg focus:border-green-500 focus:ring-green-200"
-                  >
-                    <option value="plumbing">Plumbing</option>
-                    <option value="electrical">Electrical</option>
-                    <option value="hvac">HVAC</option>
-                    <option value="appliance">Appliance</option>
-                    <option value="structural">Structural</option>
-                    <option value="other">Other</option>
-                  </select>
+                    onChange={(value) => setNewRequest(prev => ({ ...prev, category: value as MaintenanceRequest['category'] }))}
+                    placeholder="Select category"
+                    options={[
+                      { value: 'plumbing', label: 'Plumbing', icon: <Wrench className="h-4 w-4 text-blue-600" /> },
+                      { value: 'electrical', label: 'Electrical', icon: <Zap className="h-4 w-4 text-yellow-600" /> },
+                      { value: 'hvac', label: 'HVAC', icon: <Settings className="h-4 w-4 text-gray-600" /> },
+                      { value: 'appliance', label: 'Appliance', icon: <Home className="h-4 w-4 text-green-600" /> },
+                      { value: 'structural', label: 'Structural', icon: <Building className="h-4 w-4 text-orange-600" /> },
+                      { value: 'other', label: 'Other', icon: <FileText className="h-4 w-4 text-gray-600" /> }
+                    ]}
+                  />
                 </div>
 
-                <div>
+                <div className="space-y-2">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Priority
+                    Priority Level
                   </label>
-                  <select
+                  <CustomSelect
                     value={newRequest.priority}
-                    onChange={(e) => setNewRequest(prev => ({ ...prev, priority: e.target.value as MaintenanceRequest['priority'] }))}
-                    className="w-full p-2 border border-gray-200 rounded-lg focus:border-green-500 focus:ring-green-200"
-                  >
-                    <option value="low">Low</option>
-                    <option value="medium">Medium</option>
-                    <option value="high">High</option>
-                    <option value="emergency">Emergency</option>
-                  </select>
+                    onChange={(value) => setNewRequest(prev => ({ ...prev, priority: value as MaintenanceRequest['priority'] }))}
+                    placeholder="Select priority"
+                    options={[
+                      { value: 'low', label: 'Low - Can wait a few days', icon: <div className="w-3 h-3 bg-green-500 rounded-full" /> },
+                      { value: 'medium', label: 'Medium - Should be fixed soon', icon: <div className="w-3 h-3 bg-yellow-500 rounded-full" /> },
+                      { value: 'high', label: 'High - Needs attention this week', icon: <div className="w-3 h-3 bg-orange-500 rounded-full" /> },
+                      { value: 'emergency', label: 'Emergency - Immediate attention needed', icon: <div className="w-3 h-3 bg-red-500 rounded-full" /> }
+                    ]}
+                  />
                 </div>
               </div>
 
-              <div>
+              {/* Photo Upload */}
+              <div className="space-y-2">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Photos (Optional)
                 </label>
-                <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
-                  <Camera className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-                  <p className="text-gray-600">Click to upload photos</p>
-                  <p className="text-xs text-gray-500">PNG, JPG up to 10MB</p>
+                
+                {/* Upload Area */}
+                <div className="relative">
+                  <input
+                    type="file"
+                    multiple
+                    accept="image/*"
+                    onChange={handleImageUpload}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                  />
+                  <div className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:border-green-400 hover:bg-green-50 transition-colors">
+                    <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <Upload className="h-8 w-8 text-gray-400" />
+                    </div>
+                    <p className="text-gray-600 font-medium mb-1">Upload photos of the issue</p>
+                    <p className="text-sm text-gray-500">PNG, JPG up to 10MB each (Max 5 photos)</p>
+                    <p className="text-xs text-gray-400 mt-2">Click to select files</p>
+                  </div>
+                </div>
+
+                {/* Image Previews */}
+                {imagePreviewUrls.length > 0 && (
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-4">
+                    {imagePreviewUrls.map((url, index) => (
+                      <div key={index} className="relative group">
+                        <img
+                          src={url}
+                          alt={`Upload preview ${index + 1}`}
+                          className="w-full h-24 object-cover rounded-lg border border-gray-200"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removeImage(index)}
+                          className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Additional Info */}
+              <div className="bg-blue-50 rounded-xl p-4 border border-blue-200">
+                <div className="flex items-start space-x-3">
+                  <div className="w-5 h-5 bg-blue-100 rounded-full flex items-center justify-center mt-0.5">
+                    <span className="text-blue-600 text-xs font-bold">i</span>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-blue-900 mb-1">What happens next?</p>
+                    <p className="text-sm text-blue-700">
+                      Your request will be reviewed by our maintenance team. You'll receive updates via email and can track progress in your portal.
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
 
-            <div className="flex justify-end gap-3 p-6 border-t">
+            {/* Modal Footer */}
+            <div className="bg-gray-50 px-6 py-4 flex justify-end gap-3 border-t border-gray-200">
               <Button
                 variant="outline"
                 onClick={() => setShowNewRequestForm(false)}
+                className="border-gray-300 text-gray-700 hover:bg-gray-100"
               >
                 Cancel
               </Button>
               <Button
                 onClick={handleSubmitRequest}
-                className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
+                className="bg-green-600 hover:bg-green-700 text-white px-6"
               >
+                <Wrench className="h-4 w-4 mr-2" />
                 Submit Request
               </Button>
             </div>
-          </div>
+          </motion.div>
         </div>
       )}
 
-        {/* Requests List */}
+      {/* Requests List */}
         {filteredRequests.length === 0 ? (
           <div className="text-center py-16">
             <div className="bg-gradient-to-r from-green-100 to-emerald-100 rounded-full w-24 h-24 flex items-center justify-center mx-auto mb-6">
@@ -483,7 +663,7 @@ export function MaintenanceRequests() {
                 <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 hover:shadow-lg transition-all duration-300 cursor-pointer"
                      onClick={() => setSelectedRequest(request)}>
                   <div className="flex items-start justify-between mb-4">
-                    <div className="flex-1">
+                      <div className="flex-1">
                       <div className="flex items-center gap-3 mb-2">
                         <h3 className="text-lg font-bold text-gray-900">{request.title}</h3>
                         <div className="flex items-center gap-2">
@@ -495,35 +675,35 @@ export function MaintenanceRequests() {
                             {request.priority} priority
                           </span>
                         </div>
-                      </div>
+                        </div>
                       <p className="text-gray-600 text-sm mb-3 line-clamp-2">{request.description}</p>
                       <div className="flex items-center text-sm text-gray-500">
-                        <MapPin className="h-4 w-4 mr-1" />
-                        <span>{request.propertyAddress} {request.unitNumber}</span>
+                          <MapPin className="h-4 w-4 mr-1" />
+                          <span>{request.propertyAddress} {request.unitNumber}</span>
+                        </div>
                       </div>
-                    </div>
                     <div className="text-right text-sm text-gray-500 ml-4">
                       <div className="flex items-center justify-end mb-1">
-                        <Calendar className="h-4 w-4 mr-1" />
-                        <span>Submitted {request.submittedAt.toLocaleDateString()}</span>
-                      </div>
-                      {request.scheduledDate && (
-                        <div className="flex items-center justify-end">
-                          <Clock className="h-4 w-4 mr-1" />
-                          <span>Scheduled {request.scheduledDate.toLocaleDateString()}</span>
+                          <Calendar className="h-4 w-4 mr-1" />
+                          <span>Submitted {request.submittedAt.toLocaleDateString()}</span>
                         </div>
-                      )}
+                        {request.scheduledDate && (
+                        <div className="flex items-center justify-end">
+                            <Clock className="h-4 w-4 mr-1" />
+                            <span>Scheduled {request.scheduledDate.toLocaleDateString()}</span>
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  </div>
                   
                   <div className="flex items-center justify-between pt-4 border-t border-gray-100">
-                    <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2">
                       <span className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-xs font-medium">
                         <Wrench className="h-3 w-3 mr-1 inline" />
-                        {request.category}
+                          {request.category}
                       </span>
-                    </div>
-                    <div className="flex gap-2">
+                      </div>
+                      <div className="flex gap-2">
                       <Button 
                         variant="outline" 
                         size="sm"
@@ -533,19 +713,19 @@ export function MaintenanceRequests() {
                         }}
                         className="text-gray-600 hover:text-gray-900"
                       >
-                        <Eye className="h-4 w-4 mr-1" />
-                        View Details
-                      </Button>
+                          <Eye className="h-4 w-4 mr-1" />
+                          View Details
+                        </Button>
                       <Button 
                         variant="outline" 
                         size="sm"
                         className="text-gray-600 hover:text-gray-900"
                       >
-                        <MessageSquare className="h-4 w-4 mr-1" />
-                        Add Note
-                      </Button>
+                          <MessageSquare className="h-4 w-4 mr-1" />
+                          Add Note
+                        </Button>
+                      </div>
                     </div>
-                  </div>
                 </div>
               </motion.div>
             ))}

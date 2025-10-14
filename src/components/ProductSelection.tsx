@@ -337,41 +337,31 @@ const ProductSelection = ({
 
   return (
     <div className="min-h-screen bg-white">
-      {/* Modern Header */}
-      <div className="sticky top-16 z-50 bg-gradient-to-r from-green-600 via-emerald-600 to-teal-600 text-white p-6 shadow-2xl">
-        <div className="container mx-auto">
-          <div className="flex flex-col md:flex-row items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <motion.div
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ delay: 0.1, type: "spring", stiffness: 200 }}
-                className="w-12 h-12 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center shadow-2xl"
-              >
-                <Shield className="h-6 w-6 text-white" />
-              </motion.div>
+      {/* Header Banner */}
+      <div className="sticky top-16 z-30 bg-gradient-to-r from-green-600 via-green-600 to-emerald-600 text-white">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
+                <Shield className="h-6 w-6 text-green-600" />
+              </div>
               <div>
-                <h1 className="text-xl md:text-2xl  lg:text-3xl font-bold text-white mb-1">Customize Your Move-in Package</h1>
-                <div className="flex items-center space-x-4 text-white/90">
-                  <div className="flex items-center">
-                    <Building className="h-4 w-4 mr-1" />
-                    <span className="text-sm">{property.name} - Unit {unit.unitNumber}</span>
-                  </div>
-                  <div className="flex items-center">
-                    <DollarSign className="h-4 w-4 mr-1" />
-                    <span className="text-sm">{selectedLeaseTerm} months at ${selectedLeaseTermRent?.toLocaleString()}/mo</span>
-                  </div>
-                </div>
+                <h1 className="text-2xl font-bold">Customize Your Move-in Package</h1>
+                <p className="text-sm text-green-50">
+                  {property.name} - Unit {unit.unitNumber} • {selectedLeaseTerm} months at ${selectedLeaseTermRent?.toLocaleString()}/mo
+                </p>
               </div>
             </div>
-            <Button 
-              variant="outline" 
-              onClick={onBack} 
-              className="bg-white/10 mt-3 md:mt-0 border-white/20 text-white hover:bg-white/20 flex items-center gap-2"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Back to Comparison
-            </Button>
+            <div className="flex items-center space-x-3">
+              <Button 
+                variant="outline" 
+                onClick={onBack} 
+                className="bg-white text-green-600 hover:bg-green-50 font-semibold transition-all duration-200 shadow-lg"
+              >
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Back to Comparison
+              </Button>
+            </div>
           </div>
         </div>
       </div>

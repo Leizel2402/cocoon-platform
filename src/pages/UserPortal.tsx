@@ -221,16 +221,16 @@ export function UserPortal() {
         
         // For now, use dummy data for UI demonstration
         // TODO: Replace with real Firebase data when collections are set up
-        setRentPayments(dummyRentPayments);
-        setSubscriptions(dummySubscriptions);
-        setMaintenanceRequests(dummyMaintenanceRequests);
-        setMessages(dummyMessages);
-        setApplications(dummyApplications);
-        setUserProperty(dummyUserProperty);
-        setStats(dummyStats);
+        // setRentPayments(dummyRentPayments);
+        // setSubscriptions(dummySubscriptions);
+        // setMaintenanceRequests(dummyMaintenanceRequests);
+        // setMessages(dummyMessages);
+        // setApplications(dummyApplications);
+        // setUserProperty(dummyUserProperty);
+        // setStats(dummyStats);
 
         // Uncomment below when Firebase collections are ready:
-        /*
+        
         const [
           rentPaymentsData,
           subscriptionsData,
@@ -256,7 +256,7 @@ export function UserPortal() {
         setApplications(applicationsData);
         setUserProperty(userPropertyData);
         setStats(statsData);
-        */
+        
       } catch (error) {
         console.error('Error fetching user data:', error);
         // Fallback to dummy data on error
@@ -277,13 +277,13 @@ export function UserPortal() {
 
   // Show loading state while authentication or data is loading
   if (authLoading || dataLoading) {
-    return (
+  return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <Loader2 className="h-8 w-8 animate-spin text-green-600 mx-auto mb-4" />
           <p className="text-gray-600">Loading your portal...</p>
-        </div>
-      </div>
+                </div>
+              </div>
     );
   }
 
@@ -297,19 +297,19 @@ export function UserPortal() {
           <p className="text-gray-600 mb-6">Please sign in to access your renter portal</p>
           <button className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 font-semibold transition-colors">
             Sign In
-          </button>
-        </div>
-      </div>
+                </button>
+              </div>
+            </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50">
       {/* Top Navigation Bar */}
    
 
       {/* Header Banner */}
-      <div className="bg-gradient-to-r from-green-600 via-green-500 to-emerald-600 text-white">
+      <div className="sticky top-16 z-30 bg-gradient-to-r from-green-600 via-green-600 to-emerald-600 text-white">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
@@ -335,7 +335,7 @@ export function UserPortal() {
               )}
               <button className="px-6 py-2 bg-white text-green-600 rounded-lg hover:bg-green-50 font-semibold transition-all duration-200 shadow-lg text-sm">
                 Find New Home
-              </button>
+            </button>
             </div>
           </div>
         </div>
@@ -382,12 +382,12 @@ export function UserPortal() {
                     </span>
                     <span className="px-3 py-1 bg-blue-50 text-blue-700 rounded-full text-xs font-semibold border border-blue-200">
                       ✓ Verified
-                    </span>
+                </span>
                   </>
                 ) : (
                   <span className="px-3 py-1 bg-yellow-50 text-yellow-700 rounded-full text-xs font-semibold border border-yellow-200">
                     No Active Lease
-                  </span>
+                </span>
                 )}
               </div>
             </div>
@@ -499,17 +499,17 @@ export function UserPortal() {
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
               <div className="bg-gray-50 p-6 text-gray-800 border-b border-gray-100">
                 <div className="flex items-center justify-between mb-4">
-                  <div>
+                    <div>
                     <p className="text-gray-600 text-sm mb-1">Next Payment Due</p>
                     <h3 className="text-4xl font-bold text-gray-900">
                       ${rentPayments.length > 0 ? rentPayments[0].amount.toLocaleString() : '0'}
                     </h3>
-                  </div>
+                    </div>
                   <div className="w-16 h-16 bg-blue-100 rounded-2xl flex items-center justify-center">
                     <Calendar className="h-8 w-8 text-blue-600" />
+                    </div>
                   </div>
-                </div>
-                <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between">
                   <p className="text-sm text-gray-600">
                     Due: {rentPayments.length > 0 ? rentPayments[0].dueDate.toLocaleDateString() : 'No payments due'}
                   </p>
@@ -526,7 +526,7 @@ export function UserPortal() {
               
               <div className="p-6">
                 <button className="w-full py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-xl font-semibold transition-all duration-200 shadow-sm">
-                  Pay Now
+                    Pay Now
                 </button>
                 
                 <div className="mt-6 pt-6 border-t border-gray-100">
@@ -576,30 +576,30 @@ export function UserPortal() {
                             request.status === 'in_progress' ? 'text-blue-600' : 
                             request.status === 'completed' ? 'text-green-600' : 'text-gray-400'
                           }`} />
-                          <div>
+                        <div>
                             <h4 className="font-semibold text-gray-900 text-sm">{request.title}</h4>
                             <p className="text-xs text-gray-500 mt-1">
-                              Submitted {request.submittedAt.toLocaleDateString()}
-                            </p>
-                          </div>
+                            Submitted {request.submittedAt.toLocaleDateString()}
+                          </p>
                         </div>
-                        <span className={`text-xs px-3 py-1 rounded-full font-semibold ${
-                          request.priority === 'urgent' ? 'bg-red-100 text-red-700 border border-red-200' :
-                          request.priority === 'high' ? 'bg-orange-100 text-orange-700 border border-orange-200' :
-                          request.priority === 'medium' ? 'bg-yellow-100 text-yellow-700 border border-yellow-200' :
-                          'bg-gray-100 text-gray-700 border border-gray-200'
-                        }`}>
-                          {request.priority}
-                        </span>
                       </div>
-                      <span className={`inline-block text-xs px-3 py-1 rounded-full font-semibold ${
-                        request.status === 'in_progress' ? 'bg-blue-100 text-blue-700 border border-blue-200' : 
-                        request.status === 'completed' ? 'bg-green-100 text-green-700 border border-green-200' :
+                        <span className={`text-xs px-3 py-1 rounded-full font-semibold ${
+                        request.priority === 'urgent' ? 'bg-red-100 text-red-700 border border-red-200' :
+                        request.priority === 'high' ? 'bg-orange-100 text-orange-700 border border-orange-200' :
+                        request.priority === 'medium' ? 'bg-yellow-100 text-yellow-700 border border-yellow-200' :
                         'bg-gray-100 text-gray-700 border border-gray-200'
                       }`}>
-                        {request.status.replace('_', ' ')}
+                        {request.priority}
                       </span>
                     </div>
+                      <span className={`inline-block text-xs px-3 py-1 rounded-full font-semibold ${
+                      request.status === 'in_progress' ? 'bg-blue-100 text-blue-700 border border-blue-200' : 
+                        request.status === 'completed' ? 'bg-green-100 text-green-700 border border-green-200' :
+                      'bg-gray-100 text-gray-700 border border-gray-200'
+                    }`}>
+                      {request.status.replace('_', ' ')}
+                    </span>
+                  </div>
                   ))
                 ) : (
                   <p className="text-sm text-gray-500 text-center py-4">No maintenance requests</p>
@@ -669,14 +669,14 @@ export function UserPortal() {
                       <div className="flex items-start justify-between mb-2">
                         <p className="text-sm font-semibold text-gray-900">{msg.subject}</p>
                         {!msg.isRead && <div className="w-2 h-2 bg-blue-500 rounded-full mt-1"></div>}
-                      </div>
+                    </div>
                       <p className="text-xs text-gray-600 mb-2">From: {msg.from}</p>
                       <p className="text-xs text-gray-700 mb-2">{msg.message}</p>
                       <p className="text-xs text-gray-500 flex items-center">
                         <Clock className="h-3 w-3 mr-1" />
-                        {msg.timestamp.toLocaleDateString()}
-                      </p>
-                    </div>
+                      {msg.timestamp.toLocaleDateString()}
+                    </p>
+                  </div>
                   ))
                 ) : (
                   <p className="text-sm text-gray-500 text-center py-4">No messages</p>

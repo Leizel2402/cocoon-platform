@@ -415,46 +415,31 @@ const UnitsComparison: React.FC<UnitsComparisonProps> = ({
 
   return (
     <div className="min-h-screen bg-white">
-      {/* Modern Header */}
-      <div className="sticky top-16 z-30 bg-gradient-to-r from-green-600 via-emerald-600 to-teal-600 text-white p-6 shadow-2xl">
-        <div className="container mx-auto">
-          <div className="flex flex-col sm:flex-row items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <motion.div
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ delay: 0.1, type: "spring", stiffness: 200 }}
-                className="w-12 h-12 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center shadow-2xl"
-              >
-                <Home className="h-6 w-6 text-white" />
-              </motion.div>
+      {/* Header Banner */}
+      <div className="sticky top-16 z-30 bg-gradient-to-r from-green-600 via-green-600 to-emerald-600 text-white">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
+                <Home className="h-6 w-6 text-green-600" />
+              </div>
               <div>
-                <h1 className="text-3xl font-bold text-white mb-1">
-                  Unit Comparison
-                </h1>
-                <div className="flex items-center space-x-4 text-white/90">
-                  <div className="flex items-center">
-                    <Star className="h-4 w-4 mr-1" />
-                    <span className="text-sm">
-                      Comparing {comparisonUnits.length} unit
-                      {comparisonUnits.length > 1 ? "s" : ""}
-                    </span>
-                  </div>
-                  <div className="flex items-center">
-                    <CheckCircle className="h-4 w-4 mr-1" />
-                    <span className="text-sm">Select one to proceed</span>
-                  </div>
-                </div>
+                <h1 className="text-2xl font-bold">Unit Comparison</h1>
+                <p className="text-sm text-green-50">
+                  Comparing {comparisonUnits.length} unit{comparisonUnits.length > 1 ? "s" : ""} • Select one to proceed
+                </p>
               </div>
             </div>
-            <Button
-              variant="outline"
-              onClick={onBack}
-              className="bg-white/10 mt-3 md:mt-0 border-white/20 text-white hover:bg-white/20 flex items-center gap-2"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Back to Results
-            </Button>
+            <div className="flex items-center space-x-3">
+              <Button
+                variant="outline"
+                onClick={onBack}
+                className="bg-white text-green-600 hover:bg-green-50 font-semibold transition-all duration-200 shadow-lg"
+              >
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Back to Results
+              </Button>
+            </div>
           </div>
         </div>
       </div>
@@ -917,7 +902,7 @@ const UnitsComparison: React.FC<UnitsComparisonProps> = ({
       <Dialog open={showDetailsModal} onOpenChange={setShowDetailsModal}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto p-0">
           {/* Branded Header */}
-          <div className="bg-gradient-to-r from-green-600 via-emerald-600 to-teal-600 text-white p-6 rounded-t-lg">
+          <div className="bg-gradient-to-r from-green-600 via-green-600 to-emerald-600 text-white p-6 rounded-t-lg">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
                 <div className="w-10 h-10 bg-white/20 backdrop-blur-md rounded-xl flex items-center justify-center">
@@ -1126,7 +1111,7 @@ const UnitsComparison: React.FC<UnitsComparisonProps> = ({
       <Dialog open={showFloorPlanModal} onOpenChange={setShowFloorPlanModal}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden p-0">
           {/* Branded Header */}
-          <div className="bg-gradient-to-r from-green-600 via-emerald-600 to-teal-600 text-white p-6 rounded-t-lg">
+          <div className="bg-gradient-to-r from-green-600 via-green-600 to-emerald-600 text-white p-6 rounded-t-lg">
             <div className="flex items-center space-x-3">
               <div className="w-10 h-10 bg-white/20 backdrop-blur-md rounded-xl flex items-center justify-center">
                 <Building className="h-5 w-5 text-white" />

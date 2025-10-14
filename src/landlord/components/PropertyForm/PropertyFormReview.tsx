@@ -1,6 +1,5 @@
 import React from 'react';
 import { PropertyCreationData } from '../../types/propertyForm';
-import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui/card';
 import { Badge } from '../../../components/ui/badge';
 import { Button } from '../../../components/ui/Button';
 import { Building, MapPin, DollarSign, Home, FileText, Calendar, CheckCircle, Star } from 'lucide-react';
@@ -34,70 +33,73 @@ const PropertyFormReview: React.FC<PropertyFormReviewProps> = ({
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {/* Property Information Review */}
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="flex items-center gap-2">
-            <Building className="h-5 w-5" />
-            Property Information
-          </CardTitle>
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+              <Building className="h-4 w-4 text-blue-600" />
+            </div>
+            <h3 className="text-lg font-semibold text-gray-900">Property Information</h3>
+          </div>
           <Button
             type="button"
             variant="outline"
             size="sm"
             onClick={() => onEdit('property')}
+            className="px-4 py-2 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
           >
             Edit
           </Button>
-        </CardHeader>
-        <CardContent className="space-y-4">
+        </div>
+        <div className="space-y-6">
           <div>
-            <h4 className="font-semibold text-lg">{data.property.name}</h4>
-            <p className="text-gray-600 text-sm">{data.property.title}</p>
-            <div className="flex items-center gap-2 text-gray-600 mt-1">
+            <h4 className="font-semibold text-xl text-gray-900 mb-2">{data.property.name}</h4>
+            <p className="text-gray-600 text-sm mb-3">{data.property.title}</p>
+            <div className="flex items-center gap-2 text-gray-600 mb-1">
               <MapPin className="h-4 w-4" />
               <span>
                 {data.property.address.line1}
                 {data.property.address.line2 && `, ${data.property.address.line2}`}
               </span>
             </div>
-            <p className="text-gray-600">
+            <p className="text-gray-600 text-sm">
               {data.property.address.city}, {data.property.address.region} {data.property.address.postalCode}
             </p>
-            <p className="text-gray-600">{data.property.address.country}</p>
+            <p className="text-gray-600 text-sm">{data.property.address.country}</p>
           </div>
 
           {/* Property Details */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-gray-50 rounded-lg">
-            <div>
-              <p className="text-sm text-gray-500">Type</p>
-              <p className="font-semibold">{data.property.property_type}</p>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-6 bg-gray-50 rounded-xl border border-gray-200">
+            <div className="text-center">
+              <p className="text-sm text-gray-500 mb-1">Type</p>
+              <p className="font-semibold text-gray-900">{data.property.property_type}</p>
             </div>
-            <div>
-              <p className="text-sm text-gray-500">Bedrooms</p>
-              <p className="font-semibold">{data.property.bedrooms}</p>
+            <div className="text-center">
+              <p className="text-sm text-gray-500 mb-1">Bedrooms</p>
+              <p className="font-semibold text-gray-900">{data.property.bedrooms}</p>
             </div>
-            <div>
-              <p className="text-sm text-gray-500">Bathrooms</p>
-              <p className="font-semibold">{data.property.bathrooms}</p>
+            <div className="text-center">
+              <p className="text-sm text-gray-500 mb-1">Bathrooms</p>
+              <p className="font-semibold text-gray-900">{data.property.bathrooms}</p>
             </div>
-            <div>
-              <p className="text-sm text-gray-500">Square Feet</p>
-              <p className="font-semibold">{data.property.square_feet.toLocaleString()}</p>
+            <div className="text-center">
+              <p className="text-sm text-gray-500 mb-1">Square Feet</p>
+              <p className="font-semibold text-gray-900">{data.property.square_feet.toLocaleString()}</p>
             </div>
           </div>
 
-          <div className="flex items-center justify-between p-4 bg-green-50 rounded-lg">
+          <div className="flex items-center justify-between p-6 bg-green-50 rounded-xl border border-green-200">
             <div>
-              <p className="text-sm text-gray-500">Base Rent</p>
+              <p className="text-sm text-gray-500 mb-1">Base Rent</p>
               <p className="text-2xl font-bold text-green-600">{formatCurrency(data.property.rent_amount)}/month</p>
             </div>
             <div className="text-right">
-              <p className="text-sm text-gray-500">Rating</p>
-              <div className="flex items-center gap-1">
+              <p className="text-sm text-gray-500 mb-1">Rating</p>
+              <div className="flex items-center gap-1 justify-end">
                 <Star className="h-4 w-4 text-yellow-500" />
-                <span className="font-semibold">{data.property.rating}/5.0</span>
+                <span className="font-semibold text-gray-900">{data.property.rating}/5.0</span>
               </div>
             </div>
           </div>
@@ -105,31 +107,39 @@ const PropertyFormReview: React.FC<PropertyFormReviewProps> = ({
           {/* Property Features */}
           <div className="flex flex-wrap gap-2">
             {data.property.pet_friendly && (
-              <Badge variant="secondary">Pet Friendly</Badge>
+              <Badge className="bg-green-100 text-green-800 border border-green-200 px-3 py-1 rounded-full">
+                Pet Friendly
+              </Badge>
             )}
             {data.property.is_available && (
-              <Badge variant="default">Available</Badge>
+              <Badge className="bg-blue-100 text-blue-800 border border-blue-200 px-3 py-1 rounded-full">
+                Available
+              </Badge>
             )}
             {data.property.isRentWiseNetwork && (
-              <Badge variant="outline">RentWise Network</Badge>
+              <Badge className="bg-purple-100 text-purple-800 border border-purple-200 px-3 py-1 rounded-full">
+                RentWise Network
+              </Badge>
             )}
           </div>
 
           {/* Property Description */}
           {data.property.description && (
             <div>
-              <h5 className="font-medium mb-2">Description</h5>
-              <p className="text-gray-700 text-sm">{data.property.description}</p>
+              <h5 className="font-semibold text-gray-900 mb-3">Description</h5>
+              <p className="text-gray-700 text-sm leading-relaxed p-4 bg-gray-50 rounded-xl border border-gray-200">
+                {data.property.description}
+              </p>
             </div>
           )}
 
           {/* Property Amenities */}
           {data.property.amenities.length > 0 && (
             <div>
-              <h5 className="font-medium mb-2">Amenities</h5>
-              <div className="flex flex-wrap gap-1">
+              <h5 className="font-semibold text-gray-900 mb-3">Amenities</h5>
+              <div className="flex flex-wrap gap-2">
                 {data.property.amenities.map((amenity, index) => (
-                  <Badge key={index} variant="outline" className="text-xs">
+                  <Badge key={index} className="bg-gray-100 text-gray-800 border border-gray-200 px-3 py-1 rounded-full text-sm">
                     {amenity}
                   </Badge>
                 ))}
@@ -140,14 +150,14 @@ const PropertyFormReview: React.FC<PropertyFormReviewProps> = ({
           {/* Property Images */}
           {data.property.images.length > 0 && (
             <div>
-              <h5 className="font-medium mb-2">Images ({data.property.images.length})</h5>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+              <h5 className="font-semibold text-gray-900 mb-3">Images ({data.property.images.length})</h5>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 {data.property.images.map((image, index) => (
                   <img
                     key={index}
                     src={image}
                     alt={`Property image ${index + 1}`}
-                    className="w-full h-20 object-cover rounded"
+                    className="w-full h-24 object-cover rounded-xl border border-gray-200"
                   />
                 ))}
               </div>
@@ -156,46 +166,55 @@ const PropertyFormReview: React.FC<PropertyFormReviewProps> = ({
 
           {data.property.socialFeeds && (
             <div>
-              <h5 className="font-medium mb-2">Social Media</h5>
+              <h5 className="font-semibold text-gray-900 mb-3">Social Media</h5>
               <div className="flex flex-wrap gap-2">
                 {data.property.socialFeeds.instagram && (
-                  <Badge variant="secondary">Instagram: {data.property.socialFeeds.instagram}</Badge>
+                  <Badge className="bg-pink-100 text-pink-800 border border-pink-200 px-3 py-1 rounded-full">
+                    Instagram: {data.property.socialFeeds.instagram}
+                  </Badge>
                 )}
                 {data.property.socialFeeds.tiktok && (
-                  <Badge variant="secondary">TikTok: {data.property.socialFeeds.tiktok}</Badge>
+                  <Badge className="bg-black text-white border border-gray-800 px-3 py-1 rounded-full">
+                    TikTok: {data.property.socialFeeds.tiktok}
+                  </Badge>
                 )}
                 {data.property.socialFeeds.youtube && (
-                  <Badge variant="secondary">YouTube: {data.property.socialFeeds.youtube}</Badge>
+                  <Badge className="bg-red-100 text-red-800 border border-red-200 px-3 py-1 rounded-full">
+                    YouTube: {data.property.socialFeeds.youtube}
+                  </Badge>
                 )}
               </div>
             </div>
           )}
 
-          <div className="p-3 bg-gray-50 rounded-lg">
+          <div className="p-4 bg-gray-50 rounded-xl border border-gray-200">
             <p className="text-sm text-gray-600">
               <strong>Coordinates:</strong> {data.property.location.lat.toFixed(6)}, {data.property.location.lng.toFixed(6)}
             </p>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       {/* Units Review */}
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="flex items-center gap-2">
-            <Home className="h-5 w-5" />
-            Units ({data.units.length})
-          </CardTitle>
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
+              <Home className="h-4 w-4 text-green-600" />
+            </div>
+            <h3 className="text-lg font-semibold text-gray-900">Units ({data.units.length})</h3>
+          </div>
           <Button
             type="button"
             variant="outline"
             size="sm"
             onClick={() => onEdit('units')}
+            className="px-4 py-2 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
           >
             Edit
           </Button>
-        </CardHeader>
-        <CardContent>
+        </div>
+        <div>
           <div className="space-y-4">
             {data.units.map((unit, index) => (
               <div key={index} className="border rounded-lg p-4">
@@ -262,26 +281,29 @@ const PropertyFormReview: React.FC<PropertyFormReviewProps> = ({
               </div>
             ))}
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       {/* Listings Review */}
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="flex items-center gap-2">
-            <FileText className="h-5 w-5" />
-            Listings ({data.listings.length})
-          </CardTitle>
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 bg-indigo-100 rounded-lg flex items-center justify-center">
+              <FileText className="h-4 w-4 text-indigo-600" />
+            </div>
+            <h3 className="text-lg font-semibold text-gray-900">Listings ({data.listings.length})</h3>
+          </div>
           <Button
             type="button"
             variant="outline"
             size="sm"
             onClick={() => onEdit('listings')}
+            className="px-4 py-2 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
           >
             Edit
           </Button>
-        </CardHeader>
-        <CardContent>
+        </div>
+        <div>
           <div className="space-y-4">
             {data.listings.map((listing, index) => (
               <div key={index} className="border rounded-lg p-4">
@@ -348,28 +370,28 @@ const PropertyFormReview: React.FC<PropertyFormReviewProps> = ({
               </div>
             ))}
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       {/* Submit Section */}
-      <Card className="border-green-200 bg-green-50">
-        <CardContent className="p-6">
-          <div className="flex items-center gap-3 mb-4">
-            <CheckCircle className="h-6 w-6 text-green-600" />
-            <h3 className="text-lg font-semibold text-green-800">Ready to Submit</h3>
+      <div className="bg-green-50 rounded-2xl shadow-sm border border-green-200 p-6">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
+            <CheckCircle className="h-4 w-4 text-green-600" />
           </div>
-          <p className="text-green-700 mb-4">
-            Review all the information above. Once submitted, your property will be created and available for management.
-          </p>
-          <Button
-            onClick={onSubmit}
-            disabled={isSubmitting}
-            className="w-full bg-green-600 hover:bg-green-700"
-          >
-            {isSubmitting ? 'Creating Property...' : 'Create Property'}
-          </Button>
-        </CardContent>
-      </Card>
+          <h3 className="text-lg font-semibold text-green-800">Ready to Submit</h3>
+        </div>
+        <p className="text-green-700 mb-6 leading-relaxed">
+          Review all the information above. Once submitted, your property will be created and available for management.
+        </p>
+        <Button
+          onClick={onSubmit}
+          disabled={isSubmitting}
+          className="w-full bg-green-600 hover:bg-green-700 px-6 py-3 rounded-xl font-semibold text-white transition-colors"
+        >
+          {isSubmitting ? 'Creating Property...' : 'Create Property'}
+        </Button>
+      </div>
     </div>
   );
 };

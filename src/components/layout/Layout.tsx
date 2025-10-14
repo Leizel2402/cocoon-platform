@@ -255,6 +255,14 @@ export function Layout({ children }: LayoutProps) {
                                 <Search className="h-4 w-4 mr-3 text-green-600" />
                                 Saved Searches
                               </button>
+
+                              <button
+                                onClick={() => navigate("/learning-center")}
+                                className="w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-green-50 hover:text-green-700 transition-colors flex items-center"
+                              >
+                                <FileText className="h-4 w-4 mr-3 text-green-600" />
+                                Learning Center
+                              </button>
                           
                               <button
                                 onClick={() => navigate("/prequalify")}
@@ -317,6 +325,13 @@ export function Layout({ children }: LayoutProps) {
                                 <Home className="h-4 w-4 mr-3 text-green-600" />
                                 Properties
                               </button>
+                              <button
+                                onClick={() => navigate("/learning-center")}
+                                className="w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-green-50 hover:text-green-700 transition-colors flex items-center"
+                              >
+                                <FileText className="h-4 w-4 mr-3 text-green-600" />
+                                Learning Center
+                              </button>
                             </>
                           )}
 
@@ -329,6 +344,13 @@ export function Layout({ children }: LayoutProps) {
                               >
                                 <BarChart3 className="h-4 w-4 mr-3 text-green-600" />
                                 Dashboard
+                              </button>
+                              <button
+                                onClick={() => navigate("/learning-center")}
+                                className="w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-green-50 hover:text-green-700 transition-colors flex items-center"
+                              >
+                                <FileText className="h-4 w-4 mr-3 text-green-600" />
+                                Learning Center
                               </button>
                               <button
                                 onClick={() => navigate("/migrate")}
@@ -531,6 +553,23 @@ export function Layout({ children }: LayoutProps) {
                       Saved Properties
                     </button>
                   </motion.div>
+
+                  <motion.div whileTap={{ scale: 0.95 }}>
+                    <button
+                      onClick={() => {
+                        navigate("/learning-center");
+                        setIsMobileMenuOpen(false);
+                      }}
+                      className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all w-full ${
+                        isActive("/learning-center")
+                          ? "bg-gradient-to-r from-green-600 to-emerald-600 text-white shadow-md"
+                          : "text-gray-700 hover:bg-gray-100"
+                      }`}
+                    >
+                      <FileText className="h-5 w-5" />
+                      Learning Center
+                    </button>
+                  </motion.div>
                 </>
               )}
 
@@ -676,6 +715,23 @@ export function Layout({ children }: LayoutProps) {
                       Properties
                     </button>
                   </motion.div>
+
+                  <motion.div whileTap={{ scale: 0.95 }}>
+                    <button
+                      onClick={() => {
+                        navigate("/learning-center");
+                        setIsMobileMenuOpen(false);
+                      }}
+                      className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all w-full ${
+                        isActive("/learning-center")
+                          ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-md"
+                          : "text-gray-700 hover:bg-gray-100"
+                      }`}
+                    >
+                      <FileText className="h-5 w-5" />
+                      Learning Center
+                    </button>
+                  </motion.div>
                 </>
               )}
 
@@ -696,6 +752,23 @@ export function Layout({ children }: LayoutProps) {
                     >
                       <BarChart3 className="h-5 w-5" />
                       Dashboard
+                    </button>
+                  </motion.div>
+
+                  <motion.div whileTap={{ scale: 0.95 }}>
+                    <button
+                      onClick={() => {
+                        navigate("/learning-center");
+                        setIsMobileMenuOpen(false);
+                      }}
+                      className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all w-full ${
+                        isActive("/learning-center")
+                          ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-md"
+                          : "text-gray-700 hover:bg-gray-100"
+                      }`}
+                    >
+                      <FileText className="h-5 w-5" />
+                      Learning Center
                     </button>
                   </motion.div>
 

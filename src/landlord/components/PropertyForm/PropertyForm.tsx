@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useAuth } from '../../../hooks/useAuth';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../../../lib/firebase';
@@ -9,9 +9,8 @@ import ListingForm from './ListingForm';
 import PropertyFormStepper from './PropertyFormStepper';
 import PropertyFormReview from './PropertyFormReview';
 import { Button } from '../../../components/ui/Button';
-import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui/card';
 import { useToast } from '../../../hooks/use-toast';
-import { Building, Plus, X, Save, ArrowLeft } from 'lucide-react';
+import { Building, Plus, ArrowLeft, List } from 'lucide-react';
 
 const PropertyForm: React.FC = () => {
   const { user } = useAuth();
@@ -50,6 +49,12 @@ const PropertyForm: React.FC = () => {
         rating: 0,
         isRentWiseNetwork: false,
         socialFeeds: {},
+        // Lease Terms
+        lease_term_months: 12,
+        lease_term_options: ['12 Months'],
+        security_deposit_months: 1,
+        first_month_rent_required: true,
+        last_month_rent_required: false,
       },
       units: [],
       listings: [],
@@ -138,11 +143,23 @@ const PropertyForm: React.FC = () => {
       errors.rating = 'Rating must be between 1 and 5';
     }
 
+    if (data.lease_term_months < 1 || data.lease_term_months > 36) {
+      errors.lease_term_months = 'Lease term must be between 1 and 36 months';
+    }
+
+    if (data.security_deposit_months < 0 || data.security_deposit_months > 6) {
+      errors.security_deposit_months = 'Security deposit must be between 0 and 6 months';
+    }
+
+    if (data.lease_term_options.length === 0) {
+      errors.lease_term_options = 'At least one lease term option must be selected';
+    }
+
     return errors;
   };
 
-  const validateUnit = (data: UnitFormData): PropertyFormErrors['units'] => {
-    const errors: PropertyFormErrors['units'] = {};
+  const validateUnit = (data: UnitFormData) => {
+    const errors: Record<string, string> = {};
     
     if (!data.unitNumber.trim()) {
       errors.unitNumber = 'Unit number is required';
@@ -174,11 +191,27 @@ const PropertyForm: React.FC = () => {
       errors.description = 'Description must be at least 10 characters';
     }
 
+    if (data.lease_term_months < 1 || data.lease_term_months > 36) {
+      errors.lease_term_months = 'Lease term must be between 1 and 36 months';
+    }
+
+    if (data.security_deposit_months < 0 || data.security_deposit_months > 6) {
+      errors.security_deposit_months = 'Security deposit must be between 0 and 6 months';
+    }
+
+    if (data.pet_deposit < 0 || data.pet_deposit > 10000) {
+      errors.pet_deposit = 'Pet deposit must be between $0 and $10,000';
+    }
+
+    if (data.application_fee < 0 || data.application_fee > 1000) {
+      errors.application_fee = 'Application fee must be between $0 and $1,000';
+    }
+
     return errors;
   };
 
-  const validateListing = (data: ListingFormData): PropertyFormErrors['listings'] => {
-    const errors: PropertyFormErrors['listings'] = {};
+  const validateListing = (data: ListingFormData) => {
+    const errors: Record<string, string> = {};
     
     if (!data.title.trim()) {
       errors.title = 'Listing title is required';
@@ -212,6 +245,22 @@ const PropertyForm: React.FC = () => {
       errors.squareFeet = 'Square feet must be between 0 and 10,000';
     }
 
+    if (data.lease_term_months < 1 || data.lease_term_months > 36) {
+      errors.lease_term_months = 'Lease term must be between 1 and 36 months';
+    }
+
+    if (data.security_deposit_months < 0 || data.security_deposit_months > 6) {
+      errors.security_deposit_months = 'Security deposit must be between 0 and 6 months';
+    }
+
+    if (data.pet_deposit < 0 || data.pet_deposit > 10000) {
+      errors.pet_deposit = 'Pet deposit must be between $0 and $10,000';
+    }
+
+    if (data.application_fee < 0 || data.application_fee > 1000) {
+      errors.application_fee = 'Application fee must be between $0 and $1,000';
+    }
+
     return errors;
   };
 
@@ -223,10 +272,46 @@ const PropertyForm: React.FC = () => {
   // Handle property data change
   const handlePropertyChange = (propertyData: PropertyFormData) => {
     const errors = validateProperty(propertyData);
-    const isValid = Object.keys(errors).length === 0;
+    const isValid = Object.keys(errors || {}).length === 0;
+    
+    // Check if lease terms have changed
+    const leaseTermsChanged = 
+      propertyData.lease_term_months !== formState.data.property.lease_term_months ||
+      propertyData.security_deposit_months !== formState.data.property.security_deposit_months ||
+      propertyData.first_month_rent_required !== formState.data.property.first_month_rent_required ||
+      propertyData.last_month_rent_required !== formState.data.property.last_month_rent_required;
+
+    // Update existing units with new lease terms if they changed
+    let updatedUnits = formState.data.units;
+    if (leaseTermsChanged) {
+      updatedUnits = formState.data.units.map(unit => ({
+        ...unit,
+        lease_term_months: propertyData.lease_term_months,
+        security_deposit_months: propertyData.security_deposit_months,
+        first_month_rent_required: propertyData.first_month_rent_required,
+        last_month_rent_required: propertyData.last_month_rent_required,
+      }));
+    }
+
+    // Update existing listings with new lease terms if they changed
+    let updatedListings = formState.data.listings;
+    if (leaseTermsChanged) {
+      updatedListings = formState.data.listings.map(listing => ({
+        ...listing,
+        lease_term_months: propertyData.lease_term_months,
+        security_deposit_months: propertyData.security_deposit_months,
+        first_month_rent_required: propertyData.first_month_rent_required,
+        last_month_rent_required: propertyData.last_month_rent_required,
+      }));
+    }
     
     updateFormState({
-      data: { ...formState.data, property: propertyData },
+      data: { 
+        ...formState.data, 
+        property: propertyData,
+        units: updatedUnits,
+        listings: updatedListings
+      },
       errors: { ...formState.errors, property: errors },
     });
 
@@ -242,7 +327,6 @@ const PropertyForm: React.FC = () => {
     updatedUnits[unitIndex] = unitData;
     
     const errors = validateUnit(unitData);
-    const isValid = Object.keys(errors).length === 0;
     
     updateFormState({
       data: { ...formState.data, units: updatedUnits },
@@ -257,7 +341,7 @@ const PropertyForm: React.FC = () => {
 
     setSteps(prev => ({
       ...prev,
-      units: { completed: updatedUnits.length > 0 && updatedUnits.every(u => validateUnit(u) && Object.keys(validateUnit(u)).length === 0), valid: true }
+      units: { completed: updatedUnits.length > 0 && updatedUnits.every(u => Object.keys(validateUnit(u) || {}).length === 0), valid: true }
     }));
   };
 
@@ -267,7 +351,6 @@ const PropertyForm: React.FC = () => {
     updatedListings[listingIndex] = listingData;
     
     const errors = validateListing(listingData);
-    const isValid = Object.keys(errors).length === 0;
     
     updateFormState({
       data: { ...formState.data, listings: updatedListings },
@@ -282,7 +365,7 @@ const PropertyForm: React.FC = () => {
 
     setSteps(prev => ({
       ...prev,
-      listings: { completed: updatedListings.length > 0 && updatedListings.every(l => validateListing(l) && Object.keys(validateListing(l)).length === 0), valid: true }
+      listings: { completed: updatedListings.length > 0 && updatedListings.every(l => Object.keys(validateListing(l) || {}).length === 0), valid: true }
     }));
   };
 
@@ -299,6 +382,13 @@ const PropertyForm: React.FC = () => {
       amenities: [],
       images: [],
       description: '',
+      // Lease Terms for Unit - inherit from property
+      lease_term_months: formState.data.property.lease_term_months,
+      security_deposit_months: formState.data.property.security_deposit_months,
+      first_month_rent_required: formState.data.property.first_month_rent_required,
+      last_month_rent_required: formState.data.property.last_month_rent_required,
+      pet_deposit: 0,
+      application_fee: 0,
     };
     
     updateFormState({
@@ -327,6 +417,13 @@ const PropertyForm: React.FC = () => {
       images: [],
       amenities: [],
       available: true,
+      // Lease Terms for Listing - inherit from property
+      lease_term_months: formState.data.property.lease_term_months,
+      security_deposit_months: formState.data.property.security_deposit_months,
+      first_month_rent_required: formState.data.property.first_month_rent_required,
+      last_month_rent_required: formState.data.property.last_month_rent_required,
+      pet_deposit: 0,
+      application_fee: 0,
     };
     
     updateFormState({
@@ -447,6 +544,12 @@ const PropertyForm: React.FC = () => {
             rating: 0,
             isRentWiseNetwork: false,
             socialFeeds: {},
+            // Lease Terms
+            lease_term_months: 12,
+            lease_term_options: ['12 Months'],
+            security_deposit_months: 1,
+            first_month_rent_required: true,
+            last_month_rent_required: false,
           },
           units: [],
           listings: [],
@@ -505,33 +608,48 @@ const PropertyForm: React.FC = () => {
         return (
           <div className="space-y-6">
             <div className="flex items-center justify-between">
-              <h2 className="text-2xl font-bold">Property Units</h2>
-              <Button onClick={addUnit} className="flex items-center gap-2">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center">
+                  <Building className="h-5 w-5 text-green-600" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold text-gray-900">Property Units</h2>
+                  <p className="text-sm text-gray-600">Add individual units to your property</p>
+                </div>
+              </div>
+              <Button onClick={addUnit} className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white">
                 <Plus className="h-4 w-4" />
                 Add Unit
               </Button>
             </div>
             
             {formState.data.units.length === 0 ? (
-              <Card>
-                <CardContent className="p-8 text-center">
-                  <Building className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold mb-2">No Units Added</h3>
-                  <p className="text-gray-600 mb-4">Add at least one unit to your property.</p>
-                  <Button onClick={addUnit}>Add First Unit</Button>
-                </CardContent>
-              </Card>
+              <div className="bg-gray-50 rounded-2xl border-2 border-dashed border-gray-300 p-12 text-center">
+                <Building className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-lg font-semibold mb-2 text-gray-900">No Units Added</h3>
+                <p className="text-gray-600 mb-6">Add at least one unit to your property to get started.</p>
+                <Button onClick={addUnit} className="bg-green-600 hover:bg-green-700 text-white">
+                  Add First Unit
+                </Button>
+              </div>
             ) : (
-              <div className="space-y-4">
+              <div className="space-y-6">
                 {formState.data.units.map((unit, index) => (
-                  <UnitForm
-                    key={index}
-                    data={unit}
-                    onChange={(unitData) => handleUnitChange(index, unitData)}
-                    onRemove={() => removeUnit(index)}
-                    errors={formState.errors.units?.[index]}
-                    showRemoveButton={formState.data.units.length > 1}
-                  />
+                  <div key={index} className="bg-white rounded-2xl border border-gray-200 p-6">
+                    <UnitForm
+                      data={unit}
+                      onChange={(unitData) => handleUnitChange(index, unitData)}
+                      onRemove={() => removeUnit(index)}
+                      errors={formState.errors.units?.[index]}
+                      showRemoveButton={formState.data.units.length > 1}
+                      propertyLeaseTerms={{
+                        lease_term_months: formState.data.property.lease_term_months,
+                        security_deposit_months: formState.data.property.security_deposit_months,
+                        first_month_rent_required: formState.data.property.first_month_rent_required,
+                        last_month_rent_required: formState.data.property.last_month_rent_required,
+                      }}
+                    />
+                  </div>
                 ))}
               </div>
             )}
@@ -542,33 +660,48 @@ const PropertyForm: React.FC = () => {
         return (
           <div className="space-y-6">
             <div className="flex items-center justify-between">
-              <h2 className="text-2xl font-bold">Property Listings</h2>
-              <Button onClick={addListing} className="flex items-center gap-2">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center">
+                  <List className="h-5 w-5 text-green-600" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold text-gray-900">Property Listings</h2>
+                  <p className="text-sm text-gray-600">Create public listings for your property</p>
+                </div>
+              </div>
+              <Button onClick={addListing} className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white">
                 <Plus className="h-4 w-4" />
                 Add Listing
               </Button>
             </div>
             
             {formState.data.listings.length === 0 ? (
-              <Card>
-                <CardContent className="p-8 text-center">
-                  <Building className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold mb-2">No Listings Added</h3>
-                  <p className="text-gray-600 mb-4">Create public listings for your property.</p>
-                  <Button onClick={addListing}>Create First Listing</Button>
-                </CardContent>
-              </Card>
+              <div className="bg-gray-50 rounded-2xl border-2 border-dashed border-gray-300 p-12 text-center">
+                <List className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-lg font-semibold mb-2 text-gray-900">No Listings Added</h3>
+                <p className="text-gray-600 mb-6">Create public listings to showcase your property to potential tenants.</p>
+                <Button onClick={addListing} className="bg-green-600 hover:bg-green-700 text-white">
+                  Create First Listing
+                </Button>
+              </div>
             ) : (
-              <div className="space-y-4">
+              <div className="space-y-6">
                 {formState.data.listings.map((listing, index) => (
-                  <ListingForm
-                    key={index}
-                    data={listing}
-                    onChange={(listingData) => handleListingChange(index, listingData)}
-                    onRemove={() => removeListing(index)}
-                    errors={formState.errors.listings?.[index]}
-                    showRemoveButton={formState.data.listings.length > 1}
-                  />
+                  <div key={index} className="bg-white rounded-2xl border border-gray-200 p-6">
+                    <ListingForm
+                      data={listing}
+                      onChange={(listingData) => handleListingChange(index, listingData)}
+                      onRemove={() => removeListing(index)}
+                      errors={formState.errors.listings?.[index]}
+                      showRemoveButton={formState.data.listings.length > 1}
+                      propertyLeaseTerms={{
+                        lease_term_months: formState.data.property.lease_term_months,
+                        security_deposit_months: formState.data.property.security_deposit_months,
+                        first_month_rent_required: formState.data.property.first_month_rent_required,
+                        last_month_rent_required: formState.data.property.last_month_rent_required,
+                      }}
+                    />
+                  </div>
                 ))}
               </div>
             )}
@@ -591,43 +724,58 @@ const PropertyForm: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center gap-3 mb-4">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => window.history.back()}
-              className="flex items-center gap-2"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Back
-            </Button>
-            <Building className="h-8 w-8 text-green-600" />
-            <h1 className="text-3xl font-bold text-gray-900">Add New Property</h1>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50">
+      {/* Header Banner */}
+      <div className="sticky top-16 z-30 bg-gradient-to-r from-green-600 via-green-600 to-emerald-600 text-white">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
+                <Building className="h-6 w-6 text-green-600" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold">Add New Property</h1>
+                <p className="text-sm text-green-50">
+                  Create a new property with units and listings • All fields marked with * are required
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center space-x-3">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => window.history.back()}
+                className="bg-white text-green-600 hover:bg-green-50 font-semibold transition-all duration-200 shadow-lg"
+              >
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Back to Dashboard
+              </Button>
+            </div>
           </div>
-          <p className="text-gray-600">
-            Create a new property with units and listings. All fields marked with * are required.
-          </p>
         </div>
+      </div>
 
-        {/* Form Stepper */}
-        <PropertyFormStepper
-          currentStep={formState.currentStep}
-          onStepChange={goToStep}
-          steps={steps}
-          onNext={goToNextStep}
-          onPrevious={goToPreviousStep}
-          canGoNext={canGoNext()}
-          canGoPrevious={canGoPrevious()}
-          isSubmitting={formState.isSubmitting}
-        />
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="container mx-auto">
 
-        {/* Form Content */}
-        <div className="mt-8">
-          {renderStepContent()}
+          {/* Form Stepper */}
+          <div className="mb-8">
+            <PropertyFormStepper
+              currentStep={formState.currentStep}
+              onStepChange={goToStep}
+              steps={steps}
+              onNext={goToNextStep}
+              onPrevious={goToPreviousStep}
+              canGoNext={canGoNext()}
+              canGoPrevious={canGoPrevious()}
+              isSubmitting={formState.isSubmitting}
+            />
+          </div>
+
+          {/* Form Content */}
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
+            {renderStepContent()}
+          </div>
         </div>
       </div>
     </div>
