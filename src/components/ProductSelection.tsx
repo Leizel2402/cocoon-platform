@@ -342,7 +342,7 @@ const ProductSelection = ({
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
+              <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
                 <Shield className="h-6 w-6 text-green-600" />
               </div>
               <div>
@@ -376,7 +376,7 @@ const ProductSelection = ({
             Move-in Package Summary
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="bg-green-50 rounded-xl p-4 border border-green-200">
+            <div className="bg-green-50 rounded-lg p-4 border border-green-200">
               <h4 className="font-bold text-green-800 mb-2 flex items-center">
                 <Building className="h-4 w-4 mr-1" />
                 Property
@@ -384,7 +384,7 @@ const ProductSelection = ({
               <p className="text-green-700 font-medium text-sm">{property.name}</p>
               <p className="text-green-600 text-xs">Unit {unit.unitNumber}</p>
             </div>
-            <div className="bg-emerald-50 rounded-xl p-4 border border-emerald-200">
+            <div className="bg-emerald-50 rounded-lg p-4 border border-emerald-200">
               <h4 className="font-bold text-emerald-800 mb-2 flex items-center">
                 <DollarSign className="h-4 w-4 mr-1" />
                 Lease Term
@@ -392,7 +392,7 @@ const ProductSelection = ({
               <p className="text-emerald-700 font-medium text-sm">{selectedLeaseTerm} months</p>
               <p className="text-emerald-600 text-xs">${selectedLeaseTermRent?.toLocaleString()}/mo</p>
             </div>
-            <div className="bg-teal-50 rounded-xl p-4 border border-teal-200">
+            <div className="bg-teal-50 rounded-lg p-4 border border-teal-200">
               <h4 className="font-bold text-teal-800 mb-2 flex items-center">
                 <Shield className="h-4 w-4 mr-1" />
                 Protection
@@ -425,7 +425,7 @@ const ProductSelection = ({
                     <div className="p-6">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-4">
-                          <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
+                          <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
                             <Icon className="h-6 w-6 text-green-600" />
                           </div>
                           <div>
@@ -470,7 +470,7 @@ const ProductSelection = ({
                     <div className="p-6">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-4">
-                           <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
+                           <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${
                              isSelected ? 'bg-blue-100' : 'bg-gray-100'
                            }`}>
                              <Icon className={`h-6 w-6 ${isSelected ? 'text-blue-600' : 'text-gray-600'}`} />
@@ -603,7 +603,7 @@ const ProductSelection = ({
                 {/* Flex Rent Section (separate if selected) */}
                 {selectedProducts.flex_rent?.selected && (
                   <>
-                     <div className="bg-blue-50 rounded-xl p-4 border border-blue-200">
+                     <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
                        <h4 className="font-bold text-blue-800 text-sm mb-3 flex items-center">
                          <Calculator className="h-4 w-4 mr-1" />
                          Flex Payment Plan
@@ -708,7 +708,7 @@ const ProductSelection = ({
                 <Separator className="my-4" />
 
                 {/* Total */}
-                <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-4 rounded-xl border border-green-200">
+                <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-4 rounded-lg border border-green-200">
                   <div className="flex justify-between text-xl font-bold text-green-800">
                     <span>Total Due</span>
                     <span>${totals.total.toFixed(2)}</span>
@@ -719,7 +719,7 @@ const ProductSelection = ({
                 </div>
 
                 {/* Payment Frequency Selection */}
-                <div className="space-y-3 bg-gray-50 rounded-xl p-4 border border-gray-200">
+                <div className="space-y-3 bg-gray-50 rounded-lg p-4 border border-gray-200">
                   <div className="flex items-center justify-between">
                     <Label htmlFor="annual-payment" className="text-sm font-medium text-gray-700">Pay Annually (Save 7%)</Label>
                     <Switch
@@ -737,7 +737,7 @@ const ProductSelection = ({
 
                 <Button 
                   onClick={processPayment} 
-                  className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 h-12 text-lg font-semibold"
+                  className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 h-12 text-lg font-semibold"
                   size="lg"
                 >
                   Proceed to Payment

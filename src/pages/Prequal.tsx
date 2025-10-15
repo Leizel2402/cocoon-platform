@@ -217,7 +217,7 @@ const PrequalPage = () => {
                 currentStepData.type === 'tel' ? '(555) 123-4567' : 
                 'Type your answer...'
               }
-              className="flex-1 px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/70 backdrop-blur-sm transition-all duration-200"
+              className="flex-1 px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/70 backdrop-blur-sm transition-all duration-200"
               autoFocus
             />
             <motion.button
@@ -225,7 +225,7 @@ const PrequalPage = () => {
               whileTap={{ scale: 0.95 }}
               onClick={handleInputSubmit}
               disabled={!currentInput.trim()}
-              className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl hover:from-blue-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 font-semibold shadow-lg hover:shadow-xl"
+              className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 font-semibold shadow-lg hover:shadow-xl"
             >
               <ArrowRight className="h-5 w-5" />
             </motion.button>
@@ -243,7 +243,7 @@ const PrequalPage = () => {
               value={currentInput}
               onChange={(e) => setCurrentInput(e.target.value)}
               placeholder="Tell me what you're looking for..."
-              className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/70 backdrop-blur-sm transition-all duration-200 min-h-24 resize-none"
+              className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/70 backdrop-blur-sm transition-all duration-200 min-h-24 resize-none"
               autoFocus
             />
             <motion.button
@@ -251,7 +251,7 @@ const PrequalPage = () => {
               whileTap={{ scale: 0.98 }}
               onClick={handleInputSubmit}
               disabled={!currentInput.trim()}
-              className="w-full px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl hover:from-blue-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 font-semibold shadow-lg hover:shadow-xl"
+              className="w-full px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 font-semibold shadow-lg hover:shadow-xl"
             >
               Continue
             </motion.button>
@@ -269,7 +269,7 @@ const PrequalPage = () => {
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               onClick={() => handleSelectChange(currentStepData.field!, true)}
-              className="flex-1 px-6 py-4 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-xl hover:from-green-600 hover:to-green-700 transition-all duration-200 font-semibold shadow-lg hover:shadow-xl"
+              className="flex-1 px-6 py-4 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg hover:from-green-600 hover:to-green-700 transition-all duration-200 font-semibold shadow-lg hover:shadow-xl"
             >
               Yes
             </motion.button>
@@ -277,7 +277,7 @@ const PrequalPage = () => {
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               onClick={() => handleSelectChange(currentStepData.field!, false)}
-              className="flex-1 px-6 py-4 bg-white/80 backdrop-blur-sm text-gray-700 border border-gray-200 rounded-xl hover:bg-white transition-all duration-200 font-semibold shadow-lg hover:shadow-xl"
+              className="flex-1 px-6 py-4 bg-white/80 backdrop-blur-sm text-gray-700 border border-gray-200 rounded-lg hover:bg-white transition-all duration-200 font-semibold shadow-lg hover:shadow-xl"
             >
               No
             </motion.button>
@@ -300,7 +300,7 @@ const PrequalPage = () => {
                 whileHover={{ scale: 1.02, x: 5 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={() => handleSelectChange(currentStepData.field!, option.value)}
-                className="w-full px-6 py-4 bg-white/80 backdrop-blur-sm text-gray-700 border border-gray-200 rounded-xl hover:bg-white hover:border-blue-300 transition-all duration-200 font-medium shadow-lg hover:shadow-xl text-left"
+                className="w-full px-6 py-4 bg-white/80 backdrop-blur-sm text-gray-700 border border-gray-200 rounded-lg hover:bg-white hover:border-blue-300 transition-all duration-200 font-medium shadow-lg hover:shadow-xl text-left"
               >
                 {option.label}
               </motion.button>
@@ -315,7 +315,7 @@ const PrequalPage = () => {
             animate={{ opacity: 1, y: 0 }}
             className="space-y-6"
           >
-            <div className="bg-blue-50/80 backdrop-blur-sm rounded-xl p-6 border border-blue-200">
+            <div className="bg-blue-50/80 backdrop-blur-sm rounded-lg p-6 border border-blue-200">
               <div className="flex items-start space-x-3">
                 <input
                   type="checkbox"
@@ -334,7 +334,7 @@ const PrequalPage = () => {
               whileTap={{ scale: 0.98 }}
               onClick={handleNext}
               disabled={!data.consent}
-              className="w-full px-6 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl hover:from-blue-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 font-semibold shadow-lg hover:shadow-xl"
+              className="w-full px-6 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 font-semibold shadow-lg hover:shadow-xl"
             >
               I Agree & Continue
             </motion.button>
@@ -349,7 +349,7 @@ const PrequalPage = () => {
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
             onClick={handleNext}
-            className="w-full px-8 py-4 bg-gradient-to-r from-green-500 to-blue-600 text-white rounded-xl hover:from-green-600 hover:to-blue-700 transition-all duration-200 font-bold shadow-lg hover:shadow-xl text-lg"
+            className="w-full px-8 py-4 bg-gradient-to-r from-green-500 to-blue-600 text-white rounded-lg hover:from-green-600 hover:to-blue-700 transition-all duration-200 font-bold shadow-lg hover:shadow-xl text-lg"
           >
             <div className="flex items-center justify-center">
               <Check className="h-6 w-6 mr-2" />
@@ -486,7 +486,7 @@ const PrequalPage = () => {
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={handleBack}
-              className="flex items-center px-6 py-3 text-gray-600 bg-white/80 backdrop-blur-sm rounded-xl hover:bg-white transition-all duration-200 font-medium shadow-lg hover:shadow-xl border border-gray-200"
+              className="flex items-center px-6 py-3 text-gray-600 bg-white/80 backdrop-blur-sm rounded-lg hover:bg-white transition-all duration-200 font-medium shadow-lg hover:shadow-xl border border-gray-200"
             >
               <ChevronLeft className="h-5 w-5 mr-2" />
               Back
@@ -496,7 +496,7 @@ const PrequalPage = () => {
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={() => navigate('/')}
-              className="flex items-center px-6 py-3 text-gray-600 bg-white/80 backdrop-blur-sm rounded-xl hover:bg-white transition-all duration-200 font-medium shadow-lg hover:shadow-xl border border-gray-200"
+              className="flex items-center px-6 py-3 text-gray-600 bg-white/80 backdrop-blur-sm rounded-lg hover:bg-white transition-all duration-200 font-medium shadow-lg hover:shadow-xl border border-gray-200"
             >
               <Home className="h-5 w-5 mr-2" />
               Back to Home
@@ -525,7 +525,7 @@ const PrequalPage = () => {
           transition={{ delay: 0.5 }}
           className="text-center mt-8 space-y-2"
         >
-          <p className="text-sm text-gray-600 bg-white/60 backdrop-blur-sm rounded-xl px-4 py-2 inline-block shadow-sm">
+          <p className="text-sm text-gray-600 bg-white/60 backdrop-blur-sm rounded-lg px-4 py-2 inline-block shadow-sm">
             🔒 <strong>Your information is secure.</strong> We only share details with landlords you choose to connect with.
           </p>
         </motion.div>

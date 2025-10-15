@@ -106,7 +106,7 @@ const PaymentPage = ({ totalAmount, paymentType = 'monthly', onBack, onPaymentCo
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
+              <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
                 <CreditCard className="h-6 w-6 text-green-600" />
               </div>
               <div>
@@ -139,7 +139,7 @@ const PaymentPage = ({ totalAmount, paymentType = 'monthly', onBack, onPaymentCo
             Payment Summary
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="bg-green-50 rounded-xl p-4 border border-green-200">
+            <div className="bg-green-50 rounded-lg p-4 border border-green-200">
               <h4 className="font-bold text-green-800 mb-2 flex items-center">
                 <DollarSign className="h-4 w-4 mr-1" />
                 Total Amount
@@ -147,7 +147,7 @@ const PaymentPage = ({ totalAmount, paymentType = 'monthly', onBack, onPaymentCo
               <p className="text-green-700 font-bold text-2xl">${totalAmount.toFixed(2)}</p>
               <p className="text-green-600 text-xs">{paymentType === 'annual' ? 'Annual Payment' : 'Monthly Payment'}</p>
             </div>
-            <div className="bg-emerald-50 rounded-xl p-4 border border-emerald-200">
+            <div className="bg-emerald-50 rounded-lg p-4 border border-emerald-200">
               <h4 className="font-bold text-emerald-800 mb-2 flex items-center">
                 <Shield className="h-4 w-4 mr-1" />
                 Security
@@ -155,7 +155,7 @@ const PaymentPage = ({ totalAmount, paymentType = 'monthly', onBack, onPaymentCo
               <p className="text-emerald-700 font-medium text-sm">SSL Encrypted</p>
               <p className="text-emerald-600 text-xs">Bank-level security</p>
             </div>
-            <div className="bg-teal-50 rounded-xl p-4 border border-teal-200">
+            <div className="bg-teal-50 rounded-lg p-4 border border-teal-200">
               <h4 className="font-bold text-teal-800 mb-2 flex items-center">
                 <CheckCircle className="h-4 w-4 mr-1" />
                 Protection
@@ -173,7 +173,7 @@ const PaymentPage = ({ totalAmount, paymentType = 'monthly', onBack, onPaymentCo
               <>
                 {/* Testing Controls */}
                 {testingMode && (
-                  <div className="bg-green-50 border border-green-200 rounded-xl p-4 mb-6">
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
                     <div className="flex items-center justify-between mb-3">
                       <h3 className="text-sm font-medium text-green-800 flex items-center">
                         <Star className="h-4 w-4 mr-1" />
@@ -398,7 +398,7 @@ const PaymentPage = ({ totalAmount, paymentType = 'monthly', onBack, onPaymentCo
                   {/* Pay Now Button */}
                   <Button 
                     onClick={handlePayment}
-                    className="w-full py-6 text-lg font-semibold bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-200"
+                    className="w-full py-6 text-lg font-semibold bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white rounded-lg shadow-lg hover:shadow-xl transition-all duration-200"
                     size="lg"
                     disabled={!selectedPaymentMethod}
                   >
@@ -434,7 +434,7 @@ const PaymentPage = ({ totalAmount, paymentType = 'monthly', onBack, onPaymentCo
               </h3>
               <div className="space-y-4">
                 {/* Total Amount */}
-                <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-4 rounded-xl border border-green-200">
+                <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-4 rounded-lg border border-green-200">
                   <div className="flex justify-between items-center">
                     <span className="text-gray-700 font-medium">Total Amount</span>
                     <span className="text-2xl font-bold text-green-800">${totalAmount.toFixed(2)}</span>
@@ -468,7 +468,7 @@ const PaymentPage = ({ totalAmount, paymentType = 'monthly', onBack, onPaymentCo
 
                 {/* Payment Method Info */}
                 {selectedPaymentMethod && (
-                  <div className="bg-blue-50 rounded-xl p-4 border border-blue-200">
+                  <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
                     <h4 className="font-bold text-blue-800 text-sm mb-2">Selected Method</h4>
                     <p className="text-blue-700 text-sm">
                       {paymentMethods.find(m => m.id === selectedPaymentMethod)?.name}
@@ -561,7 +561,7 @@ const PaymentPage = ({ totalAmount, paymentType = 'monthly', onBack, onPaymentCo
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.6, duration: 0.5 }}
-                className="bg-blue-50 border border-blue-200 rounded-xl p-4"
+                className="bg-blue-50 border border-blue-200 rounded-lg p-4"
               >
                 <p className="text-sm text-blue-800">
                   💬 Questions? Contact your property manager or check your email for direct contact information.
@@ -576,7 +576,7 @@ const PaymentPage = ({ totalAmount, paymentType = 'monthly', onBack, onPaymentCo
               >
                 <Button 
                   onClick={onPaymentComplete}
-                  className="w-full mt-6 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 h-12 text-lg font-semibold"
+                  className="w-full mt-6 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 h-12 text-lg font-semibold"
                   size="lg"
                 >
                   Continue to Dashboard
@@ -617,7 +617,7 @@ const PaymentPage = ({ totalAmount, paymentType = 'monthly', onBack, onPaymentCo
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.4, duration: 0.5 }}
-                className="bg-red-50 border border-red-200 rounded-xl p-4"
+                className="bg-red-50 border border-red-200 rounded-lg p-4"
               >
                 <p className="text-sm text-red-800">
                   💡 Tip: Check your card details or try a different payment method.

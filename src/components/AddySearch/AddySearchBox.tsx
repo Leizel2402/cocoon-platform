@@ -86,7 +86,7 @@ export function AddySearchBox({ onStartConversation }: AddySearchBoxProps) {
             <div className="relative">
               <input 
                 ref={inputRef}
-                className="w-full py-3 px-6 border border-gray-200 rounded-xl text-lg outline-none transition-all duration-300
+                className="w-full py-3 px-6 border border-gray-200 rounded-lg text-lg outline-none transition-all duration-300
                  bg-white/90 backdrop-blur-sm shadow-md"
                 value={query} 
                 onChange={(e) => setQuery(e.target.value)} 
@@ -137,7 +137,7 @@ export function AddySearchBox({ onStartConversation }: AddySearchBoxProps) {
                 {["Dog","Cat","Other","None"].map(p => (
                   <button 
                     key={p} 
-                    className="px-6 py-3.5 border-2 border-transparent rounded-xl bg-gradient-to-br from-white to-slate-50 text-lg cursor-pointer transition-all duration-300 text-gray-700 font-medium
+                    className="px-6 py-3.5 border-2 border-transparent rounded-lg bg-gradient-to-br from-white to-slate-50 text-lg cursor-pointer transition-all duration-300 text-gray-700 font-medium
                      shadow-sm relative overflow-hidden hover:-translate-y-0.5 hover:shadow-lg hover:shadow-green-500/15 hover:bg-gradient-to-r
                       hover:from-green-600 hover:to-emerald-600 hover:text-white"
                     style={{

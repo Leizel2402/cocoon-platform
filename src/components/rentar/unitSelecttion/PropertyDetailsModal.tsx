@@ -90,6 +90,7 @@ const PropertyDetailsModal: React.FC<PropertyDetailsModalProps> = ({
   onViewUnits
 }) => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  console.log("property",property);
   
   if (!property) return null;
 
@@ -284,7 +285,7 @@ const PropertyDetailsModal: React.FC<PropertyDetailsModalProps> = ({
                   <div className="text-3xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
                     {property.priceRange}
               </div>
-                  <div className="flex items-center bg-yellow-50 px-3 py-2 rounded-xl">
+                  <div className="flex items-center bg-yellow-50 px-3 py-2 rounded-lg">
                     <Star className="h-5 w-5 text-yellow-500 fill-current mr-1" />
                     <span className="font-semibold text-yellow-700">{property.rating.toFixed(1)}</span>
                 </div>
@@ -335,7 +336,7 @@ const PropertyDetailsModal: React.FC<PropertyDetailsModalProps> = ({
                       <Home className="h-5 w-5 mr-2 text-blue-600" />
                       Available Units
                     </h3>
-                    <div className="bg-blue-50 rounded-xl p-4">
+                    <div className="bg-blue-50 rounded-lg p-4">
                       <div className="text-sm text-blue-800 font-medium">
                 {property.beds}
                       </div>
@@ -349,9 +350,9 @@ const PropertyDetailsModal: React.FC<PropertyDetailsModalProps> = ({
                       <Calendar className="h-5 w-5 mr-2 text-purple-600" />
                       Lease Terms
                     </h3>
-                    <div className="bg-purple-50 rounded-xl p-4">
+                    <div className="bg-purple-50 rounded-lg p-4">
                       <div className="text-sm text-purple-800 font-medium">
-                        {property.lease_terms?.join(', ') || '6, 12, 18 month options available'}
+                        {property.lease_term_options?.join(', ') || '6, 12, 18 month options available'}
                       </div>
                       <div className="text-xs text-purple-600 mt-1">
                         Flexible terms to fit your needs
@@ -660,7 +661,7 @@ const PropertyDetailsModal: React.FC<PropertyDetailsModalProps> = ({
                   <motion.div 
                     key={index} 
                     whileHover={{ scale: 1.02 }}
-                    className="flex items-center space-x-3 p-4 bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl border border-gray-200 hover:border-blue-300 transition-all duration-200"
+                    className="flex items-center space-x-3 p-4 bg-gradient-to-r from-gray-50 to-gray-100 rounded-lg border border-gray-200 hover:border-blue-300 transition-all duration-200"
                   >
                     <span className="text-2xl">{amenityIcons[amenity as string] || <Home className="h-4 w-4 text-gray-500" />}</span>
                     <span className="text-sm font-medium text-gray-700">{amenity}</span>
@@ -755,7 +756,7 @@ const PropertyDetailsModal: React.FC<PropertyDetailsModalProps> = ({
                       rel="noopener noreferrer"
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
-                      className="flex items-center space-x-3 p-4 bg-gradient-to-r from-pink-50 to-pink-100 rounded-xl border border-pink-200 hover:border-pink-300 transition-all duration-200"
+                      className="flex items-center space-x-3 p-4 bg-gradient-to-r from-pink-50 to-pink-100 rounded-lg border border-pink-200 hover:border-pink-300 transition-all duration-200"
                     >
                       <div className="w-8 h-8 bg-gradient-to-r from-pink-500 to-purple-600 rounded-full flex items-center justify-center">
                         <Instagram className="h-4 w-4 text-white" />
@@ -774,7 +775,7 @@ const PropertyDetailsModal: React.FC<PropertyDetailsModalProps> = ({
                       rel="noopener noreferrer"
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
-                      className="flex items-center space-x-3 p-4 bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl border border-gray-200 hover:border-gray-300 transition-all duration-200"
+                      className="flex items-center space-x-3 p-4 bg-gradient-to-r from-gray-50 to-gray-100 rounded-lg border border-gray-200 hover:border-gray-300 transition-all duration-200"
                     >
                       <div className="w-8 h-8 bg-black rounded-full flex items-center justify-center">
                         <Music className="h-4 w-4 text-white" />
@@ -793,7 +794,7 @@ const PropertyDetailsModal: React.FC<PropertyDetailsModalProps> = ({
                       rel="noopener noreferrer"
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
-                      className="flex items-center space-x-3 p-4 bg-gradient-to-r from-red-50 to-red-100 rounded-xl border border-red-200 hover:border-red-300 transition-all duration-200"
+                      className="flex items-center space-x-3 p-4 bg-gradient-to-r from-red-50 to-red-100 rounded-lg border border-red-200 hover:border-red-300 transition-all duration-200"
                     >
                       <div className="w-8 h-8 bg-red-600 rounded-full flex items-center justify-center">
                         <Youtube className="h-4 w-4 text-white" />
@@ -817,7 +818,7 @@ const PropertyDetailsModal: React.FC<PropertyDetailsModalProps> = ({
             <Button 
               onClick={() => onScheduleTour?.(property)}
               variant="outline" 
-                className="w-full h-12 text-base font-semibold border-2 border-gray-300 hover:border-blue-500 hover:bg-blue-50 rounded-xl transition-all duration-200"
+                className="w-full h-12 text-base font-semibold border-2 border-gray-300 hover:border-blue-500 hover:bg-blue-50 rounded-lg transition-all duration-200"
             >
                 <Calendar className="h-4 w-4 mr-2" />
               Schedule Tour
@@ -829,7 +830,7 @@ const PropertyDetailsModal: React.FC<PropertyDetailsModalProps> = ({
               e.stopPropagation();
               onViewUnits?.(property);
             }}
-                className="w-full h-12 text-base font-semibold bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-200"
+                className="w-full h-12 text-base font-semibold bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white rounded-lg shadow-lg hover:shadow-xl transition-all duration-200"
             >
                 <FileText className="h-4 w-4 mr-2" />
                 See Available Units

@@ -66,6 +66,7 @@ interface Unit {
   available: boolean;
   qualified: boolean;
   leaseTerms: LeaseTerm[];
+  lease_term_options?: string[];
   floorLevel: string;
   unitAmenities: string[];
   floorPlan: string;
@@ -94,6 +95,7 @@ interface Property {
   };
   units: Unit[];
   isRentWiseNetwork: boolean;
+  lease_term_options?: string[];
 }
 
 // Simplified Unit interface for modals
@@ -124,6 +126,8 @@ const QualifiedProperties: React.FC<QualifiedPropertiesProps> = ({
   selectedProperty,
 }) => {
   // State management
+  console.log(selectedProperty);
+  
   const [units, setUnits] = useState<Unit[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedBedroomTypes, setSelectedBedroomTypes] = useState<string[]>(["1", "2", "3"]);
@@ -200,6 +204,7 @@ const QualifiedProperties: React.FC<QualifiedPropertiesProps> = ({
           deposit: unit.deposit || Math.round((unit.rent || unit.rentAmount || 2000) * 1.5),
           images: Array.isArray(unit.images) ? unit.images.map(String) : [],
           availableDate: convertTimestampToString(unit.availableDate),
+          lease_term_options: unit.lease_term_options || ['12 Months'],
         };
       });
 
@@ -407,27 +412,51 @@ const QualifiedProperties: React.FC<QualifiedPropertiesProps> = ({
   const getAvailableLeaseTerms = (unit: Unit): LeaseTerm[] => {
     const terms: LeaseTerm[] = [];
     
-    // Specific lease terms: 4, 6, 12, 16, 24 months
-    const leaseTermMonths = [4, 6, 12, 16, 24];
+    // Use actual lease_term_options from selected property, fallback to unit data, then default
+    const leaseTermOptions = selectedProperty?.lease_term_options || unit.lease_term_options || ['12 Months'];
     
-    leaseTermMonths.forEach(months => {
+    // Remove duplicates from lease term options
+    const uniqueLeaseTermOptions = [...new Set(leaseTermOptions)];
+    
+    uniqueLeaseTermOptions.forEach(termOption => {
+      // Parse the term option to extract months (e.g., "12 Months" -> 12)
+      const months = parseInt(termOption.replace(/\D/g, '')) || 12;
+      
+      // Use existing lease terms if available, otherwise calculate based on base rent
+      const existingTerm = unit.leaseTerms.find(term => term.months === months);
       const baseTerm = unit.leaseTerms.find(term => term.months === 12) || unit.leaseTerms[0];
       const baseRent = baseTerm?.rent || 1200;
       
       let calculatedRent = baseRent;
-      if (months < 12) {
-        calculatedRent = Math.round(baseRent * (1 + (12 - months) * 0.05));
-      } else if (months > 12) {
-        calculatedRent = Math.round(baseRent * (1 - (months - 12) * 0.02));
+      let savings = null;
+      let isPopular = months === 12;
+      
+      if (existingTerm) {
+        // Use existing term data if available
+        calculatedRent = existingTerm.rent;
+        savings = existingTerm.savings;
+        isPopular = existingTerm.popular || months === 12;
+      } else {
+        // Calculate rent based on term length if no existing data
+        if (months < 12) {
+          calculatedRent = Math.round(baseRent * (1 + (12 - months) * 0.05));
+        } else if (months > 12) {
+          calculatedRent = Math.round(baseRent * (1 - (months - 12) * 0.02));
+          savings = Math.round(baseRent - calculatedRent);
+        }
       }
       
-      terms.push({
-        months,
-        rent: calculatedRent,
-        popular: months === 12,
-        savings: months > 12 ? Math.round((baseRent - calculatedRent)) : null,
-        concession: null
-      });
+      // Check if we already have a term with this number of months
+      const existingTermWithSameMonths = terms.find(term => term.months === months);
+      if (!existingTermWithSameMonths) {
+        terms.push({
+          months,
+          rent: calculatedRent,
+          popular: isPopular,
+          savings,
+          concession: existingTerm?.concession || null
+        });
+      }
     });
     
     return terms;
@@ -472,7 +501,7 @@ const QualifiedProperties: React.FC<QualifiedPropertiesProps> = ({
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
+              <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
                 <Boxes className="h-6 w-6 text-green-600" />
               </div>
               <div>
@@ -513,7 +542,7 @@ const QualifiedProperties: React.FC<QualifiedPropertiesProps> = ({
           className="bg-white/80 backdrop-blur-md rounded-2xl shadow-xl p-6 mb-8 border border-green-200/50"
         >
           <div className="flex items-center mb-4">
-            <div className="bg-green-100 p-2 rounded-xl mr-3">
+            <div className="bg-green-100 p-2 rounded-lg mr-3">
               <Home className="h-6 w-6 text-green-600" />
             </div>
             <h2 className="text-xl font-bold text-gray-900">{selectedProperty.name}</h2>
@@ -543,7 +572,7 @@ const QualifiedProperties: React.FC<QualifiedPropertiesProps> = ({
         >
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center">
-              <div className="bg-blue-100 p-2 rounded-xl mr-3">
+              <div className="bg-blue-100 p-2 rounded-lg mr-3">
                 <Search className="h-6 w-6 text-blue-600" />
               </div>
               <h2 className="text-xl font-bold text-gray-900">Search & Filter</h2>
@@ -823,7 +852,18 @@ const QualifiedProperties: React.FC<QualifiedPropertiesProps> = ({
                             >
                               <div className="flex items-center">
                                 <span className="text-gray-900 font-medium">
-                                  {selectedLeaseTerms[unit.id]?.months || 12}months ${(selectedLeaseTerms[unit.id]?.rent || 1200).toLocaleString()}/mo
+                                  {(() => {
+                                    const selectedTerm = selectedLeaseTerms[unit.id];
+                                    if (!selectedTerm) return "12 Months - $1,200/mo";
+                                    
+                                    const termOption = selectedProperty?.lease_term_options?.find(option => 
+                                      parseInt(option.replace(/\D/g, '')) === selectedTerm.months
+                                    ) || unit.lease_term_options?.find(option => 
+                                      parseInt(option.replace(/\D/g, '')) === selectedTerm.months
+                                    ) || `${selectedTerm.months} Months`;
+                                    
+                                    return `${termOption} - $${selectedTerm.rent.toLocaleString()}/mo`;
+                                  })()}
                                 </span>
                                 {(selectedLeaseTerms[unit.id]?.popular || (selectedLeaseTerms[unit.id]?.months || 12) === 12) && (
                                   <span className="ml-2 px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded-full">
@@ -842,7 +882,7 @@ const QualifiedProperties: React.FC<QualifiedPropertiesProps> = ({
                                   animate={{ opacity: 1, y: 0 }}
                                   exit={{ opacity: 0, y: -10 }}
                                   transition={{ duration: 0.2 }}
-                                  className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-10 overflow-hidden max-h-80 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100"
+                                  className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-10 overflow-hidden max-h-52 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100"
                                 >
                                   {getAvailableLeaseTerms(unit).map((term) => (
                                   <>
@@ -861,7 +901,14 @@ const QualifiedProperties: React.FC<QualifiedPropertiesProps> = ({
                                           <CheckCircle className="h-4 w-4 text-white mr-2" />
                                         )}
                                         <span className="font-medium">
-                                          {term.months}months ${term.rent.toLocaleString()}/mo
+                                          {(() => {
+                                            const termOption = selectedProperty?.lease_term_options?.find(option => 
+                                              parseInt(option.replace(/\D/g, '')) === term.months
+                                            ) || unit.lease_term_options?.find(option => 
+                                              parseInt(option.replace(/\D/g, '')) === term.months
+                                            ) || `${term.months} Months`;
+                                            return `${termOption} - $${term.rent.toLocaleString()}/mo`;
+                                          })()}
                                       </span>
                                       {term.popular && (
                                           <span className={`ml-2 px-2 py-1 text-xs rounded-full ${
@@ -897,7 +944,14 @@ const QualifiedProperties: React.FC<QualifiedPropertiesProps> = ({
                                 <div className="flex items-center">
                                   <CheckCircle className="h-4 w-4 text-green-600 mr-2" />
                                   <span className="text-sm font-semibold text-green-800">
-                                    {selectedLeaseTerms[unit.id].months}months
+                                    {(() => {
+                                      const termOption = selectedProperty?.lease_term_options?.find(option => 
+                                        parseInt(option.replace(/\D/g, '')) === selectedLeaseTerms[unit.id].months
+                                      ) || unit.lease_term_options?.find(option => 
+                                        parseInt(option.replace(/\D/g, '')) === selectedLeaseTerms[unit.id].months
+                                      ) || `${selectedLeaseTerms[unit.id].months} Months`;
+                                      return termOption;
+                                    })()}
                                   </span>
                                   {selectedLeaseTerms[unit.id].popular && (
                                     <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 ml-2">
@@ -960,7 +1014,14 @@ const QualifiedProperties: React.FC<QualifiedPropertiesProps> = ({
                             }`}
                           >
                             {selectedLeaseTerms[unit.id] 
-                              ? `Apply Now - ${selectedLeaseTerms[unit.id].months}mon at $${selectedLeaseTerms[unit.id].rent.toLocaleString()}/mo`
+                              ? (() => {
+                                  const termOption = selectedProperty?.lease_term_options?.find(option => 
+                                    parseInt(option.replace(/\D/g, '')) === selectedLeaseTerms[unit.id].months
+                                  ) || unit.lease_term_options?.find(option => 
+                                    parseInt(option.replace(/\D/g, '')) === selectedLeaseTerms[unit.id].months
+                                  ) || `${selectedLeaseTerms[unit.id].months} Months`;
+                                  return `Apply Now - ${termOption} at $${selectedLeaseTerms[unit.id].rent.toLocaleString()}/mo`;
+                                })()
                               : "Select Lease Term First"
                             }
                               </motion.button>
@@ -1000,6 +1061,7 @@ const QualifiedProperties: React.FC<QualifiedPropertiesProps> = ({
       <UnitDetailsModal
         unit={selectedUnitForDetails?.unit || null}
         propertyName={selectedUnitForDetails?.property.name || ""}
+        propertyLeaseTermOptions={selectedProperty?.lease_term_options}
         isOpen={showUnitDetails}
         onClose={() => {
           setShowUnitDetails(false);

@@ -196,7 +196,7 @@ const LandlordDashboard: React.FC = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           {/* <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
-              <div className="bg-gradient-to-r from-green-600 to-blue-600 p-3 rounded-xl shadow-lg">
+              <div className="bg-gradient-to-r from-green-600 to-blue-600 p-3 rounded-lg shadow-lg">
                 <Building className="h-8 w-8 text-white" />
               </div>
               <div>
@@ -244,7 +244,7 @@ const LandlordDashboard: React.FC = () => {
                   +12% from last month
                 </p>
               </div>
-              <div className="bg-green-100 p-3 rounded-xl">
+              <div className="bg-green-100 p-3 rounded-lg">
                 <FileText className="h-8 w-8 text-green-600" />
               </div>
             </div>
@@ -265,7 +265,7 @@ const LandlordDashboard: React.FC = () => {
                   +8% from last month
                 </p>
               </div>
-              <div className="bg-blue-100 p-3 rounded-xl">
+              <div className="bg-blue-100 p-3 rounded-lg">
                 <Calendar className="h-8 w-8 text-blue-600" />
               </div>
             </div>
@@ -286,7 +286,7 @@ const LandlordDashboard: React.FC = () => {
                   Needs attention
                 </p>
               </div>
-              <div className="bg-yellow-100 p-3 rounded-xl">
+              <div className="bg-yellow-100 p-3 rounded-lg">
                 <AlertCircle className="h-8 w-8 text-yellow-600" />
               </div>
             </div>
@@ -307,7 +307,7 @@ const LandlordDashboard: React.FC = () => {
                   <p>Avg Rent: ${stats.averageRent.toLocaleString()}</p>
                 </div>
               </div>
-              <div className="bg-green-100 p-3 rounded-xl">
+              <div className="bg-green-100 p-3 rounded-lg">
                 <DollarSign className="h-8 w-8 text-green-600" />
               </div>
             </div>
@@ -359,7 +359,7 @@ const LandlordDashboard: React.FC = () => {
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ duration: 0.3, delay: index * 0.1 }}
-                    className="flex items-center justify-between p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors"
+                    className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
                   >
                     <div className="flex items-center space-x-4">
                       <div className={`p-2 rounded-lg ${

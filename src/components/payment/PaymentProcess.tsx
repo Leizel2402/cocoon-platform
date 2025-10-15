@@ -448,7 +448,7 @@ const PaymentProcess = ({ paymentData, onPaymentComplete, onBackToProducts }: Pa
               <Button 
                 onClick={processPayment} 
                 disabled={processing}
-                className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-200"
+                className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white rounded-lg shadow-lg hover:shadow-xl transition-all duration-200"
                 size="lg"
               >
                 {processing ? (

@@ -269,7 +269,7 @@ export function SavedSearches() {
 
       {/* Search and Filter Bar */}
       <div className="max-w-6xl mx-auto px-6 py-6">
-        <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+        <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200">
           <div className="flex flex-col md:flex-row gap-4">
             <div className="flex-1">
               <div className="relative">
@@ -341,7 +341,7 @@ export function SavedSearches() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.1 }}
-                className="bg-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 border border-gray-200"
+                className="bg-white rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 border border-gray-200"
               >
                 <div className="p-6">
                   <div className="flex items-start justify-between mb-4">

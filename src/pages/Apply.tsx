@@ -176,7 +176,7 @@ export function Apply() {
         >
           <div className="bg-gradient-to-r from-blue-600 to-purple-600 px-6 py-6">
             <div className="flex items-center">
-              <div className="bg-white/20 backdrop-blur-sm p-2 rounded-xl mr-4">
+              <div className="bg-white/20 backdrop-blur-sm p-2 rounded-lg mr-4">
                 <FileText className="h-8 w-8 text-white" />
               </div>
               <div>
@@ -210,7 +210,7 @@ export function Apply() {
                   <input
                     {...register("name")}
                     type="text"
-                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/50 backdrop-blur-sm"
+                    className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/50 backdrop-blur-sm"
                     placeholder="Enter your full name"
                   />
                   {errors.name && (
@@ -231,7 +231,7 @@ export function Apply() {
                   <input
                     {...register("email")}
                     type="email"
-                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-gray-50/70 backdrop-blur-sm"
+                    className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-gray-50/70 backdrop-blur-sm"
                     placeholder="Enter your email"
                     readOnly
                   />
@@ -253,7 +253,7 @@ export function Apply() {
                   <input
                     {...register("phone")}
                     type="tel"
-                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/50 backdrop-blur-sm"
+                    className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/50 backdrop-blur-sm"
                     placeholder="(555) 123-4567"
                   />
                   {errors.phone && (
@@ -274,7 +274,7 @@ export function Apply() {
                   <input
                     {...register("income", { valueAsNumber: true })}
                     type="number"
-                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/50 backdrop-blur-sm"
+                    className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/50 backdrop-blur-sm"
                     placeholder="5000"
                   />
                   {errors.income && (
@@ -305,7 +305,7 @@ export function Apply() {
                   </label>
                   <select
                     {...register("property_id")}
-                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/50 backdrop-blur-sm"
+                    className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/50 backdrop-blur-sm"
                   >
                     <option value="">Choose a property</option>
                     {properties.map((property) => (
@@ -332,7 +332,7 @@ export function Apply() {
                   <input
                     {...register("move_in_date")}
                     type="date"
-                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/50 backdrop-blur-sm"
+                    className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/50 backdrop-blur-sm"
                   />
                   {errors.move_in_date && (
                     <p className="mt-2 text-sm text-red-600 flex items-center bg-red-50 p-2 rounded-lg">
@@ -355,7 +355,7 @@ export function Apply() {
               <textarea
                 {...register("notes")}
                 rows={4}
-                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/50 backdrop-blur-sm"
+                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/50 backdrop-blur-sm"
                 placeholder="Any additional information you'd like to share..."
               />
             </div>
@@ -366,7 +366,7 @@ export function Apply() {
                 whileTap={{ scale: 0.98 }}
                 type="submit"
                 disabled={loading}
-                className="px-10 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-xl hover:from-blue-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-lg hover:shadow-xl"
+                className="px-10 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-lg hover:from-blue-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-lg hover:shadow-xl"
               >
                 {loading ? (
                   <div className="flex items-center">

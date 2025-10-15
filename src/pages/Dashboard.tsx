@@ -198,7 +198,7 @@ export function Dashboard() {
         >
           <div className="bg-white/80 backdrop-blur-md rounded-2xl shadow-xl p-8 border border-white/20">
             <div className="flex items-center mb-4">
-              <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-3 rounded-xl shadow-lg mr-4">
+              <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-3 rounded-lg shadow-lg mr-4">
                 <BarChart3 className="h-8 w-8 text-white" />
               </div>
               <div>
@@ -223,7 +223,7 @@ export function Dashboard() {
           >
             <div className="flex items-center">
               <div className="flex-shrink-0">
-                <div className="bg-blue-100 p-3 rounded-xl">
+                <div className="bg-blue-100 p-3 rounded-lg">
                   <Calendar className="h-8 w-8 text-blue-600" />
                 </div>
               </div>
@@ -245,7 +245,7 @@ export function Dashboard() {
           >
             <div className="flex items-center">
               <div className="flex-shrink-0">
-                <div className="bg-emerald-100 p-3 rounded-xl">
+                <div className="bg-emerald-100 p-3 rounded-lg">
                   <TrendingUp className="h-8 w-8 text-emerald-600" />
                 </div>
               </div>
@@ -267,7 +267,7 @@ export function Dashboard() {
           >
             <div className="flex items-center">
               <div className="flex-shrink-0">
-                <div className="bg-purple-100 p-3 rounded-xl">
+                <div className="bg-purple-100 p-3 rounded-lg">
                   <Users className="h-8 w-8 text-purple-600" />
                 </div>
               </div>
@@ -289,7 +289,7 @@ export function Dashboard() {
           >
             <div className="flex items-center">
               <div className="flex-shrink-0">
-                <div className="bg-orange-100 p-3 rounded-xl">
+                <div className="bg-orange-100 p-3 rounded-lg">
                   <Home className="h-8 w-8 text-orange-600" />
                 </div>
               </div>
@@ -554,7 +554,7 @@ export function Dashboard() {
                   placeholder="Search applications..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-12 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/50 backdrop-blur-sm"
+                  className="pl-12 pr-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/50 backdrop-blur-sm"
                 />
               </div>
             </div>
@@ -659,10 +659,10 @@ export function Dashboard() {
               {topProperties.map((item, index) => (
                 <div
                   key={item.property!.id}
-                  className="flex items-center justify-between p-4 bg-gray-50/50 rounded-xl hover:bg-gray-100/50 transition-colors"
+                  className="flex items-center justify-between p-4 bg-gray-50/50 rounded-lg hover:bg-gray-100/50 transition-colors"
                 >
                   <div className="flex items-center">
-                    <div className="flex-shrink-0 w-10 h-10 bg-gradient-to-r from-blue-100 to-purple-100 rounded-xl flex items-center justify-center">
+                    <div className="flex-shrink-0 w-10 h-10 bg-gradient-to-r from-blue-100 to-purple-100 rounded-lg flex items-center justify-center">
                       <span className="text-sm font-medium text-blue-600">
                         {index + 1}
                       </span>

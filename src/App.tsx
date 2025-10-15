@@ -111,7 +111,7 @@ function App() {
                 <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100 p-8">
                   <div className="max-w-6xl mx-auto">
                     <h1 className="text-3xl font-bold text-gray-900 mb-8">Property Comparison</h1>
-                    <div className="bg-white rounded-xl p-8 shadow-lg">
+                    <div className="bg-white rounded-lg p-8 shadow-lg">
                       <p className="text-gray-600 text-center py-12">
                         Compare properties side by side. This feature is coming soon!
                       </p>

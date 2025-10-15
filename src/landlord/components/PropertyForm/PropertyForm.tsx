@@ -279,7 +279,8 @@ const PropertyForm: React.FC = () => {
       propertyData.lease_term_months !== formState.data.property.lease_term_months ||
       propertyData.security_deposit_months !== formState.data.property.security_deposit_months ||
       propertyData.first_month_rent_required !== formState.data.property.first_month_rent_required ||
-      propertyData.last_month_rent_required !== formState.data.property.last_month_rent_required;
+      propertyData.last_month_rent_required !== formState.data.property.last_month_rent_required ||
+      JSON.stringify(propertyData.lease_term_options) !== JSON.stringify(formState.data.property.lease_term_options);
 
     // Update existing units with new lease terms if they changed
     let updatedUnits = formState.data.units;
@@ -287,6 +288,7 @@ const PropertyForm: React.FC = () => {
       updatedUnits = formState.data.units.map(unit => ({
         ...unit,
         lease_term_months: propertyData.lease_term_months,
+        lease_term_options: propertyData.lease_term_options,
         security_deposit_months: propertyData.security_deposit_months,
         first_month_rent_required: propertyData.first_month_rent_required,
         last_month_rent_required: propertyData.last_month_rent_required,
@@ -299,6 +301,7 @@ const PropertyForm: React.FC = () => {
       updatedListings = formState.data.listings.map(listing => ({
         ...listing,
         lease_term_months: propertyData.lease_term_months,
+        lease_term_options: propertyData.lease_term_options,
         security_deposit_months: propertyData.security_deposit_months,
         first_month_rent_required: propertyData.first_month_rent_required,
         last_month_rent_required: propertyData.last_month_rent_required,
@@ -384,6 +387,7 @@ const PropertyForm: React.FC = () => {
       description: '',
       // Lease Terms for Unit - inherit from property
       lease_term_months: formState.data.property.lease_term_months,
+      lease_term_options: formState.data.property.lease_term_options,
       security_deposit_months: formState.data.property.security_deposit_months,
       first_month_rent_required: formState.data.property.first_month_rent_required,
       last_month_rent_required: formState.data.property.last_month_rent_required,
@@ -419,6 +423,7 @@ const PropertyForm: React.FC = () => {
       available: true,
       // Lease Terms for Listing - inherit from property
       lease_term_months: formState.data.property.lease_term_months,
+      lease_term_options: formState.data.property.lease_term_options,
       security_deposit_months: formState.data.property.security_deposit_months,
       first_month_rent_required: formState.data.property.first_month_rent_required,
       last_month_rent_required: formState.data.property.last_month_rent_required,
@@ -475,34 +480,45 @@ const PropertyForm: React.FC = () => {
 
     try {
       // Create property
-      const propertyRef = await addDoc(collection(db, 'properties'), {
+      const propertyData = {
         ...formState.data.property,
         landlordId: user.uid,
+        lease_term_options: formState.data.property.lease_term_options,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
-      });
+      };
+      console.log('Creating property with lease_term_options:', propertyData.lease_term_options);
+      const propertyRef = await addDoc(collection(db, 'properties'), propertyData);
 
       // Create units
-      const unitPromises = formState.data.units.map(unit => 
-        addDoc(collection(db, 'units'), {
+      const unitPromises = formState.data.units.map(unit => {
+        const unitData = {
           ...unit,
           propertyId: propertyRef.id,
+          landlordId: user.uid,
+          lease_term_options: unit.lease_term_options || formState.data.property.lease_term_options,
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
-        })
-      );
+        };
+        console.log('Creating unit with lease_term_options:', unitData.lease_term_options);
+        return addDoc(collection(db, 'units'), unitData);
+      });
       const unitRefs = await Promise.all(unitPromises);
 
       // Create listings
-      const listingPromises = formState.data.listings.map((listing, index) => 
-        addDoc(collection(db, 'listings'), {
+      const listingPromises = formState.data.listings.map((listing, index) => {
+        const listingData = {
           ...listing,
           propertyId: propertyRef.id,
           unitId: unitRefs[index]?.id || '',
+          landlordId: user.uid,
+          lease_term_options: listing.lease_term_options || formState.data.property.lease_term_options,
           publishedAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
-        })
-      );
+        };
+        console.log('Creating listing with lease_term_options:', listingData.lease_term_options);
+        return addDoc(collection(db, 'listings'), listingData);
+      });
       await Promise.all(listingPromises);
 
       toast({
@@ -609,7 +625,7 @@ const PropertyForm: React.FC = () => {
           <div className="space-y-6">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center">
+                <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
                   <Building className="h-5 w-5 text-green-600" />
                 </div>
                 <div>
@@ -661,7 +677,7 @@ const PropertyForm: React.FC = () => {
           <div className="space-y-6">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center">
+                <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
                   <List className="h-5 w-5 text-green-600" />
                 </div>
                 <div>
@@ -730,7 +746,7 @@ const PropertyForm: React.FC = () => {
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
+              <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
                 <Building className="h-6 w-6 text-green-600" />
               </div>
               <div>

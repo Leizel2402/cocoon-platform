@@ -110,7 +110,7 @@ const ListingForm: React.FC<ListingFormProps> = ({
             value={data.title}
             onChange={(e) => onChange({ ...data, title: e.target.value })}
             placeholder="Beautiful 2BR Apartment in Downtown"
-            className={`w-full px-4 py-3 border rounded-xl focus:outline-none bg-white/50 backdrop-blur-sm ${
+            className={`w-full px-4 py-3 border rounded-lg focus:outline-none bg-white/50 backdrop-blur-sm ${
               errors?.title ? 'border-red-500 focus:ring-red-200' : 'border-gray-200 focus:ring-green-200'
             }`}
             required
@@ -134,7 +134,7 @@ const ListingForm: React.FC<ListingFormProps> = ({
             onChange={(e) => onChange({ ...data, description: e.target.value })}
             placeholder="Describe the property, its location, nearby amenities, and what makes it special..."
             rows={4}
-            className={`w-full px-4 py-3 border rounded-xl focus:outline-none bg-white/50 backdrop-blur-sm resize-none ${
+            className={`w-full px-4 py-3 border rounded-lg focus:outline-none bg-white/50 backdrop-blur-sm resize-none ${
               errors?.description ? 'border-red-500 focus:ring-red-200' : 'border-gray-200 focus:ring-green-200'
             }`}
             required
@@ -160,7 +160,7 @@ const ListingForm: React.FC<ListingFormProps> = ({
               max="10"
               value={data.bedrooms}
               onChange={(e) => onChange({ ...data, bedrooms: parseInt(e.target.value) || 0 })}
-              className={`w-full px-4 py-3 border rounded-xl focus:outline-none bg-white/50 backdrop-blur-sm ${
+              className={`w-full px-4 py-3 border rounded-lg focus:outline-none bg-white/50 backdrop-blur-sm ${
                 errors?.bedrooms ? 'border-red-500 focus:ring-red-200' : 'border-gray-200 focus:ring-green-200'
               }`}
               required
@@ -185,7 +185,7 @@ const ListingForm: React.FC<ListingFormProps> = ({
               step="0.5"
               value={data.bathrooms}
               onChange={(e) => onChange({ ...data, bathrooms: parseFloat(e.target.value) || 0 })}
-              className={`w-full px-4 py-3 border rounded-xl focus:outline-none bg-white/50 backdrop-blur-sm ${
+              className={`w-full px-4 py-3 border rounded-lg focus:outline-none bg-white/50 backdrop-blur-sm ${
                 errors?.bathrooms ? 'border-red-500 focus:ring-red-200' : 'border-gray-200 focus:ring-green-200'
               }`}
               required
@@ -208,7 +208,7 @@ const ListingForm: React.FC<ListingFormProps> = ({
               min="0"
               value={data.squareFeet}
               onChange={(e) => onChange({ ...data, squareFeet: parseInt(e.target.value) || 0 })}
-              className={`w-full px-4 py-3 border rounded-xl focus:outline-none bg-white/50 backdrop-blur-sm ${
+              className={`w-full px-4 py-3 border rounded-lg focus:outline-none bg-white/50 backdrop-blur-sm ${
                 errors?.squareFeet ? 'border-red-500 focus:ring-red-200' : 'border-gray-200 focus:ring-green-200'
               }`}
               required
@@ -247,7 +247,7 @@ const ListingForm: React.FC<ListingFormProps> = ({
                     onChange({ ...data, rent: value });
                   }}
                   placeholder="2,500"
-                  className={`w-full pl-8 pr-4 py-3 border rounded-xl focus:outline-none bg-white/50 backdrop-blur-sm ${
+                  className={`w-full pl-8 pr-4 py-3 border rounded-lg focus:outline-none bg-white/50 backdrop-blur-sm ${
                     errors?.rent ? 'border-red-500 focus:ring-red-200' : 'border-gray-200 focus:ring-green-200'
                   }`}
                   required
@@ -276,7 +276,7 @@ const ListingForm: React.FC<ListingFormProps> = ({
                     onChange({ ...data, deposit: value });
                   }}
                   placeholder="3,750"
-                  className={`w-full pl-8 pr-4 py-3 border rounded-xl focus:outline-none bg-white/50 backdrop-blur-sm ${
+                  className={`w-full pl-8 pr-4 py-3 border rounded-lg focus:outline-none bg-white/50 backdrop-blur-sm ${
                     errors?.deposit ? 'border-red-500 focus:ring-red-200' : 'border-gray-200 focus:ring-green-200'
                   }`}
                   required
@@ -298,7 +298,7 @@ const ListingForm: React.FC<ListingFormProps> = ({
             <h3 className="text-lg font-semibold text-gray-900">Availability</h3>
           </div>
 
-          <div className="flex items-center space-x-3 p-4 bg-gray-50 rounded-xl border border-gray-200">
+          <div className="flex items-center space-x-3 p-4 bg-gray-50 rounded-lg border border-gray-200">
             <Checkbox
               id="listingAvailable"
               checked={data.available}
@@ -326,7 +326,7 @@ const ListingForm: React.FC<ListingFormProps> = ({
                   ...data, 
                   availableDate: e.target.value ? new Date(e.target.value) : undefined 
                 })}
-                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-green-200 bg-white/50 backdrop-blur-sm"
+                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-green-200 bg-white/50 backdrop-blur-sm"
               />
             </div>
           )}
@@ -363,7 +363,7 @@ const ListingForm: React.FC<ListingFormProps> = ({
                   onChange({ ...data, lease_term_months: months });
                 }}
               >
-                <SelectTrigger className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-green-200 bg-white/50 backdrop-blur-sm">
+                <SelectTrigger className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-green-200 bg-white/50 backdrop-blur-sm">
                   <SelectValue placeholder="Select lease term" />
                 </SelectTrigger>
                 <SelectContent className="z-[9999] max-h-60 overflow-y-auto">
@@ -390,7 +390,7 @@ const ListingForm: React.FC<ListingFormProps> = ({
                   onChange({ ...data, security_deposit_months: months });
                 }}
               >
-                <SelectTrigger className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-green-200 bg-white/50 backdrop-blur-sm">
+                <SelectTrigger className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-green-200 bg-white/50 backdrop-blur-sm">
                   <SelectValue placeholder="Select security deposit" />
                 </SelectTrigger>
                 <SelectContent className="z-[9999] max-h-60 overflow-y-auto">
@@ -423,7 +423,7 @@ const ListingForm: React.FC<ListingFormProps> = ({
                     onChange({ ...data, pet_deposit: value });
                   }}
                   placeholder="0"
-                  className="w-full pl-8 pr-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-green-200 bg-white/50 backdrop-blur-sm"
+                  className="w-full pl-8 pr-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-green-200 bg-white/50 backdrop-blur-sm"
                 />
               </div>
             </div>
@@ -446,7 +446,7 @@ const ListingForm: React.FC<ListingFormProps> = ({
                     onChange({ ...data, application_fee: value });
                   }}
                   placeholder="0"
-                  className="w-full pl-8 pr-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-green-200 bg-white/50 backdrop-blur-sm"
+                  className="w-full pl-8 pr-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-green-200 bg-white/50 backdrop-blur-sm"
                 />
               </div>
             </div>
@@ -466,7 +466,7 @@ const ListingForm: React.FC<ListingFormProps> = ({
                 type="date"
                 value={data.lease_start_date || ''}
                 onChange={(e) => onChange({ ...data, lease_start_date: e.target.value || undefined })}
-                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-green-200 bg-white/50 backdrop-blur-sm"
+                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-green-200 bg-white/50 backdrop-blur-sm"
               />
             </div>
 
@@ -482,7 +482,7 @@ const ListingForm: React.FC<ListingFormProps> = ({
                 type="date"
                 value={data.lease_end_date || ''}
                 onChange={(e) => onChange({ ...data, lease_end_date: e.target.value || undefined })}
-                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-green-200 bg-white/50 backdrop-blur-sm"
+                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-green-200 bg-white/50 backdrop-blur-sm"
               />
             </div>
           </div>
@@ -491,7 +491,7 @@ const ListingForm: React.FC<ListingFormProps> = ({
           <div className="space-y-4">
             <Label className="text-base font-semibold">Rent Payment Requirements</Label>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="flex items-center space-x-3 p-4 bg-gray-50 rounded-xl border border-gray-200">
+              <div className="flex items-center space-x-3 p-4 bg-gray-50 rounded-lg border border-gray-200">
                 <Checkbox
                   id="listingFirstMonthRequired"
                   checked={data.first_month_rent_required}
@@ -503,7 +503,7 @@ const ListingForm: React.FC<ListingFormProps> = ({
                 </Label>
               </div>
 
-              <div className="flex items-center space-x-3 p-4 bg-gray-50 rounded-xl border border-gray-200">
+              <div className="flex items-center space-x-3 p-4 bg-gray-50 rounded-lg border border-gray-200">
                 <Checkbox
                   id="listingLastMonthRequired"
                   checked={data.last_month_rent_required}
@@ -555,7 +555,7 @@ const ListingForm: React.FC<ListingFormProps> = ({
           {/* Amenity Selection */}
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
             {PROPERTY_AMENITIES.map((amenity) => (
-              <div key={amenity} className="flex items-center space-x-3 p-3 bg-gray-50 rounded-xl border border-gray-200 hover:bg-gray-100 transition-colors">
+              <div key={amenity} className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg border border-gray-200 hover:bg-gray-100 transition-colors">
                 <Checkbox
                   id={`listing-amenity-${amenity}`}
                   checked={selectedAmenities.includes(amenity)}
@@ -579,14 +579,14 @@ const ListingForm: React.FC<ListingFormProps> = ({
               onChange={(e) => setNewAmenity(e.target.value)}
               placeholder="Add custom amenity"
               onKeyPress={(e) => e.key === 'Enter' && handleAddCustomAmenity()}
-              className="flex-1 px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-green-200 bg-white/50 backdrop-blur-sm"
+              className="flex-1 px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-green-200 bg-white/50 backdrop-blur-sm"
             />
             <Button
               type="button"
               variant="outline"
               onClick={handleAddCustomAmenity}
               disabled={!newAmenity.trim()}
-              className="px-4 py-3 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors"
+              className="px-4 py-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
             >
               <Plus className="h-4 w-4" />
             </Button>
@@ -605,9 +605,9 @@ const ListingForm: React.FC<ListingFormProps> = ({
             </div>
           </div>
 
-          <div className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:border-gray-400 transition-colors">
+          <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-gray-400 transition-colors">
             <p className="text-gray-500 mb-4">Image upload functionality will be implemented here</p>
-            <Button type="button" variant="outline" className="px-6 py-3 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors">
+            <Button type="button" variant="outline" className="px-6 py-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
               Upload Images
             </Button>
           </div>
@@ -619,7 +619,7 @@ const ListingForm: React.FC<ListingFormProps> = ({
                   <img
                     src={image}
                     alt={`Listing image ${index + 1}`}
-                    className="w-full h-24 object-cover rounded-xl"
+                    className="w-full h-24 object-cover rounded-lg"
                   />
                   <button
                     type="button"

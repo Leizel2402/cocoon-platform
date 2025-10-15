@@ -174,7 +174,7 @@ export function ProspectApplication() {
                   type="text"
                   value={applicationData.firstName}
                   onChange={(e) => handleInputChange('firstName', e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   placeholder="John"
                 />
               </div>
@@ -187,7 +187,7 @@ export function ProspectApplication() {
                   type="text"
                   value={applicationData.lastName}
                   onChange={(e) => handleInputChange('lastName', e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   placeholder="Doe"
                 />
               </div>
@@ -201,7 +201,7 @@ export function ProspectApplication() {
                 type="email"
                 value={applicationData.email}
                 onChange={(e) => handleInputChange('email', e.target.value)}
-                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 placeholder="john@example.com"
               />
             </div>
@@ -215,7 +215,7 @@ export function ProspectApplication() {
                   type="tel"
                   value={applicationData.phone}
                   onChange={(e) => handleInputChange('phone', e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   placeholder="(555) 123-4567"
                 />
               </div>
@@ -228,7 +228,7 @@ export function ProspectApplication() {
                   type="date"
                   value={applicationData.dateOfBirth}
                   onChange={(e) => handleInputChange('dateOfBirth', e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 />
               </div>
             </div>
@@ -241,7 +241,7 @@ export function ProspectApplication() {
                 type="text"
                 value={applicationData.ssn}
                 onChange={(e) => handleInputChange('ssn', e.target.value)}
-                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 placeholder="XXX-XX-XXXX"
               />
             </div>
@@ -261,7 +261,7 @@ export function ProspectApplication() {
                 type="text"
                 value={applicationData.currentAddress.street}
                 onChange={(e) => handleInputChange('currentAddress.street', e.target.value)}
-                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 placeholder="123 Main Street"
               />
             </div>
@@ -275,7 +275,7 @@ export function ProspectApplication() {
                   type="text"
                   value={applicationData.currentAddress.city}
                   onChange={(e) => handleInputChange('currentAddress.city', e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   placeholder="San Francisco"
                 />
               </div>
@@ -288,7 +288,7 @@ export function ProspectApplication() {
                   type="text"
                   value={applicationData.currentAddress.state}
                   onChange={(e) => handleInputChange('currentAddress.state', e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   placeholder="CA"
                 />
               </div>
@@ -301,7 +301,7 @@ export function ProspectApplication() {
                   type="text"
                   value={applicationData.currentAddress.zipCode}
                   onChange={(e) => handleInputChange('currentAddress.zipCode', e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   placeholder="94102"
                 />
               </div>
@@ -323,7 +323,7 @@ export function ProspectApplication() {
                   type="text"
                   value={applicationData.employment.company}
                   onChange={(e) => handleInputChange('employment.company', e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   placeholder="Acme Corporation"
                 />
               </div>
@@ -336,7 +336,7 @@ export function ProspectApplication() {
                   type="text"
                   value={applicationData.employment.position}
                   onChange={(e) => handleInputChange('employment.position', e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   placeholder="Software Engineer"
                 />
               </div>
@@ -351,7 +351,7 @@ export function ProspectApplication() {
                   type="number"
                   value={applicationData.employment.monthlyIncome}
                   onChange={(e) => handleInputChange('employment.monthlyIncome', e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   placeholder="5000"
                 />
               </div>
@@ -363,7 +363,7 @@ export function ProspectApplication() {
                 <select
                   value={applicationData.employment.employmentLength}
                   onChange={(e) => handleInputChange('employment.employmentLength', e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 >
                   <option value="">Select length</option>
                   <option value="0-6 months">0-6 months</option>
@@ -384,7 +384,7 @@ export function ProspectApplication() {
             <p className="text-gray-600 mb-6">Please provide at least 2 personal or professional references.</p>
             
             {applicationData.references.map((reference, index) => (
-              <div key={index} className="border border-gray-200 rounded-xl p-6">
+              <div key={index} className="border border-gray-200 rounded-lg p-6">
                 <h4 className="text-lg font-semibold text-gray-900 mb-4">Reference {index + 1}</h4>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -396,7 +396,7 @@ export function ProspectApplication() {
                       type="text"
                       value={reference.name}
                       onChange={(e) => handleReferenceChange(index, 'name', e.target.value)}
-                      className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       placeholder="Jane Smith"
                     />
                   </div>
@@ -409,7 +409,7 @@ export function ProspectApplication() {
                       type="text"
                       value={reference.relationship}
                       onChange={(e) => handleReferenceChange(index, 'relationship', e.target.value)}
-                      className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       placeholder="Friend, Colleague, etc."
                     />
                   </div>
@@ -422,7 +422,7 @@ export function ProspectApplication() {
                       type="tel"
                       value={reference.phone}
                       onChange={(e) => handleReferenceChange(index, 'phone', e.target.value)}
-                      className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       placeholder="(555) 123-4567"
                     />
                   </div>
@@ -435,7 +435,7 @@ export function ProspectApplication() {
                       type="email"
                       value={reference.email}
                       onChange={(e) => handleReferenceChange(index, 'email', e.target.value)}
-                      className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       placeholder="jane@example.com"
                     />
                   </div>
@@ -459,7 +459,7 @@ export function ProspectApplication() {
                   type="date"
                   value={applicationData.preferences.moveInDate}
                   onChange={(e) => handleInputChange('preferences.moveInDate', e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 />
               </div>
               
@@ -470,7 +470,7 @@ export function ProspectApplication() {
                 <select
                   value={applicationData.preferences.leaseLength}
                   onChange={(e) => handleInputChange('preferences.leaseLength', e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 >
                   <option value="6">6 months</option>
                   <option value="12">12 months</option>
@@ -516,7 +516,7 @@ export function ProspectApplication() {
                 value={applicationData.preferences.specialNeeds}
                 onChange={(e) => handleInputChange('preferences.specialNeeds', e.target.value)}
                 rows={3}
-                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 placeholder="Any special accommodations or requirements..."
               />
             </div>
@@ -528,7 +528,7 @@ export function ProspectApplication() {
           <div className="space-y-6">
             <h3 className="text-2xl font-bold text-gray-900 mb-6">Review Your Application</h3>
             
-            <div className="bg-gray-50 rounded-xl p-6 space-y-4">
+            <div className="bg-gray-50 rounded-lg p-6 space-y-4">
               <div>
                 <h4 className="font-semibold text-gray-900 mb-2">Personal Information</h4>
                 <p className="text-gray-600">
@@ -564,7 +564,7 @@ export function ProspectApplication() {
               </div>
             </div>
 
-            <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
               <div className="flex items-start">
                 <Shield className="h-5 w-5 text-blue-600 mr-2 mt-0.5" />
                 <div>
@@ -595,7 +595,7 @@ export function ProspectApplication() {
         >
           <div className="bg-white/80 backdrop-blur-md rounded-2xl shadow-xl p-8 border border-white/20">
             <div className="flex items-center">
-              <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-3 rounded-xl shadow-lg mr-4">
+              <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-3 rounded-lg shadow-lg mr-4">
                 <FileText className="h-8 w-8 text-white" />
               </div>
               <div>
@@ -662,7 +662,7 @@ export function ProspectApplication() {
             <button
               onClick={prevStep}
               disabled={currentStep === 1}
-              className={`flex items-center px-6 py-3 rounded-xl font-semibold transition-all duration-200 ${
+              className={`flex items-center px-6 py-3 rounded-lg font-semibold transition-all duration-200 ${
                 currentStep === 1
                   ? 'text-gray-400 cursor-not-allowed'
                   : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
@@ -676,7 +676,7 @@ export function ProspectApplication() {
               {currentStep < steps.length ? (
                 <button
                   onClick={nextStep}
-                  className="flex items-center px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-200"
+                  className="flex items-center px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg font-semibold shadow-lg hover:shadow-xl transition-all duration-200"
                 >
                   Next
                   <ArrowRight className="h-5 w-5 ml-2" />
@@ -685,7 +685,7 @@ export function ProspectApplication() {
                 <button
                   onClick={handleSubmit}
                   disabled={loading}
-                  className="flex items-center px-6 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex items-center px-6 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg font-semibold shadow-lg hover:shadow-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {loading ? (
                     <>

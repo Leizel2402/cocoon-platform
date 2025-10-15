@@ -62,6 +62,7 @@ interface Unit {
   rent: number;
   deposit: number;
   leaseTerms: LeaseTerm[];
+  lease_term_options?: string[];
   amenities: string[];
   images: string[];
   qualified: boolean;
@@ -90,6 +91,7 @@ interface QualifiedProperty {
     fee: number;
     deposit: number;
   };
+  lease_term_options?: string[];
 }
 
 interface IncomingProperty {
@@ -110,6 +112,7 @@ interface IncomingProperty {
   };
   units?: Unit[];
   isRentWiseNetwork?: boolean;
+  lease_term_options?: string[];
 }
 
 interface ComparisonUnit {
@@ -420,7 +423,7 @@ const UnitsComparison: React.FC<UnitsComparisonProps> = ({
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
+              <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
                 <Home className="h-6 w-6 text-green-600" />
               </div>
               <div>
@@ -453,7 +456,7 @@ const UnitsComparison: React.FC<UnitsComparisonProps> = ({
             Comparison Summary
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="bg-green-50 rounded-xl p-4 border border-green-200">
+            <div className="bg-green-50 rounded-lg p-4 border border-green-200">
               <h4 className="font-bold text-green-800 mb-2 flex items-center">
                 <DollarSign className="h-4 w-4 mr-1" />
                 Price Range
@@ -473,7 +476,7 @@ const UnitsComparison: React.FC<UnitsComparisonProps> = ({
                 })()}
               </p>
             </div>
-            <div className="bg-emerald-50 rounded-xl p-4 border border-emerald-200">
+            <div className="bg-emerald-50 rounded-lg p-4 border border-emerald-200">
               <h4 className="font-bold text-emerald-800 mb-2 flex items-center">
                 <Square className="h-4 w-4 mr-1" />
                 Size Range
@@ -483,7 +486,7 @@ const UnitsComparison: React.FC<UnitsComparisonProps> = ({
                 {Math.max(...comparisonUnits.map(({ unit }) => unit.sqft))} sqft
               </p>
             </div>
-            <div className="bg-teal-50 rounded-xl p-4 border border-teal-200">
+            <div className="bg-teal-50 rounded-lg p-4 border border-teal-200">
               <h4 className="font-bold text-teal-800 mb-2 flex items-center">
                 <Bed className="h-4 w-4 mr-1" />
                 Bedroom Types
@@ -500,7 +503,7 @@ const UnitsComparison: React.FC<UnitsComparisonProps> = ({
           {selectedUnit && selectedLeaseTerms[selectedUnit] && (
             <>
               <Separator className="my-6" />
-              <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-6 rounded-xl border border-green-200">
+              <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-6 rounded-lg border border-green-200">
                 <h4 className="font-bold text-gray-800 mb-3 flex items-center">
                   <CheckCircle className="h-5 w-5 mr-2 text-green-600" />
                   Selected Unit
@@ -590,7 +593,7 @@ const UnitsComparison: React.FC<UnitsComparisonProps> = ({
                   {/* Floor Plan */}
                   <div className="mt-4">
                     <div
-                      className="bg-gray-50 rounded-xl p-3 flex justify-center cursor-pointer hover:bg-gray-100 transition-colors border border-gray-200"
+                      className="bg-gray-50 rounded-lg p-3 flex justify-center cursor-pointer hover:bg-gray-100 transition-colors border border-gray-200"
                       onClick={(e) => {
                         e.stopPropagation();
                         handleShowFloorPlan(property, unit);
@@ -654,11 +657,18 @@ const UnitsComparison: React.FC<UnitsComparisonProps> = ({
                       >
                         <div className="flex items-center">
                           <span className="text-gray-900 font-medium">
-                            {selectedLeaseTerms[unitKey]?.months || 12}months $
-                            {(
-                              selectedLeaseTerms[unitKey]?.rent || 1200
-                            ).toLocaleString()}
-                            /mo
+                            {(() => {
+                              const selectedTerm = selectedLeaseTerms[unitKey];
+                              if (!selectedTerm) return "12 Months - $1,200/mo";
+                              
+                              const termOption = property.lease_term_options?.find(option => 
+                                parseInt(option.replace(/\D/g, '')) === selectedTerm.months
+                              ) || unit.lease_term_options?.find(option => 
+                                parseInt(option.replace(/\D/g, '')) === selectedTerm.months
+                              ) || `${selectedTerm.months} Months`;
+                              
+                              return `${termOption} - $${selectedTerm.rent.toLocaleString()}/mo`;
+                            })()}
                           </span>
                           {(selectedLeaseTerms[unitKey]?.popular ||
                             (selectedLeaseTerms[unitKey]?.months || 12) ===
@@ -683,37 +693,50 @@ const UnitsComparison: React.FC<UnitsComparisonProps> = ({
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: -10 }}
                             transition={{ duration: 0.2 }}
-                            className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-10 overflow-hidden max-h-80 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100"
+                            className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-10 overflow-hidden max-h-52 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100"
                           >
-                            {[4, 6, 12, 16, 24].map((months) => {
-                              const baseTerm =
-                                leaseTerms.find((term) => term.months === 12) ||
-                                leaseTerms[0];
-                              const baseRent = baseTerm?.rent || 1200;
+                            {(() => {
+                              const leaseTermOptions = property.lease_term_options || unit.lease_term_options || ['12 Months'];
+                              const uniqueLeaseTermOptions = [...new Set(leaseTermOptions)];
+                              return uniqueLeaseTermOptions;
+                            })().map((termOption) => {
+                              // Parse the term option to extract months (e.g., "12 Months" -> 12)
+                              const months = parseInt(termOption.replace(/\D/g, '')) || 12;
+                              
+                              // Use existing lease terms if available, otherwise calculate based on base rent
+                              const existingTerm = leaseTerms.find((term) => term.months === months);
+                              const baseTerm = leaseTerms.find((term) => term.months === 12) || leaseTerms[0];
+                              const baseRent = baseTerm?.rent || unit.rent || 1200;
 
                               let calculatedRent = baseRent;
-                              if (months < 12) {
-                                calculatedRent = Math.round(
-                                  baseRent * (1 + (12 - months) * 0.05)
-                                );
-                              } else if (months > 12) {
-                                calculatedRent = Math.round(
-                                  baseRent * (1 - (months - 12) * 0.02)
-                                );
-                              }
+                              let savings = null;
+                              let isPopular = months === 12;
 
-                              const isPopular = months === 12;
-                              const savings =
-                                months > 12
-                                  ? Math.round(baseRent - calculatedRent)
-                                  : null;
+                              if (existingTerm) {
+                                // Use existing term data if available
+                                calculatedRent = existingTerm.rent;
+                                savings = existingTerm.savings;
+                                isPopular = existingTerm.popular || months === 12;
+                              } else {
+                                // Calculate rent based on term length if no existing data
+                                if (months < 12) {
+                                  calculatedRent = Math.round(
+                                    baseRent * (1 + (12 - months) * 0.05)
+                                  );
+                                } else if (months > 12) {
+                                  calculatedRent = Math.round(
+                                    baseRent * (1 - (months - 12) * 0.02)
+                                  );
+                                  savings = Math.round(baseRent - calculatedRent);
+                                }
+                              }
 
                               const term = {
                                 months,
                                 rent: calculatedRent,
                                 popular: isPopular,
                                 savings,
-                                concession: null,
+                                concession: existingTerm?.concession || null,
                               };
 
                               return (
@@ -735,7 +758,7 @@ const UnitsComparison: React.FC<UnitsComparisonProps> = ({
                                       <CheckCircle className="h-4 w-4 text-white mr-2" />
                                     )}
                                     <span className="font-medium">
-                                      {months}months $
+                                      {termOption} - $
                                       {calculatedRent.toLocaleString()}/mo
                                     </span>
                                     {isPopular && (
@@ -778,7 +801,14 @@ const UnitsComparison: React.FC<UnitsComparisonProps> = ({
                           <div className="flex items-center">
                             <CheckCircle className="h-4 w-4 text-green-600 mr-2" />
                             <span className="text-sm font-semibold text-green-800">
-                              {selectedLeaseTerms[unitKey].months}mon
+                              {(() => {
+                                const termOption = property.lease_term_options?.find(option => 
+                                  parseInt(option.replace(/\D/g, '')) === selectedLeaseTerms[unitKey].months
+                                ) || unit.lease_term_options?.find(option => 
+                                  parseInt(option.replace(/\D/g, '')) === selectedLeaseTerms[unitKey].months
+                                ) || `${selectedLeaseTerms[unitKey].months} Months`;
+                                return termOption;
+                              })()}
                             </span>
                             {selectedLeaseTerms[unitKey].popular && (
                               <Badge className="ml-2 bg-green-100 text-green-700 text-xs px-2 py-0.5">
@@ -905,7 +935,7 @@ const UnitsComparison: React.FC<UnitsComparisonProps> = ({
           <div className="bg-gradient-to-r from-green-600 via-green-600 to-emerald-600 text-white p-6 rounded-t-lg">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-white/20 backdrop-blur-md rounded-xl flex items-center justify-center">
+                <div className="w-10 h-10 bg-white/20 backdrop-blur-md rounded-lg flex items-center justify-center">
                   <Home className="h-5 w-5 text-white" />
                 </div>
                 <div>
@@ -931,7 +961,7 @@ const UnitsComparison: React.FC<UnitsComparisonProps> = ({
             <div className="p-6 space-y-6">
               {/* Property & Unit Details Grid */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-4 border border-green-200">
+                <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-lg p-4 border border-green-200">
                   <h4 className="font-bold text-green-800 mb-3 flex items-center">
                     <Building className="h-4 w-4 mr-2" />
                     Property
@@ -943,7 +973,7 @@ const UnitsComparison: React.FC<UnitsComparisonProps> = ({
                     {detailsUnit.property.address}
                   </p>
                 </div>
-                <div className="bg-gradient-to-br from-emerald-50 to-teal-50 rounded-xl p-4 border border-emerald-200">
+                <div className="bg-gradient-to-br from-emerald-50 to-teal-50 rounded-lg p-4 border border-emerald-200">
                   <h4 className="font-bold text-emerald-800 mb-3 flex items-center">
                     <Home className="h-4 w-4 mr-2" />
                     Unit Details
@@ -961,7 +991,7 @@ const UnitsComparison: React.FC<UnitsComparisonProps> = ({
               </div>
 
               {/* Property Amenities */}
-              <div className="bg-white rounded-xl p-4 border border-gray-200">
+              <div className="bg-white rounded-lg p-4 border border-gray-200">
                 <h4 className="font-bold text-gray-800 mb-3 flex items-center">
                   <Star className="h-4 w-4 mr-2 text-yellow-500" />
                   Property Amenities
@@ -990,7 +1020,7 @@ const UnitsComparison: React.FC<UnitsComparisonProps> = ({
               </div>
 
               {/* Unit Amenities */}
-              <div className="bg-white rounded-xl p-4 border border-gray-200">
+              <div className="bg-white rounded-lg p-4 border border-gray-200">
                 <h4 className="font-bold text-gray-800 mb-3 flex items-center">
                   <Home className="h-4 w-4 mr-2 text-blue-500" />
                   Unit Amenities
@@ -1019,7 +1049,7 @@ const UnitsComparison: React.FC<UnitsComparisonProps> = ({
               </div>
 
               {/* All Lease Terms */}
-              <div className="bg-white rounded-xl p-4 border border-gray-200">
+              <div className="bg-white rounded-lg p-4 border border-gray-200">
                 <h4 className="font-bold text-gray-800 mb-4 flex items-center">
                   <DollarSign className="h-4 w-4 mr-2 text-green-600" />
                   All Lease Terms
@@ -1113,7 +1143,7 @@ const UnitsComparison: React.FC<UnitsComparisonProps> = ({
           {/* Branded Header */}
           <div className="bg-gradient-to-r from-green-600 via-green-600 to-emerald-600 text-white p-6 rounded-t-lg">
             <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-white/20 backdrop-blur-md rounded-xl flex items-center justify-center">
+              <div className="w-10 h-10 bg-white/20 backdrop-blur-md rounded-lg flex items-center justify-center">
                 <Building className="h-5 w-5 text-white" />
               </div>
               <div>
@@ -1132,7 +1162,7 @@ const UnitsComparison: React.FC<UnitsComparisonProps> = ({
           </div>
           {floorPlanUnit && (
             <div className="flex justify-center p-6 bg-gradient-to-br from-gray-50 to-green-50">
-              <div className="bg-white rounded-xl p-4 shadow-lg border border-gray-200">
+              <div className="bg-white rounded-lg p-4 shadow-lg border border-gray-200">
                 <img
                   src={floorPlanUnit.unit.floorPlan || "/placeholder.svg"}
                   alt={`${floorPlanUnit.unit.bedrooms} bedroom floor plan`}
@@ -1193,8 +1223,7 @@ const UnitsComparison: React.FC<UnitsComparisonProps> = ({
               ) : (
                 <PaymentProcess
                   paymentData={paymentData}
-                  onPaymentComplete={(_success, _details) => {
-                    // eslint-disable-line @typescript-eslint/no-unused-vars
+                  onPaymentComplete={() => {
                     // Handle payment completion
                   }}
                 />
@@ -1227,7 +1256,7 @@ const UnitsComparison: React.FC<UnitsComparisonProps> = ({
               <Button
                 onClick={handleNext}
                 size="lg"
-                className="min-w-[200px] mt-3 md:mt-0 h-12 text-lg font-semibold bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-200"
+                className="min-w-[200px] mt-3 md:mt-0 h-12 text-lg font-semibold bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white rounded-lg shadow-lg hover:shadow-xl transition-all duration-200"
               >
                 Proceed to Products
                 <ArrowRight className="h-5 w-5 ml-2" />

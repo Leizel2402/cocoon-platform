@@ -824,8 +824,10 @@ const ApplicationProcess = ({
           // Check if all required fields are filled for each additional occupant
           formData.additionalOccupants.forEach((occupant, index) => {
             console.log(`Validating additional occupant ${index}:`, occupant);
-            const requiredFields = ['firstName', 'lastName', 'dateOfBirth'];
-            requiredFields.forEach(field => {
+            
+            // Always required fields
+            const alwaysRequiredFields = ['firstName', 'lastName'];
+            alwaysRequiredFields.forEach(field => {
               const fieldValue = occupant[field as keyof typeof occupant];
               console.log(`Checking additional occupant ${index} ${field}:`, fieldValue, typeof fieldValue);
               if (!fieldValue || fieldValue.toString().trim() === '') {
@@ -835,6 +837,26 @@ const ApplicationProcess = ({
                 hasOccupantErrors = true;
               }
             });
+            
+            // Age-based required fields
+            const occupantAge = occupant.age ? parseInt(occupant.age) : 0;
+            if (occupantAge >= 18) {
+              // For 18+ occupants, dateOfBirth is required
+              if (!occupant.dateOfBirth || occupant.dateOfBirth.toString().trim() === '') {
+                console.log(`Missing field: occupant_${index}_dateOfBirth`, occupant.dateOfBirth);
+                errors[`occupant_${index}_dateOfBirth`] = `Date of birth is required for occupants 18+`;
+                missingFields.push(`occupant_${index}_dateOfBirth`);
+                hasOccupantErrors = true;
+              }
+            } else {
+              // For under 18 occupants, age is required
+              if (!occupant.age || occupant.age.toString().trim() === '') {
+                console.log(`Missing field: occupant_${index}_age`, occupant.age);
+                errors[`occupant_${index}_age`] = `Age is required for occupants under 18`;
+                missingFields.push(`occupant_${index}_age`);
+                hasOccupantErrors = true;
+              }
+            }
           });
           
           console.log("Additional occupants validation result:", { hasOccupantErrors, errors, missingFields });
@@ -2206,7 +2228,16 @@ const ApplicationProcess = ({
                 id="isCitizen"
                 checked={formData.isCitizen}
                 onCheckedChange={(checked) =>
-                  setFormData({ ...formData, isCitizen: checked })
+                 {
+                  setFormData({ ...formData, isCitizen: checked });
+                  if(!checked) {
+                   
+                    
+                    setTimeout(() => {
+                      document.getElementById("citizenship-doc-message")?.scrollIntoView({ behavior: "smooth" });
+                    }, 100);
+                  }
+                 }
                 }
                 className="data-[state=checked]:bg-blue-600"
               />
@@ -2218,7 +2249,7 @@ const ApplicationProcess = ({
               </Label>
             </div>
             {!formData.isCitizen && (
-              <div className="text-sm text-blue-800 bg-blue-50 border border-blue-200 p-4 rounded-xl">
+              <div id="citizenship-doc-message" className="text-sm text-blue-800 bg-blue-50 border border-blue-200 p-4 rounded-xl">
                 Additional documentation will be required for non-citizens.
               </div>
             )}
@@ -2607,9 +2638,17 @@ const ApplicationProcess = ({
                 <Switch
                   id="hasOtherIncome"
                   checked={formData.hasOtherIncome}
-                  onCheckedChange={(checked) =>
-                    setFormData({ ...formData, hasOtherIncome: checked })
-                  }
+                    onCheckedChange={(checked) =>
+                   {
+                     setFormData({ ...formData, hasOtherIncome: checked });
+                     if(checked) {
+                       console.log("innnn");
+                       setTimeout(() => {
+                         document.getElementById("other-income-message")?.scrollIntoView({ behavior: "smooth" });
+                       }, 100);
+                     }
+                   }
+                    }
                 />
                 <Label htmlFor="hasOtherIncome">
                   Do you have any other sources of income?{" "}
@@ -2617,7 +2656,7 @@ const ApplicationProcess = ({
                 </Label>
               </div>
               {formData.hasOtherIncome && (
-                <div className="ml-6 space-y-2">
+                <div className="ml-6 space-y-2" id="other-income-message">
                   <Label
                     htmlFor="otherIncomeDetails"
                     className="text-sm font-semibold text-gray-700 mb-2 block"
@@ -3926,6 +3965,8 @@ const ApplicationProcess = ({
                             ...updated[index],
                             isCitizen: checked,
                           };
+                          if(!checked)
+                            document.getElementById("citizenship-doc-message")?.scrollIntoView({ behavior: "smooth" });
                           setFormData({ ...formData, guarantors: updated });
                         }}
                       />
@@ -3935,7 +3976,7 @@ const ApplicationProcess = ({
                       </Label>
                     </div>
                     {!(guarantor.isCitizen ?? true) && (
-                      <div className="text-sm text-muted-foreground bg-muted/50 p-3 rounded-lg">
+                      <div id="citizenship-doc-message" className="text-sm text-muted-foreground bg-muted/50 p-3 rounded-lg">
                         Additional documentation will be required for
                         non-citizens.
                       </div>

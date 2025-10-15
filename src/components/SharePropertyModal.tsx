@@ -122,7 +122,7 @@ Let me know what you think!`;
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
                 transition={{ delay: 0.1, type: "spring", stiffness: 200 }}
-                className="w-10 h-10 bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg"
+                className="w-10 h-10 bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg flex items-center justify-center shadow-lg"
               >
                 <Share2 className="h-5 w-5 text-white" />
               </motion.div>
@@ -143,7 +143,7 @@ Let me know what you think!`;
 
         {/* Property Preview */}
         <div className="px-6 pb-4">
-          <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
+          <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
             <div className="flex items-start space-x-3">
               <img
                 src={property.image}
@@ -186,7 +186,7 @@ Let me know what you think!`;
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   onClick={option.onClick}
-                  className="w-full flex items-center space-x-4 p-4 rounded-xl border-2 border-gray-200 hover:border-blue-500 hover:bg-blue-50 transition-all duration-200"
+                  className="w-full flex items-center space-x-4 p-4 rounded-lg border-2 border-gray-200 hover:border-blue-500 hover:bg-blue-50 transition-all duration-200"
                 >
                   <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-gray-100 text-gray-600 group-hover:bg-blue-500 group-hover:text-white">
                     <Icon className="h-5 w-5" />

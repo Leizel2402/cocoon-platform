@@ -110,7 +110,7 @@ const UnitForm: React.FC<UnitFormProps> = ({
             value={data.unitNumber}
             onChange={(e) => onChange({ ...data, unitNumber: e.target.value })}
             placeholder="A101, 2B, etc."
-            className={`w-full px-4 py-3 border rounded-xl focus:outline-none bg-white/50 backdrop-blur-sm ${
+            className={`w-full px-4 py-3 border rounded-lg focus:outline-none bg-white/50 backdrop-blur-sm ${
               errors?.unitNumber ? 'border-red-500 focus:ring-red-200' : 'border-gray-200 focus:ring-green-200'
             }`}
             required
@@ -136,7 +136,7 @@ const UnitForm: React.FC<UnitFormProps> = ({
               max="10"
               value={data.bedrooms}
               onChange={(e) => onChange({ ...data, bedrooms: parseInt(e.target.value) || 0 })}
-              className={`w-full px-4 py-3 border rounded-xl focus:outline-none bg-white/50 backdrop-blur-sm ${
+              className={`w-full px-4 py-3 border rounded-lg focus:outline-none bg-white/50 backdrop-blur-sm ${
                 errors?.bedrooms ? 'border-red-500 focus:ring-red-200' : 'border-gray-200 focus:ring-green-200'
               }`}
               required
@@ -161,7 +161,7 @@ const UnitForm: React.FC<UnitFormProps> = ({
               step="0.5"
               value={data.bathrooms}
               onChange={(e) => onChange({ ...data, bathrooms: parseFloat(e.target.value) || 0 })}
-              className={`w-full px-4 py-3 border rounded-xl focus:outline-none bg-white/50 backdrop-blur-sm ${
+              className={`w-full px-4 py-3 border rounded-lg focus:outline-none bg-white/50 backdrop-blur-sm ${
                 errors?.bathrooms ? 'border-red-500 focus:ring-red-200' : 'border-gray-200 focus:ring-green-200'
               }`}
               required
@@ -184,7 +184,7 @@ const UnitForm: React.FC<UnitFormProps> = ({
               min="0"
               value={data.squareFeet}
               onChange={(e) => onChange({ ...data, squareFeet: parseInt(e.target.value) || 0 })}
-              className={`w-full px-4 py-3 border rounded-xl focus:outline-none bg-white/50 backdrop-blur-sm ${
+              className={`w-full px-4 py-3 border rounded-lg focus:outline-none bg-white/50 backdrop-blur-sm ${
                 errors?.squareFeet ? 'border-red-500 focus:ring-red-200' : 'border-gray-200 focus:ring-green-200'
               }`}
               required
@@ -223,7 +223,7 @@ const UnitForm: React.FC<UnitFormProps> = ({
                     onChange({ ...data, rent: value });
                   }}
                   placeholder="2,500"
-                  className={`w-full pl-8 pr-4 py-3 border rounded-xl focus:outline-none bg-white/50 backdrop-blur-sm ${
+                  className={`w-full pl-8 pr-4 py-3 border rounded-lg focus:outline-none bg-white/50 backdrop-blur-sm ${
                     errors?.rent ? 'border-red-500 focus:ring-red-200' : 'border-gray-200 focus:ring-green-200'
                   }`}
                   required
@@ -252,7 +252,7 @@ const UnitForm: React.FC<UnitFormProps> = ({
                     onChange({ ...data, deposit: value });
                   }}
                   placeholder="3,750"
-                  className={`w-full pl-8 pr-4 py-3 border rounded-xl focus:outline-none bg-white/50 backdrop-blur-sm ${
+                  className={`w-full pl-8 pr-4 py-3 border rounded-lg focus:outline-none bg-white/50 backdrop-blur-sm ${
                     errors?.deposit ? 'border-red-500 focus:ring-red-200' : 'border-gray-200 focus:ring-green-200'
                   }`}
                   required
@@ -274,7 +274,7 @@ const UnitForm: React.FC<UnitFormProps> = ({
             <h3 className="text-lg font-semibold text-gray-900">Availability</h3>
           </div>
 
-          <div className="flex items-center space-x-3 p-4 bg-gray-50 rounded-xl border border-gray-200">
+          <div className="flex items-center space-x-3 p-4 bg-gray-50 rounded-lg border border-gray-200">
             <Checkbox
               id="available"
               checked={data.available}
@@ -302,7 +302,7 @@ const UnitForm: React.FC<UnitFormProps> = ({
                   ...data, 
                   availableDate: e.target.value ? new Date(e.target.value) : undefined 
                 })}
-                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-green-200 bg-white/50 backdrop-blur-sm"
+                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-green-200 bg-white/50 backdrop-blur-sm"
               />
             </div>
           )}
@@ -345,7 +345,7 @@ const UnitForm: React.FC<UnitFormProps> = ({
           {/* Amenity Selection */}
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
             {PROPERTY_AMENITIES.map((amenity) => (
-              <div key={amenity} className="flex items-center space-x-3 p-3 bg-gray-50 rounded-xl border border-gray-200 hover:bg-gray-100 transition-colors">
+              <div key={amenity} className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg border border-gray-200 hover:bg-gray-100 transition-colors">
                 <Checkbox
                   id={`amenity-${amenity}`}
                   checked={selectedAmenities.includes(amenity)}
@@ -369,14 +369,14 @@ const UnitForm: React.FC<UnitFormProps> = ({
               onChange={(e) => setNewAmenity(e.target.value)}
               placeholder="Add custom amenity"
               onKeyPress={(e) => e.key === 'Enter' && handleAddCustomAmenity()}
-              className="flex-1 px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-green-200 bg-white/50 backdrop-blur-sm"
+              className="flex-1 px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-green-200 bg-white/50 backdrop-blur-sm"
             />
             <Button
               type="button"
               variant="outline"
               onClick={handleAddCustomAmenity}
               disabled={!newAmenity.trim()}
-              className="px-4 py-3 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors"
+              className="px-4 py-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
             >
               <Plus className="h-4 w-4" />
             </Button>
@@ -414,7 +414,7 @@ const UnitForm: React.FC<UnitFormProps> = ({
                   onChange({ ...data, lease_term_months: months });
                 }}
               >
-                <SelectTrigger className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-green-200 bg-white/50 backdrop-blur-sm">
+                <SelectTrigger className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-green-200 bg-white/50 backdrop-blur-sm">
                   <SelectValue placeholder="Select lease term" />
                 </SelectTrigger>
                 <SelectContent className="z-[9999] max-h-60 overflow-y-auto">
@@ -441,7 +441,7 @@ const UnitForm: React.FC<UnitFormProps> = ({
                   onChange({ ...data, security_deposit_months: months });
                 }}
               >
-                <SelectTrigger className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-green-200 bg-white/50 backdrop-blur-sm">
+                <SelectTrigger className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-green-200 bg-white/50 backdrop-blur-sm">
                   <SelectValue placeholder="Select security deposit" />
                 </SelectTrigger>
                 <SelectContent className="z-[9999] max-h-60 overflow-y-auto">
@@ -474,7 +474,7 @@ const UnitForm: React.FC<UnitFormProps> = ({
                     onChange({ ...data, pet_deposit: value });
                   }}
                   placeholder="0"
-                  className="w-full pl-8 pr-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-green-200 bg-white/50 backdrop-blur-sm"
+                  className="w-full pl-8 pr-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-green-200 bg-white/50 backdrop-blur-sm"
                 />
               </div>
             </div>
@@ -497,7 +497,7 @@ const UnitForm: React.FC<UnitFormProps> = ({
                     onChange({ ...data, application_fee: value });
                   }}
                   placeholder="0"
-                  className="w-full pl-8 pr-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-green-200 bg-white/50 backdrop-blur-sm"
+                  className="w-full pl-8 pr-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-green-200 bg-white/50 backdrop-blur-sm"
                 />
               </div>
             </div>
@@ -507,7 +507,7 @@ const UnitForm: React.FC<UnitFormProps> = ({
           <div className="space-y-4">
             <Label className="text-base font-semibold">Rent Payment Requirements</Label>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="flex items-center space-x-3 p-4 bg-gray-50 rounded-xl border border-gray-200">
+              <div className="flex items-center space-x-3 p-4 bg-gray-50 rounded-lg border border-gray-200">
                 <Checkbox
                   id="unitFirstMonthRequired"
                   checked={data.first_month_rent_required}
@@ -519,7 +519,7 @@ const UnitForm: React.FC<UnitFormProps> = ({
                 </Label>
               </div>
 
-              <div className="flex items-center space-x-3 p-4 bg-gray-50 rounded-xl border border-gray-200">
+              <div className="flex items-center space-x-3 p-4 bg-gray-50 rounded-lg border border-gray-200">
                 <Checkbox
                   id="unitLastMonthRequired"
                   checked={data.last_month_rent_required}
@@ -548,7 +548,7 @@ const UnitForm: React.FC<UnitFormProps> = ({
             onChange={(e) => onChange({ ...data, description: e.target.value })}
             placeholder="Describe this unit, its features, and what makes it special..."
             rows={4}
-            className={`w-full px-4 py-3 border rounded-xl focus:outline-none bg-white/50 backdrop-blur-sm resize-none ${
+            className={`w-full px-4 py-3 border rounded-lg focus:outline-none bg-white/50 backdrop-blur-sm resize-none ${
               errors?.description ? 'border-red-500 focus:ring-red-200' : 'border-gray-200 focus:ring-green-200'
             }`}
             required

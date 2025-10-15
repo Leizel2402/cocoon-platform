@@ -492,7 +492,7 @@ export function Subscriptions() {
               >
                 <ArrowLeft className="h-5 w-5" />
               </button>
-              <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
+              <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
                 <Settings className="h-6 w-6 text-green-600" />
               </div>
               <div>
@@ -518,7 +518,7 @@ export function Subscriptions() {
           </div>
 
           {/* Mobile User Info */}
-          <div className="sm:hidden bg-white/10 rounded-xl p-4">
+          <div className="sm:hidden bg-white/10 rounded-lg p-4">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-green-50 text-sm">Welcome back, {user?.displayName || user?.email}</p>
@@ -536,7 +536,7 @@ export function Subscriptions() {
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Quick Stats */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
-          <div className="bg-white rounded-xl p-3 sm:p-4 border border-gray-100 hover:shadow-md transition-shadow">
+          <div className="bg-white rounded-lg p-3 sm:p-4 border border-gray-100 hover:shadow-md transition-shadow">
             <div className="flex items-center justify-between">
               <div className="flex-1">
                 <p className="text-gray-600 text-xs sm:text-sm font-medium">Total Services</p>
@@ -548,7 +548,7 @@ export function Subscriptions() {
             </div>
           </div>
           
-          <div className="bg-white rounded-xl p-3 sm:p-4 border border-gray-100 hover:shadow-md transition-shadow">
+          <div className="bg-white rounded-lg p-3 sm:p-4 border border-gray-100 hover:shadow-md transition-shadow">
             <div className="flex items-center justify-between">
               <div className="flex-1">
                 <p className="text-gray-600 text-xs sm:text-sm font-medium">Active Services</p>
@@ -562,7 +562,7 @@ export function Subscriptions() {
             </div>
           </div>
           
-          <div className="bg-white rounded-xl p-3 sm:p-4 border border-gray-100 hover:shadow-md transition-shadow">
+          <div className="bg-white rounded-lg p-3 sm:p-4 border border-gray-100 hover:shadow-md transition-shadow">
             <div className="flex items-center justify-between">
               <div className="flex-1">
                 <p className="text-gray-600 text-xs sm:text-sm font-medium">Monthly Cost</p>
@@ -574,7 +574,7 @@ export function Subscriptions() {
             </div>
           </div>
           
-          <div className="bg-white rounded-xl p-3 sm:p-4 border border-gray-100 hover:shadow-md transition-shadow">
+          <div className="bg-white rounded-lg p-3 sm:p-4 border border-gray-100 hover:shadow-md transition-shadow">
             <div className="flex items-center justify-between">
               <div className="flex-1">
                 <p className="text-gray-600 text-xs sm:text-sm font-medium">Auto-Renew</p>
@@ -594,7 +594,7 @@ export function Subscriptions() {
           {/* Cost Breakdown */}
           <div className="bg-white rounded-2xl p-4 sm:p-6 border border-gray-100">
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center">
+              <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
                 <DollarSign className="h-5 w-5 text-blue-600" />
               </div>
               <h3 className="text-lg font-bold text-gray-900">Cost Breakdown</h3>
@@ -626,7 +626,7 @@ export function Subscriptions() {
           {/* Upcoming Renewals */}
           <div className="bg-white rounded-2xl p-4 sm:p-6 border border-gray-100">
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 bg-yellow-100 rounded-xl flex items-center justify-center">
+              <div className="w-10 h-10 bg-yellow-100 rounded-lg flex items-center justify-center">
                 <Clock className="h-5 w-5 text-yellow-600" />
               </div>
               <h3 className="text-lg font-bold text-gray-900">Upcoming Renewals</h3>
@@ -675,7 +675,7 @@ export function Subscriptions() {
                 onClick={() => setFilterType(category.id as 'all' | 'parking' | 'amenities' | 'utilities')}
               >
                 <div className="flex items-center justify-between mb-3 sm:mb-4">
-                  <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl ${category.color} flex items-center justify-center`}>
+                  <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-lg ${category.color} flex items-center justify-center`}>
                     <Icon className="h-5 w-5 sm:h-6 sm:w-6" />
                   </div>
                   <ChevronRight className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400" />
@@ -780,7 +780,7 @@ export function Subscriptions() {
                     {/* Mobile Layout */}
                     <div className="sm:hidden">
                       <div className="flex items-start gap-3 mb-4">
-                        <div className={`w-10 h-10 rounded-xl ${subscription.color} flex items-center justify-center flex-shrink-0`}>
+                        <div className={`w-10 h-10 rounded-lg ${subscription.color} flex items-center justify-center flex-shrink-0`}>
                           <Icon className="h-5 w-5" />
                         </div>
                         <div className="flex-1 min-w-0">
@@ -811,7 +811,7 @@ export function Subscriptions() {
                     <div className="hidden sm:block">
                       <div className="flex items-start justify-between mb-4">
                         <div className="flex items-start gap-4">
-                          <div className={`w-12 h-12 rounded-xl ${subscription.color} flex items-center justify-center`}>
+                          <div className={`w-12 h-12 rounded-lg ${subscription.color} flex items-center justify-center`}>
                             <Icon className="h-6 w-6" />
                           </div>
                           <div className="flex-1">
@@ -865,7 +865,7 @@ export function Subscriptions() {
                       </div>
 
                       {/* Auto-renewal Toggle */}
-                      <div className="flex items-center justify-between p-3 sm:p-4 bg-gray-50 rounded-xl">
+                      <div className="flex items-center justify-between p-3 sm:p-4 bg-gray-50 rounded-lg">
                         <div className="flex-1">
                           <div className="text-xs sm:text-sm font-semibold text-gray-900">Auto-renewal</div>
                           <div className="text-xs text-gray-500">
@@ -981,7 +981,7 @@ export function Subscriptions() {
             {/* Modal Content */}
             <div className="p-6 space-y-6 max-h-[70vh] overflow-y-auto">
               {/* Property Info */}
-              <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
+              <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
                 <div className="flex items-center space-x-3">
                   <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
                     <Building className="h-4 w-4 text-green-600" />
@@ -1002,7 +1002,7 @@ export function Subscriptions() {
                   placeholder="e.g., Covered Parking Spot, Gym Membership, High-Speed Internet"
                   value={newService.name}
                   onChange={(e) => setNewService(prev => ({ ...prev, name: e.target.value }))}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 />
                 <p className="text-xs text-gray-500">Enter a descriptive name for your service</p>
               </div>
@@ -1015,7 +1015,7 @@ export function Subscriptions() {
                 <select
                   value={newService.type}
                   onChange={(e) => setNewService(prev => ({ ...prev, type: e.target.value as 'parking' | 'amenities' | 'utilities' }))}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
+                  className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
                 >
                   <option value="parking">Parking</option>
                   <option value="amenities">Amenities</option>
@@ -1034,7 +1034,7 @@ export function Subscriptions() {
                   value={newService.description}
                   onChange={(e) => setNewService(prev => ({ ...prev, description: e.target.value }))}
                   rows={3}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 />
                 <p className="text-xs text-gray-500">Provide details about what's included in this service</p>
               </div>
@@ -1082,7 +1082,7 @@ export function Subscriptions() {
                     value={newFeature}
                     onChange={(e) => setNewFeature(e.target.value)}
                     onKeyPress={(e) => e.key === 'Enter' && addFeature()}
-                    className="flex-1 px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="flex-1 px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   />
                     <Button
                       type="button"
@@ -1138,7 +1138,7 @@ export function Subscriptions() {
                       placeholder="0.00"
                       value={newService.price}
                       onChange={(e) => setNewService(prev => ({ ...prev, price: e.target.value }))}
-                      className="w-full pl-8 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full pl-8 pr-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     />
                   </div>
                   <p className="text-xs text-gray-500">Enter the cost amount</p>
@@ -1151,7 +1151,7 @@ export function Subscriptions() {
                   <select
                     value={newService.billingCycle}
                     onChange={(e) => setNewService(prev => ({ ...prev, billingCycle: e.target.value as 'monthly' | 'quarterly' | 'annually' }))}
-                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
+                    className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
                   >
                     <option value="monthly">Monthly</option>
                     <option value="quarterly">Quarterly (3 months)</option>
@@ -1171,7 +1171,7 @@ export function Subscriptions() {
                     placeholder="e.g., Building Management, Spectrum, AT&T"
                     value={newService.provider}
                     onChange={(e) => setNewService(prev => ({ ...prev, provider: e.target.value }))}
-                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   />
                   <p className="text-xs text-gray-500">Who provides this service</p>
                 </div>
@@ -1184,7 +1184,7 @@ export function Subscriptions() {
                     placeholder="Phone, email, or contact person"
                     value={newService.contactInfo}
                     onChange={(e) => setNewService(prev => ({ ...prev, contactInfo: e.target.value }))}
-                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   />
                   <p className="text-xs text-gray-500">How to reach the provider</p>
                 </div>
@@ -1199,13 +1199,13 @@ export function Subscriptions() {
                   type="date"
                   value={newService.startDate.toISOString().split('T')[0]}
                   onChange={(e) => setNewService(prev => ({ ...prev, startDate: new Date(e.target.value) }))}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 />
                 <p className="text-xs text-gray-500">When this service begins</p>
               </div>
 
               {/* Auto-renewal Toggle */}
-              <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
+              <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
                     <RefreshCw className="h-4 w-4 text-green-600" />
@@ -1233,13 +1233,13 @@ export function Subscriptions() {
                   value={newService.notes}
                   onChange={(e) => setNewService(prev => ({ ...prev, notes: e.target.value }))}
                   rows={2}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 />
                 <p className="text-xs text-gray-500">Optional notes or special terms</p>
               </div>
 
               {/* Info Panel */}
-              <div className="bg-blue-50 rounded-xl p-4 border border-blue-200">
+              <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
                 <div className="flex items-start space-x-3">
                   <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center mt-0.5">
                     <AlertTriangle className="h-4 w-4 text-blue-600" />

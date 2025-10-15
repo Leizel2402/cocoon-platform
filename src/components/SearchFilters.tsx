@@ -161,7 +161,7 @@ export function SearchFiltersComponent({
             value={searchTerm}
             onChange={(e) => handleSearchTermChange(e.target.value)}
             placeholder="Search by city, property name, or location..."
-            className="w-full pl-16 pr-4 py-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/70 backdrop-blur-sm text-lg placeholder-gray-500 transition-all duration-200"
+            className="w-full pl-16 pr-4 py-4 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/70 backdrop-blur-sm text-lg placeholder-gray-500 transition-all duration-200"
           />
           {searchTerm && (
             <button
@@ -183,7 +183,7 @@ export function SearchFiltersComponent({
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.95 }}
             onClick={() => setShowFilters(!showFilters)}
-            className={`flex items-center px-6 py-4 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl border ${
+            className={`flex items-center px-6 py-4 rounded-lg transition-all duration-200 shadow-lg hover:shadow-xl border ${
               showFilters
                 ? "bg-blue-600 text-white border-blue-600"
                 : "text-gray-600 bg-white/80 backdrop-blur-sm border-gray-200 hover:bg-white"
@@ -197,7 +197,7 @@ export function SearchFiltersComponent({
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.95 }}
             onClick={handleSearch}
-            className="px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl hover:from-blue-700 hover:to-purple-700 transition-all duration-200 font-semibold shadow-lg hover:shadow-xl"
+            className="px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all duration-200 font-semibold shadow-lg hover:shadow-xl"
           >
             Search
           </motion.button>
@@ -267,7 +267,7 @@ export function SearchFiltersComponent({
                       )
                     }
                     placeholder="0"
-                    className="w-full pl-8 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/70 backdrop-blur-sm transition-all duration-200"
+                    className="w-full pl-8 pr-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/70 backdrop-blur-sm transition-all duration-200"
                   />
                 </div>
               </div>
@@ -290,7 +290,7 @@ export function SearchFiltersComponent({
                       )
                     }
                     placeholder="10,000"
-                    className="w-full pl-8 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/70 backdrop-blur-sm transition-all duration-200"
+                    className="w-full pl-8 pr-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/70 backdrop-blur-sm transition-all duration-200"
                   />
                 </div>
               </div>
@@ -305,7 +305,7 @@ export function SearchFiltersComponent({
                   onChange={(e) =>
                     handleFilterChange("beds", parseInt(e.target.value))
                   }
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/70 backdrop-blur-sm transition-all duration-200"
+                  className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/70 backdrop-blur-sm transition-all duration-200"
                 >
                   <option value={0}>Any</option>
                   <option value={1}>1+</option>
@@ -325,7 +325,7 @@ export function SearchFiltersComponent({
                   onChange={(e) =>
                     handleFilterChange("baths", parseInt(e.target.value))
                   }
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/70 backdrop-blur-sm transition-all duration-200"
+                  className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/70 backdrop-blur-sm transition-all duration-200"
                 >
                   <option value={0}>Any</option>
                   <option value={1}>1+</option>
@@ -367,7 +367,7 @@ export function SearchFiltersComponent({
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={clearFilters}
-                className="flex items-center px-6 py-3 text-gray-600 bg-white/80 backdrop-blur-sm rounded-xl hover:bg-white transition-all duration-200 shadow-lg hover:shadow-xl border border-gray-200"
+                className="flex items-center px-6 py-3 text-gray-600 bg-white/80 backdrop-blur-sm rounded-lg hover:bg-white transition-all duration-200 shadow-lg hover:shadow-xl border border-gray-200"
               >
                 <X className="h-4 w-4 mr-2" />
                 Clear All

@@ -252,7 +252,7 @@ export const AddyChat: React.FC<AddyChatProps> = ({ initialSearch, onComplete })
                 </div>
               )}
               <div className="flex flex-col">
-                <div className={`rounded-xl px-4 py-3 ${
+                <div className={`rounded-lg px-4 py-3 ${
                   message.role === 'user' 
                     ? 'bg-gradient-to-r from-green-500 to-blue-500 text-white shadow-sm' 
                     : 'bg-gray-100 text-gray-800 border border-gray-200'
@@ -273,7 +273,7 @@ export const AddyChat: React.FC<AddyChatProps> = ({ initialSearch, onComplete })
               <div className="w-8 h-8 bg-gradient-to-br from-green-500 to-blue-500 rounded-full flex items-center justify-center shadow-sm flex-shrink-0 mt-1">
                 <span className="text-white font-bold text-sm">A</span>
               </div>
-              <div className="bg-gray-100 border border-gray-200 rounded-xl px-4 py-3">
+              <div className="bg-gray-100 border border-gray-200 rounded-lg px-4 py-3">
                 <div className="flex items-center space-x-2">
                   <Loader2 className="h-4 w-4 animate-spin text-green-500" />
                   <span className="text-sm text-gray-600">Addy is typing...</span>

@@ -195,14 +195,14 @@ export function MagicLinkHandler() {
               {error.includes('An error occurred during authentication. Please try again.') ? (
                 <Link
                   to="/signup"
-                  className="block w-full py-3 px-4 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-colors"
+                  className="block w-full py-3 px-4 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
                 >
                   Create Account
                 </Link>
               ) : (
                 <Link
                   to="/signin"
-                  className="block w-full py-3 px-4 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors"
+                  className="block w-full py-3 px-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                 >
                   Try Magic Link Again
                 </Link>
@@ -210,7 +210,7 @@ export function MagicLinkHandler() {
               
               <Link
                 to="/"
-                className="block w-full py-3 px-4 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors"
+                className="block w-full py-3 px-4 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
               >
                 Go to Home
               </Link>

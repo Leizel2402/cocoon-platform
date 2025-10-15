@@ -69,7 +69,7 @@ export function DataMigration() {
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
-              className={`p-4 rounded-xl border-2 ${
+              className={`p-4 rounded-lg border-2 ${
                 migrationStatus === 'success'
                   ? 'border-green-200 bg-green-50'
                   : migrationStatus === 'error'
@@ -118,7 +118,7 @@ export function DataMigration() {
             whileTap={{ scale: 0.98 }}
             onClick={handleMigration}
             disabled={isMigrating}
-            className="w-full py-4 px-6 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-xl hover:from-blue-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-lg hover:shadow-xl"
+            className="w-full py-4 px-6 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-lg hover:from-blue-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-lg hover:shadow-xl"
           >
             {isMigrating ? (
               <div className="flex items-center justify-center">
@@ -131,7 +131,7 @@ export function DataMigration() {
           </motion.button>
 
           {/* Instructions */}
-          <div className="bg-gray-50 rounded-xl p-6">
+          <div className="bg-gray-50 rounded-lg p-6">
             <h3 className="font-semibold text-gray-900 mb-3">What this does:</h3>
             <ul className="text-sm text-gray-600 space-y-2">
               <li>• Creates a sample landlord in Firestore</li>
@@ -142,7 +142,7 @@ export function DataMigration() {
           </div>
 
           {/* Prerequisites */}
-          <div className="bg-yellow-50 rounded-xl p-6 border border-yellow-200">
+          <div className="bg-yellow-50 rounded-lg p-6 border border-yellow-200">
             <h3 className="font-semibold text-yellow-800 mb-3">Prerequisites:</h3>
             <ul className="text-sm text-yellow-700 space-y-1">
               <li>• Firebase project created and configured</li>

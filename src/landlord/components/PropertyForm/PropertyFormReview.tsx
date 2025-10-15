@@ -71,7 +71,7 @@ const PropertyFormReview: React.FC<PropertyFormReviewProps> = ({
           </div>
 
           {/* Property Details */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-6 bg-gray-50 rounded-xl border border-gray-200">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-6 bg-gray-50 rounded-lg border border-gray-200">
             <div className="text-center">
               <p className="text-sm text-gray-500 mb-1">Type</p>
               <p className="font-semibold text-gray-900">{data.property.property_type}</p>
@@ -90,7 +90,7 @@ const PropertyFormReview: React.FC<PropertyFormReviewProps> = ({
             </div>
           </div>
 
-          <div className="flex items-center justify-between p-6 bg-green-50 rounded-xl border border-green-200">
+          <div className="flex items-center justify-between p-6 bg-green-50 rounded-lg border border-green-200">
             <div>
               <p className="text-sm text-gray-500 mb-1">Base Rent</p>
               <p className="text-2xl font-bold text-green-600">{formatCurrency(data.property.rent_amount)}/month</p>
@@ -127,7 +127,7 @@ const PropertyFormReview: React.FC<PropertyFormReviewProps> = ({
           {data.property.description && (
             <div>
               <h5 className="font-semibold text-gray-900 mb-3">Description</h5>
-              <p className="text-gray-700 text-sm leading-relaxed p-4 bg-gray-50 rounded-xl border border-gray-200">
+              <p className="text-gray-700 text-sm leading-relaxed p-4 bg-gray-50 rounded-lg border border-gray-200">
                 {data.property.description}
               </p>
             </div>
@@ -157,7 +157,7 @@ const PropertyFormReview: React.FC<PropertyFormReviewProps> = ({
                     key={index}
                     src={image}
                     alt={`Property image ${index + 1}`}
-                    className="w-full h-24 object-cover rounded-xl border border-gray-200"
+                    className="w-full h-24 object-cover rounded-lg border border-gray-200"
                   />
                 ))}
               </div>
@@ -187,7 +187,7 @@ const PropertyFormReview: React.FC<PropertyFormReviewProps> = ({
             </div>
           )}
 
-          <div className="p-4 bg-gray-50 rounded-xl border border-gray-200">
+          <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
             <p className="text-sm text-gray-600">
               <strong>Coordinates:</strong> {data.property.location.lat.toFixed(6)}, {data.property.location.lng.toFixed(6)}
             </p>
@@ -387,7 +387,7 @@ const PropertyFormReview: React.FC<PropertyFormReviewProps> = ({
         <Button
           onClick={onSubmit}
           disabled={isSubmitting}
-          className="w-full bg-green-600 hover:bg-green-700 px-6 py-3 rounded-xl font-semibold text-white transition-colors"
+          className="w-full bg-green-600 hover:bg-green-700 px-6 py-3 rounded-lg font-semibold text-white transition-colors"
         >
           {isSubmitting ? 'Creating Property...' : 'Create Property'}
         </Button>

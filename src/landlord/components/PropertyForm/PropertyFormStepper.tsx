@@ -90,7 +90,7 @@ const PropertyFormStepper: React.FC<PropertyFormStepperProps> = ({
                 whileTap={{ scale: 0.95 }}
                 onClick={() => onStepChange(step.id)}
                 disabled={!steps[step.id].valid && step.id !== currentStep}
-                className={`flex items-center justify-center w-12 h-12 rounded-xl border-2 transition-all duration-200 ${
+                className={`flex items-center justify-center w-12 h-12 rounded-lg border-2 transition-all duration-200 ${
                   getStepStatus(step.id) === 'completed'
                     ? 'bg-green-100 border-green-600 text-green-600 shadow-sm'
                     : getStepStatus(step.id) === 'current'
@@ -115,7 +115,7 @@ const PropertyFormStepper: React.FC<PropertyFormStepperProps> = ({
       </div>
 
       {/* Current Step Info */}
-      <div className="mb-6 p-4 bg-green-50 rounded-xl border border-green-200">
+      <div className="mb-6 p-4 bg-green-50 rounded-lg border border-green-200">
         <div className="flex items-center gap-4">
           <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
             {(() => {
@@ -164,7 +164,7 @@ const PropertyFormStepper: React.FC<PropertyFormStepperProps> = ({
       </div>
 
       {/* Progress Summary */}
-      <div className="mt-6 p-4 bg-gray-50 rounded-xl border border-gray-200">
+      <div className="mt-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
         <div className="flex items-center justify-between text-sm">
           <span className="text-gray-700 font-medium">
             Progress: {Object.values(steps).filter(s => s.completed).length} of {Object.keys(steps).length} steps completed

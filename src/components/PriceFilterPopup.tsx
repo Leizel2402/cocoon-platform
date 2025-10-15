@@ -99,7 +99,7 @@ const PriceFilterPopup: React.FC<PriceFilterPopupProps> = ({
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div 
         ref={popupRef}
-        className="bg-white rounded-xl shadow-2xl p-6 w-80 relative"
+        className="bg-white rounded-lg shadow-2xl p-6 w-80 relative"
       >
         {/* Close Button */}
         <button

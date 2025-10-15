@@ -74,7 +74,7 @@ export function PropertyCard({ property, index }: PropertyCardProps) {
         </div>
 
         {/* Beds, Baths, Sqft */}
-        <div className="flex items-center justify-between text-gray-600 mb-4 bg-gray-50 rounded-xl p-3">
+        <div className="flex items-center justify-between text-gray-600 mb-4 bg-gray-50 rounded-lg p-3">
           <div className="flex items-center">
             <Bed className="h-4 w-4 mr-1 text-blue-600" />
             <span className="text-sm">{property.beds} bed{property.beds !== 1 ? 's' : ''}</span>
@@ -125,7 +125,7 @@ export function PropertyCard({ property, index }: PropertyCardProps) {
             whileTap={{ scale: property.available ? 0.98 : 1 }}
             onClick={() => property.available && navigate(`/apply?property=${property.id}`)}
             disabled={!property.available}
-            className={`w-full py-3 px-4 rounded-xl font-semibold shadow-lg transition-all duration-200 ${
+            className={`w-full py-3 px-4 rounded-lg font-semibold shadow-lg transition-all duration-200 ${
               property.available
                 ? 'bg-gradient-to-r from-green-600 to-blue-600 text-white hover:from-green-700 hover:to-blue-700 hover:shadow-xl'
                 : 'bg-gray-300 text-gray-600 cursor-not-allowed'

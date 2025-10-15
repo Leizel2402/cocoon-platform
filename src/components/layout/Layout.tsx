@@ -112,24 +112,33 @@ export function Layout({ children }: LayoutProps) {
                 {(user?.role === "renter" ||
                   user?.role === "prospect" ||
                   !user) && (
+                    <>
                   <Button
                     className="bg-green-600 hover:bg-green-700 text-white px-4 rounded-[8px] sm:px-6 py-2 font-semibold text-sm sm:text-base"
                     onClick={() => navigate("/prequalify")}
                   >
                     Get Prequalified
                   </Button>
+                   <Button
+                   variant="ghost"
+                   className="text-gray-700 hover:bg-muted"
+                   onClick={() => navigate("/my-applications")}
+                 >
+                   My Applications
+                 </Button>
+                 </>
                 )}
 
                 {/* Renter specific navigation items */}
                 {user?.role === "renter" && (
                   <>
-                    <Button
+                    {/* <Button
                       variant="ghost"
                       className="text-gray-700 hover:bg-muted"
                       onClick={() => navigate("/my-applications")}
                     >
                       My Applications
-                    </Button>
+                    </Button> */}
                     <Button
                       variant="ghost"
                       className="text-gray-700 hover:bg-muted"
@@ -435,7 +444,7 @@ export function Layout({ children }: LayoutProps) {
                   navigate("/");
                   setIsMobileMenuOpen(false);
                 }}
-                className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all w-full ${
+                className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all w-full ${
                   isActive("/")
                     ? "bg-gradient-to-r from-green-600 to-emerald-600 text-white shadow-md"
                     : "text-gray-700 hover:bg-gray-100"
@@ -455,7 +464,7 @@ export function Layout({ children }: LayoutProps) {
                         navigate("/property");
                         setIsMobileMenuOpen(false);
                       }}
-                      className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all w-full text-gray-700 hover:bg-gray-100"
+                      className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all w-full text-gray-700 hover:bg-gray-100"
                     >
                       <Home className="h-5 w-5" />
                       Property Search
@@ -469,7 +478,7 @@ export function Layout({ children }: LayoutProps) {
                       navigate("/signin");
                       setIsMobileMenuOpen(false);
                     }}
-                    className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all w-full text-gray-700 hover:bg-gray-100"
+                    className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all w-full text-gray-700 hover:bg-gray-100"
                   >
                     <User className="h-5 w-5" />
                     Manager Portal
@@ -483,7 +492,7 @@ export function Layout({ children }: LayoutProps) {
                       navigate("/signin");
                       setIsMobileMenuOpen(false);
                     }}
-                    className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all w-full text-gray-700 hover:bg-gray-100"
+                    className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all w-full text-gray-700 hover:bg-gray-100"
                   >
                     <UserCircle className="h-5 w-5" />
                     Renter Portal
@@ -496,7 +505,7 @@ export function Layout({ children }: LayoutProps) {
                         navigate("/faq");
                         setIsMobileMenuOpen(false);
                       }}
-                      className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all w-full text-gray-700 hover:bg-gray-100"
+                      className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all w-full text-gray-700 hover:bg-gray-100"
                     >
                       <MessageCircle className="h-5 w-5" />
                       FAQs
@@ -543,7 +552,7 @@ export function Layout({ children }: LayoutProps) {
                         navigate("/saved-properties");
                         setIsMobileMenuOpen(false);
                       }}
-                      className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all w-full ${
+                      className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all w-full ${
                         isActive("/saved-properties")
                           ? "bg-gradient-to-r from-green-600 to-emerald-600 text-white shadow-md"
                           : "text-gray-700 hover:bg-gray-100"
@@ -560,7 +569,7 @@ export function Layout({ children }: LayoutProps) {
                         navigate("/learning-center");
                         setIsMobileMenuOpen(false);
                       }}
-                      className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all w-full ${
+                      className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all w-full ${
                         isActive("/learning-center")
                           ? "bg-gradient-to-r from-green-600 to-emerald-600 text-white shadow-md"
                           : "text-gray-700 hover:bg-gray-100"
@@ -581,7 +590,7 @@ export function Layout({ children }: LayoutProps) {
                         navigate("/my-applications");
                         setIsMobileMenuOpen(false);
                       }}
-                      className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all w-full ${
+                      className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all w-full ${
                         isActive("/my-applications")
                           ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-md"
                           : "text-gray-700 hover:bg-gray-100"
@@ -598,7 +607,7 @@ export function Layout({ children }: LayoutProps) {
                         navigate("/portal");
                         setIsMobileMenuOpen(false);
                       }}
-                      className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all w-full ${
+                      className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all w-full ${
                         isActive("/portal")
                           ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-md"
                           : "text-gray-700 hover:bg-gray-100"
@@ -615,7 +624,7 @@ export function Layout({ children }: LayoutProps) {
                         navigate("/maintenance");
                         setIsMobileMenuOpen(false);
                       }}
-                      className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all w-full ${
+                      className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all w-full ${
                         isActive("/maintenance")
                           ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-md"
                           : "text-gray-700 hover:bg-gray-100"
@@ -632,7 +641,7 @@ export function Layout({ children }: LayoutProps) {
                         navigate("/saved-properties");
                         setIsMobileMenuOpen(false);
                       }}
-                      className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all w-full ${
+                      className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all w-full ${
                         isActive("/saved-properties")
                           ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-md"
                           : "text-gray-700 hover:bg-gray-100"
@@ -649,7 +658,7 @@ export function Layout({ children }: LayoutProps) {
                         navigate("/learning-center");
                         setIsMobileMenuOpen(false);
                       }}
-                      className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all w-full ${
+                      className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all w-full ${
                         isActive("/learning-center")
                           ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-md"
                           : "text-gray-700 hover:bg-gray-100"
@@ -666,7 +675,7 @@ export function Layout({ children }: LayoutProps) {
                         navigate("/subscriptions");
                         setIsMobileMenuOpen(false);
                       }}
-                      className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all w-full ${
+                      className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all w-full ${
                         isActive("/subscriptions")
                           ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-md"
                           : "text-gray-700 hover:bg-gray-100"
@@ -688,7 +697,7 @@ export function Layout({ children }: LayoutProps) {
                         navigate("/landlord-dashboard");
                         setIsMobileMenuOpen(false);
                       }}
-                      className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all w-full ${
+                      className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all w-full ${
                         isActive("/landlord-dashboard")
                           ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-md"
                           : "text-gray-700 hover:bg-gray-100"
@@ -705,7 +714,7 @@ export function Layout({ children }: LayoutProps) {
                         navigate("/properties");
                         setIsMobileMenuOpen(false);
                       }}
-                      className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all w-full ${
+                      className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all w-full ${
                         isActive("/properties")
                           ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-md"
                           : "text-gray-700 hover:bg-gray-100"
@@ -722,7 +731,7 @@ export function Layout({ children }: LayoutProps) {
                         navigate("/learning-center");
                         setIsMobileMenuOpen(false);
                       }}
-                      className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all w-full ${
+                      className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all w-full ${
                         isActive("/learning-center")
                           ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-md"
                           : "text-gray-700 hover:bg-gray-100"
@@ -744,7 +753,7 @@ export function Layout({ children }: LayoutProps) {
                         navigate("/cocoon-dashboard");
                         setIsMobileMenuOpen(false);
                       }}
-                      className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all w-full ${
+                      className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all w-full ${
                         isActive("/cocoon-dashboard")
                           ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-md"
                           : "text-gray-700 hover:bg-gray-100"
@@ -761,7 +770,7 @@ export function Layout({ children }: LayoutProps) {
                         navigate("/learning-center");
                         setIsMobileMenuOpen(false);
                       }}
-                      className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all w-full ${
+                      className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all w-full ${
                         isActive("/learning-center")
                           ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-md"
                           : "text-gray-700 hover:bg-gray-100"
@@ -778,7 +787,7 @@ export function Layout({ children }: LayoutProps) {
                         navigate("/migrate");
                         setIsMobileMenuOpen(false);
                       }}
-                      className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all w-full ${
+                      className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all w-full ${
                         isActive("/migrate")
                           ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-md"
                           : "text-gray-700 hover:bg-gray-100"
@@ -797,7 +806,7 @@ export function Layout({ children }: LayoutProps) {
               {user ? (
                 <button
                   onClick={handleLogout}
-                  className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-gradient-to-r from-red-500 to-red-600 text-white font-medium shadow-md hover:from-red-600 hover:to-red-700 transition"
+                  className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-gradient-to-r from-red-500 to-red-600 text-white font-medium shadow-md hover:from-red-600 hover:to-red-700 transition"
                 >
                   <LogOut className="h-5 w-5" />
                   Sign Out
@@ -810,7 +819,7 @@ export function Layout({ children }: LayoutProps) {
                 //     navigate("/prequalify");
                 //     setIsMobileMenuOpen(false);
                 //   }}
-                //   className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 text-white font-medium shadow-md hover:from-emerald-600 hover:to-emerald-700 transition"
+                //   className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-gradient-to-r from-emerald-500 to-emerald-600 text-white font-medium shadow-md hover:from-emerald-600 hover:to-emerald-700 transition"
                 // >
                 //   <FileText className="h-5 w-5" />
                 //   Get Prequalified

@@ -149,7 +149,7 @@ export function PropertyManagement() {
           <div className="bg-white/80 backdrop-blur-md rounded-2xl shadow-xl p-8 border border-white/20">
             <div className="flex items-center justify-between">
               <div className="flex items-center">
-                <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-3 rounded-xl shadow-lg mr-4">
+                <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-3 rounded-lg shadow-lg mr-4">
                   <Home className="h-8 w-8 text-white" />
                 </div>
                 <div>
@@ -165,7 +165,7 @@ export function PropertyManagement() {
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={() => setShowCreateProperty(true)}
-                className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-3 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-200 flex items-center"
+                className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-3 rounded-lg font-semibold shadow-lg hover:shadow-xl transition-all duration-200 flex items-center"
               >
                 <Plus className="h-5 w-5 mr-2" />
                 Add Property
@@ -184,7 +184,7 @@ export function PropertyManagement() {
           >
             <div className="flex items-center">
               <div className="flex-shrink-0">
-                <div className="bg-blue-100 p-3 rounded-xl">
+                <div className="bg-blue-100 p-3 rounded-lg">
                   <Home className="h-8 w-8 text-blue-600" />
                 </div>
               </div>
@@ -205,7 +205,7 @@ export function PropertyManagement() {
           >
             <div className="flex items-center">
               <div className="flex-shrink-0">
-                <div className="bg-emerald-100 p-3 rounded-xl">
+                <div className="bg-emerald-100 p-3 rounded-lg">
                   <MapPin className="h-8 w-8 text-emerald-600" />
                 </div>
               </div>
@@ -226,7 +226,7 @@ export function PropertyManagement() {
           >
             <div className="flex items-center">
               <div className="flex-shrink-0">
-                <div className="bg-purple-100 p-3 rounded-xl">
+                <div className="bg-purple-100 p-3 rounded-lg">
                   <Eye className="h-8 w-8 text-purple-600" />
                 </div>
               </div>
@@ -247,7 +247,7 @@ export function PropertyManagement() {
           >
             <div className="flex items-center">
               <div className="flex-shrink-0">
-                <div className="bg-orange-100 p-3 rounded-xl">
+                <div className="bg-orange-100 p-3 rounded-lg">
                   <DollarSign className="h-8 w-8 text-orange-600" />
                 </div>
               </div>
@@ -278,7 +278,7 @@ export function PropertyManagement() {
                 placeholder="Search properties..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/50 backdrop-blur-sm"
+                className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/50 backdrop-blur-sm"
               />
             </div>
             <div className="flex items-center gap-2">
@@ -319,7 +319,7 @@ export function PropertyManagement() {
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={() => setShowCreateProperty(true)}
-                  className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-3 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-200 flex items-center mx-auto"
+                  className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-3 rounded-lg font-semibold shadow-lg hover:shadow-xl transition-all duration-200 flex items-center mx-auto"
                 >
                   <Plus className="h-5 w-5 mr-2" />
                   Add Your First Property

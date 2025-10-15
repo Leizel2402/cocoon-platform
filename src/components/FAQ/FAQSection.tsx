@@ -76,7 +76,7 @@ export const FAQSection: React.FC<FAQSectionProps> = ({
             {onBrowseProperties && (
               <Button
                 onClick={onBrowseProperties}
-                className="bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 text-white px-8 py-3 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-200"
+                className="bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 text-white px-8 py-3 rounded-lg font-semibold shadow-lg hover:shadow-xl transition-all duration-200"
               >
                 Browse Properties
               </Button>
@@ -85,7 +85,7 @@ export const FAQSection: React.FC<FAQSectionProps> = ({
               <Button
                 variant="outline"
                 onClick={onContactSupport}
-                className="border-2 border-green-600 text-green-600 hover:bg-green-600 hover:text-white px-8 py-3 rounded-xl font-semibold transition-all duration-200"
+                className="border-2 border-green-600 text-green-600 hover:bg-green-600 hover:text-white px-8 py-3 rounded-lg font-semibold transition-all duration-200"
               >
                 Contact 
               </Button>

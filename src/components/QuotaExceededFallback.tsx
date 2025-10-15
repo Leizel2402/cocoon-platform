@@ -39,7 +39,7 @@ export function QuotaExceededFallback({ onRetry, onContactSupport }: QuotaExceed
             <div className="space-y-4">
               <button
                 onClick={onRetry}
-                className="w-full flex items-center justify-center py-3 px-4 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors group"
+                className="w-full flex items-center justify-center py-3 px-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors group"
               >
                 <Mail className="h-5 w-5 mr-2 group-hover:scale-110 transition-transform" />
                 Try Magic Link Again
@@ -48,7 +48,7 @@ export function QuotaExceededFallback({ onRetry, onContactSupport }: QuotaExceed
               
               <button
                 onClick={() => setShowContact(!showContact)}
-                className="w-full py-3 px-4 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors"
+                className="w-full py-3 px-4 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
               >
                 Contact Support
               </button>
@@ -59,7 +59,7 @@ export function QuotaExceededFallback({ onRetry, onContactSupport }: QuotaExceed
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: 'auto' }}
                 transition={{ duration: 0.3 }}
-                className="mt-6 p-4 bg-gray-50 rounded-xl"
+                className="mt-6 p-4 bg-gray-50 rounded-lg"
               >
                 <h3 className="font-semibold text-gray-900 mb-2">Contact Information:</h3>
                 <p className="text-sm text-gray-600 mb-2">
@@ -74,7 +74,7 @@ export function QuotaExceededFallback({ onRetry, onContactSupport }: QuotaExceed
               </motion.div>
             )}
 
-            <div className="mt-8 p-4 bg-blue-50 rounded-xl">
+            <div className="mt-8 p-4 bg-blue-50 rounded-lg">
               <h3 className="font-semibold text-blue-900 mb-2">What's happening?</h3>
               <p className="text-sm text-blue-800">
                 Our authentication service has reached its daily limit. This is a temporary restriction 

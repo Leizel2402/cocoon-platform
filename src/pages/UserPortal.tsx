@@ -310,10 +310,33 @@ export function UserPortal() {
 
       {/* Header Banner */}
       <div className="sticky top-16 z-30 bg-gradient-to-r from-green-600 via-green-600 to-emerald-600 text-white">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="flex items-center justify-between">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
+          {/* Mobile Header */}
+          <div className="flex items-center justify-between mb-4 sm:hidden">
+            <div className="text-center flex-1">
+              <h1 className="text-xl font-bold">Renter Portal</h1>
+            </div>
+            <div className="flex items-center space-x-2">
+              {stats.unreadMessages > 0 && (
+                <div className="relative">
+                  <Bell className="h-5 w-5" />
+                  <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                    {stats.unreadMessages}
+                  </span>
+                </div>
+              )}
+              <button className="px-3 py-2 bg-white text-green-600 rounded-lg hover:bg-green-50 font-semibold transition-all duration-200 shadow-lg text-xs">
+                Find Home
+              </button>
+            </div>
+          </div>
+
+          {/* Desktop Header */}
+          <div className="hidden sm:flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              {/* <Home className="h-6 w-6" /> */}
+              <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                <Home className="h-6 w-6 text-green-600" />
+              </div>
               <div>
                 <h1 className="text-2xl font-bold">Renter Portal</h1>
                 <p className="text-sm text-green-50">
@@ -335,7 +358,22 @@ export function UserPortal() {
               )}
               <button className="px-6 py-2 bg-white text-green-600 rounded-lg hover:bg-green-50 font-semibold transition-all duration-200 shadow-lg text-sm">
                 Find New Home
-            </button>
+              </button>
+            </div>
+          </div>
+
+          {/* Mobile User Info */}
+          <div className="sm:hidden bg-white/10 rounded-lg p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-green-50 text-sm">Welcome back, {user.displayName || user.email}</p>
+                <p className="text-green-100 text-xs">{stats.activeSubscriptions} active services</p>
+              </div>
+              {userProperty && (
+                <div className="text-right">
+                  <p className="text-green-50 text-sm font-semibold">{userProperty.name}</p>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -344,18 +382,18 @@ export function UserPortal() {
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Property Info Card */}
         <div className="mb-6">
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-            <div className="flex items-start justify-between mb-4">
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 sm:p-6">
+            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between mb-4 space-y-3 sm:space-y-0">
               <div className="flex items-center space-x-3">
-                <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
-                  <Home className="h-6 w-6 text-green-600" />
+                <div className="w-10 h-10 sm:w-12 sm:h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                  <Home className="h-5 w-5 sm:h-6 sm:w-6 text-green-600" />
                 </div>
                 <div>
-                  <h2 className="text-xl font-bold text-gray-900">
+                  <h2 className="text-lg sm:text-xl font-bold text-gray-900">
                     {userProperty ? userProperty.name : 'No Active Lease'}
                   </h2>
-                  <div className="flex items-center text-gray-600 text-sm mt-1">
-                    <MapPin className="h-4 w-4 mr-1" />
+                  <div className="flex items-center text-gray-600 text-xs sm:text-sm mt-1">
+                    <MapPin className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
                     <span>
                       {userProperty ? (
                         <>
@@ -393,8 +431,8 @@ export function UserPortal() {
             </div>
 
             {/* Quick Stats Grid */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
-              <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mt-4 sm:mt-6">
+              <div className="bg-gray-50 rounded-lg p-4 border border-gray-100">
                 <div className="flex items-center justify-between mb-2">
                   <p className="text-gray-600 text-xs font-medium">Rent Due</p>
                   <DollarSign className="h-4 w-4 text-gray-400" />
@@ -403,7 +441,7 @@ export function UserPortal() {
                 <p className="text-xs text-gray-500 mt-1">Feb 1, 2024</p>
               </div>
               
-              <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">
+              <div className="bg-gray-50 rounded-lg p-4 border border-gray-100">
                 <div className="flex items-center justify-between mb-2">
                   <p className="text-gray-600 text-xs font-medium">Services</p>
                   <Settings className="h-4 w-4 text-gray-400" />
@@ -412,7 +450,7 @@ export function UserPortal() {
                 <p className="text-xs text-gray-500 mt-1">Active</p>
               </div>
               
-              <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">
+              <div className="bg-gray-50 rounded-lg p-4 border border-gray-100">
                 <div className="flex items-center justify-between mb-2">
                   <p className="text-gray-600 text-xs font-medium">Requests</p>
                   <Wrench className="h-4 w-4 text-gray-400" />
@@ -421,7 +459,7 @@ export function UserPortal() {
                 <p className="text-xs text-gray-500 mt-1">Open</p>
               </div>
               
-              <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">
+              <div className="bg-gray-50 rounded-lg p-4 border border-gray-100">
                 <div className="flex items-center justify-between mb-2">
                   <p className="text-gray-600 text-xs font-medium">Messages</p>
                   <MessageSquare className="h-4 w-4 text-gray-400" />
@@ -434,7 +472,7 @@ export function UserPortal() {
         </div>
 
         {/* Main Grid */}
-        <div className="grid lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
           {/* Left Column */}
           <div className="lg:col-span-2 space-y-6">
             {/* Quick Actions */}
@@ -444,8 +482,8 @@ export function UserPortal() {
                 <h3 className="text-lg font-bold text-gray-900">Quick Actions</h3>
               </div>
               
-              <div className="grid grid-cols-3 gap-3">
-                <button className="p-4 bg-green-50 hover:bg-green-100 border border-green-200 rounded-xl transition-all duration-200 group">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                <button className="p-4 bg-green-50 hover:bg-green-100 border border-green-200 rounded-lg transition-all duration-200 group">
                   <div className="w-12 h-12 bg-white rounded-lg flex items-center justify-center mb-3 mx-auto shadow-sm">
                     <CreditCard className="h-6 w-6 text-green-600" />
                   </div>
@@ -453,7 +491,7 @@ export function UserPortal() {
                   <p className="text-xs text-gray-500 mt-1 text-center">Due in 3 days</p>
                 </button>
 
-                <button onClick={() =>  navigate('/maintenance')} className="p-4 bg-red-50 hover:bg-red-100 border border-red-200 rounded-xl transition-all duration-200 group">
+                <button onClick={() =>  navigate('/maintenance')} className="p-4 bg-red-50 hover:bg-red-100 border border-red-200 rounded-lg transition-all duration-200 group">
                   <div className="w-12 h-12 bg-white rounded-lg flex items-center justify-center mb-3 mx-auto shadow-sm">
                     <Wrench className="h-6 w-6 text-red-600" />
                   </div>
@@ -461,7 +499,7 @@ export function UserPortal() {
                   <p className="text-xs text-gray-500 mt-1 text-center">Report issue</p>
                 </button>
 
-                <button className="p-4 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-xl transition-all duration-200 group">
+                <button className="p-4 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg transition-all duration-200 group">
                   <div className="w-12 h-12 bg-white rounded-lg flex items-center justify-center mb-3 mx-auto shadow-sm">
                     <MessageSquare className="h-6 w-6 text-blue-600" />
                   </div>
@@ -469,7 +507,7 @@ export function UserPortal() {
                   <p className="text-xs text-gray-500 mt-1 text-center">{stats.unreadMessages} unread</p>
                 </button>
 
-                <button className="p-4 bg-purple-50 hover:bg-purple-100 border border-purple-200 rounded-xl transition-all duration-200 group">
+                <button className="p-4 bg-purple-50 hover:bg-purple-100 border border-purple-200 rounded-lg transition-all duration-200 group">
                   <div className="w-12 h-12 bg-white rounded-lg flex items-center justify-center mb-3 mx-auto shadow-sm">
                     <Settings className="h-6 w-6 text-purple-600" />
                   </div>
@@ -477,7 +515,7 @@ export function UserPortal() {
                   <p className="text-xs text-gray-500 mt-1 text-center">Manage</p>
                 </button>
 
-                <button className="p-4 bg-orange-50 hover:bg-orange-100 border border-orange-200 rounded-xl transition-all duration-200 group">
+                <button className="p-4 bg-orange-50 hover:bg-orange-100 border border-orange-200 rounded-lg transition-all duration-200 group">
                   <div className="w-12 h-12 bg-white rounded-lg flex items-center justify-center mb-3 mx-auto shadow-sm">
                     <FileText className="h-6 w-6 text-orange-600" />
                   </div>
@@ -485,7 +523,7 @@ export function UserPortal() {
                   <p className="text-xs text-gray-500 mt-1 text-center">View lease</p>
                 </button>
 
-                <button onClick={() => navigate('/property')} className="p-4 bg-teal-50 hover:bg-teal-100 border border-teal-200 rounded-xl transition-all duration-200 group">
+                <button onClick={() => navigate('/property')} className="p-4 bg-teal-50 hover:bg-teal-100 border border-teal-200 rounded-lg transition-all duration-200 group">
                   <div className="w-12 h-12 bg-white rounded-lg flex items-center justify-center mb-3 mx-auto shadow-sm">
                     <Search className="h-6 w-6 text-teal-600" />
                   </div>
@@ -525,7 +563,7 @@ export function UserPortal() {
               </div>
               
               <div className="p-6">
-                <button className="w-full py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-xl font-semibold transition-all duration-200 shadow-sm">
+                <button className="w-full py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-semibold transition-all duration-200 shadow-sm">
                     Pay Now
                 </button>
                 
@@ -569,7 +607,7 @@ export function UserPortal() {
               <div className="space-y-3">
                 {maintenanceRequests.length > 0 ? (
                   maintenanceRequests.map((request) => (
-                    <div key={request.id} className="p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors">
+                    <div key={request.id} className="p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center space-x-3">
                           <Wrench className={`h-5 w-5 ${
@@ -606,16 +644,16 @@ export function UserPortal() {
                 )}
               </div>
 
-              <button className="w-full mt-4 py-3 border-2 border-dashed border-gray-300 rounded-xl text-gray-600 hover:border-red-400 hover:text-red-600 hover:bg-red-50 transition-all duration-200 font-medium">
+              <button className="w-full mt-4 py-3 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-red-400 hover:text-red-600 hover:bg-red-50 transition-all duration-200 font-medium">
                 + New Maintenance Request
               </button>
             </div>
           </div>
 
           {/* Right Column */}
-          <div className="space-y-6">
+          <div className="space-y-4 sm:space-y-6">
             {/* Property Services */}
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 sm:p-6">
               <div className="flex items-center justify-between mb-5">
                 <div className="flex items-center">
                   <Settings className="h-5 w-5 text-green-600 mr-2" />
@@ -625,7 +663,7 @@ export function UserPortal() {
               
               <div className="space-y-3">
                 {subscriptions.map((sub) => (
-                  <div key={sub.id} className="p-4 bg-gray-50 rounded-xl border border-gray-100">
+                  <div key={sub.id} className="p-4 bg-gray-50 rounded-lg border border-gray-100">
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center space-x-3">
                         {sub.type === 'parking' && <Car className="h-5 w-5 text-blue-600" />}
@@ -662,7 +700,7 @@ export function UserPortal() {
               <div className="space-y-3">
                 {messages.length > 0 ? (
                   messages.map((msg) => (
-                    <div key={msg.id} className={`p-4 rounded-xl border-l-4 ${
+                    <div key={msg.id} className={`p-4 rounded-lg border-l-4 ${
                       msg.isUrgent ? 'bg-red-50 border-red-500' : 
                       !msg.isRead ? 'bg-blue-50 border-blue-500' : 'bg-gray-50 border-gray-300'
                     }`}>

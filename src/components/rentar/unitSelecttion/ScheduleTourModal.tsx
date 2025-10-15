@@ -257,7 +257,7 @@ const ScheduleTourModal = ({ property, unit, isOpen, onClose }: ScheduleTourModa
               </div>
 
               <div className="space-y-4">
-                <div className="bg-green-50 rounded-xl p-4 max-w-2xl mx-auto">
+                <div className="bg-green-50 rounded-lg p-4 max-w-2xl mx-auto">
                   <p className="text-sm text-green-800">
                     <strong>Next Steps:</strong> Your tour request has been submitted to the property management team. 
                     They will contact you within 24 hours to confirm your appointment and provide tour details.
@@ -271,7 +271,7 @@ const ScheduleTourModal = ({ property, unit, isOpen, onClose }: ScheduleTourModa
               
               </div>
               <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-                  <Button onClick={handleClose} className="w-full h-12 text-lg font-semibold bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-200">
+                  <Button onClick={handleClose} className="w-full h-12 text-lg font-semibold bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white rounded-lg shadow-lg hover:shadow-xl transition-all duration-200">
                     Close
                   </Button>
                 </motion.div>
@@ -293,25 +293,25 @@ const ScheduleTourModal = ({ property, unit, isOpen, onClose }: ScheduleTourModa
                   {unit ? (
                     // Unit-specific details
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                      <div className="flex items-center gap-2 p-3 bg-blue-50 rounded-xl">
+                      <div className="flex items-center gap-2 p-3 bg-blue-50 rounded-lg">
                         <Building className="h-4 w-4 text-blue-600" />
                         <span className="text-sm font-medium text-blue-800">
                           Unit {unit.unitNumber}
                         </span>
                       </div>
-                      <div className="flex items-center gap-2 p-3 bg-blue-50 rounded-xl">
+                      <div className="flex items-center gap-2 p-3 bg-blue-50 rounded-lg">
                         <Bed className="h-4 w-4 text-blue-600" />
                         <span className="text-sm font-medium text-blue-800">
                           {unit.bedrooms} bed{unit.bedrooms !== 1 ? 's' : ''}
                         </span>
                       </div>
-                      <div className="flex items-center gap-2 p-3 bg-blue-50 rounded-xl">
+                      <div className="flex items-center gap-2 p-3 bg-blue-50 rounded-lg">
                         <Square className="h-4 w-4 text-blue-600" />
                         <span className="text-sm font-medium text-blue-800">
                           {unit.sqft} sq ft
                         </span>
                       </div>
-                      <div className="flex items-center gap-2 p-3 bg-blue-50 rounded-xl">
+                      <div className="flex items-center gap-2 p-3 bg-blue-50 rounded-lg">
                         <Building className="h-4 w-4 text-blue-600" />
                         <span className="text-sm font-medium text-blue-800">
                           {unit.floorLevel}
@@ -321,19 +321,19 @@ const ScheduleTourModal = ({ property, unit, isOpen, onClose }: ScheduleTourModa
                   ) : (
                     // Property general details
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div className="flex items-center gap-2 p-3 bg-blue-50 rounded-xl">
+                      <div className="flex items-center gap-2 p-3 bg-blue-50 rounded-lg">
                         <Bed className="h-4 w-4 text-blue-600" />
                         <span className="text-sm font-medium text-blue-800">
                           {property.beds || 'Various bedrooms'}
                         </span>
                       </div>
-                      <div className="flex items-center gap-2 p-3 bg-blue-50 rounded-xl">
+                      <div className="flex items-center gap-2 p-3 bg-blue-50 rounded-lg">
                         <Bath className="h-4 w-4 text-blue-600" />
                         <span className="text-sm font-medium text-blue-800">
                           {property.bathrooms ? `${property.bathrooms} bath${property.bathrooms !== 1 ? 's' : ''}` : 'Various bathrooms'}
                         </span>
                       </div>
-                      <div className="flex items-center gap-2 p-3 bg-blue-50 rounded-xl">
+                      <div className="flex items-center gap-2 p-3 bg-blue-50 rounded-lg">
                         <DollarSign className="h-4 w-4 text-blue-600" />
                         <span className="text-sm font-medium text-blue-800">
                           {property.priceRange || 'Contact for pricing'}
@@ -379,7 +379,7 @@ const ScheduleTourModal = ({ property, unit, isOpen, onClose }: ScheduleTourModa
                         value={formData.firstName}
                         onChange={(e) => setFormData(prev => ({...prev, firstName: e.target.value}))}
                         placeholder="Enter first name"
-                        className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white/50 backdrop-blur-sm"
+                        className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white/50 backdrop-blur-sm"
                         required
                       />
                     </div>
@@ -390,7 +390,7 @@ const ScheduleTourModal = ({ property, unit, isOpen, onClose }: ScheduleTourModa
                         value={formData.lastName}
                         onChange={(e) => setFormData(prev => ({...prev, lastName: e.target.value}))}
                         placeholder="Enter last name"
-                        className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white/50 backdrop-blur-sm"
+                        className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white/50 backdrop-blur-sm"
                         required
                       />
                     </div>
@@ -408,7 +408,7 @@ const ScheduleTourModal = ({ property, unit, isOpen, onClose }: ScheduleTourModa
                         value={formData.email}
                         onChange={(e) => setFormData(prev => ({...prev, email: e.target.value}))}
                         placeholder="Enter email address"
-                        className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white/50 backdrop-blur-sm"
+                        className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white/50 backdrop-blur-sm"
                         required
                       />
                     </div>
@@ -426,7 +426,7 @@ const ScheduleTourModal = ({ property, unit, isOpen, onClose }: ScheduleTourModa
                         }}
                         placeholder="(555) 123-4567"
                         maxLength={14}
-                        className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white/50 backdrop-blur-sm"
+                        className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white/50 backdrop-blur-sm"
                         required
                       />
                     </div>
@@ -444,7 +444,7 @@ const ScheduleTourModal = ({ property, unit, isOpen, onClose }: ScheduleTourModa
                         value={formData.preferredDate}
                         onChange={(e) => setFormData(prev => ({...prev, preferredDate: e.target.value}))}
                         min={today}
-                        className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white/50 backdrop-blur-sm"
+                        className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white/50 backdrop-blur-sm"
                         required
                       />
                     </div>
@@ -459,7 +459,7 @@ const ScheduleTourModal = ({ property, unit, isOpen, onClose }: ScheduleTourModa
                         value={formData.moveInDate}
                         onChange={(e) => setFormData(prev => ({...prev, moveInDate: e.target.value}))}
                         min={today}
-                        className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white/50 backdrop-blur-sm"
+                        className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white/50 backdrop-blur-sm"
                         required
                       />
                     </div>
@@ -473,7 +473,7 @@ const ScheduleTourModal = ({ property, unit, isOpen, onClose }: ScheduleTourModa
                       onChange={(e) => setFormData(prev => ({...prev, apartmentPreferences: e.target.value}))}
                       placeholder="Any specific preferences? (floor preference, parking needs, pet accommodations, etc.)"
                       rows={4}
-                      className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white/50 backdrop-blur-sm resize-none"
+                      className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white/50 backdrop-blur-sm resize-none"
                     />
                   </div>
 
@@ -492,7 +492,7 @@ const ScheduleTourModal = ({ property, unit, isOpen, onClose }: ScheduleTourModa
                   type="button" 
                   variant="outline" 
                   onClick={handleClose} 
-                  className="w-full h-12 text-base font-semibold border-2 border-gray-300 hover:border-gray-500 hover:bg-gray-50 rounded-xl transition-all duration-200"
+                  className="w-full h-12 text-base font-semibold border-2 border-gray-300 hover:border-gray-500 hover:bg-gray-50 rounded-lg transition-all duration-200"
                 >
                   Cancel
                 </Button>
@@ -502,7 +502,7 @@ const ScheduleTourModal = ({ property, unit, isOpen, onClose }: ScheduleTourModa
                   type="submit" 
                   form="tour-form"
                   disabled={!isFormValid()} 
-                  className="w-full h-12 text-base font-semibold bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full h-12 text-base font-semibold bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <Calendar className="h-4 w-4 mr-2" />
                   Schedule Tour

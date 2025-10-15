@@ -88,7 +88,7 @@ export function AddyChat() {
           <div className="bg-white/80 backdrop-blur-md rounded-2xl shadow-xl p-8 border border-white/20">
             <div className="flex items-center justify-between">
               <div className="flex items-center">
-                <div className="bg-gradient-to-r from-purple-600 to-pink-600 p-3 rounded-xl shadow-lg mr-4">
+                <div className="bg-gradient-to-r from-purple-600 to-pink-600 p-3 rounded-lg shadow-lg mr-4">
                   <Bot className="h-8 w-8 text-white" />
                 </div>
                 <div>
@@ -228,7 +228,7 @@ export function AddyChat() {
                   onChange={(e) => setInputText(e.target.value)}
                   onKeyPress={handleKeyPress}
                   placeholder="Ask Addy anything about rentals..."
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 pr-12"
+                  className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 pr-12"
                 />
                 <button
                   onClick={handleSendMessage}

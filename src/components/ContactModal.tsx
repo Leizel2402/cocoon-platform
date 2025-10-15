@@ -249,7 +249,7 @@ export const ContactModal: React.FC<ContactModalProps> = ({
                     placeholder="Enter your full name"
                     required
                     disabled={isSubmitting}
-                    className="w-full border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/50 backdrop-blur-sm"
+                    className="w-full border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/50 backdrop-blur-sm"
                   />
                 </div>
 
@@ -270,7 +270,7 @@ export const ContactModal: React.FC<ContactModalProps> = ({
                     placeholder="Enter your email address"
                     required
                     disabled={isSubmitting}
-                    className="w-full border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/50 backdrop-blur-sm"
+                    className="w-full border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/50 backdrop-blur-sm"
                   />
                 </div>
 
@@ -292,7 +292,7 @@ export const ContactModal: React.FC<ContactModalProps> = ({
                     maxLength={14}
                     required
                     disabled={isSubmitting}
-                    className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 bg-white/50 backdrop-blur-sm ${
+                    className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 bg-white/50 backdrop-blur-sm ${
                       phoneError
                         ? "border-red-500 focus:ring-red-500 focus:border-red-500"
                         : "border-gray-200 ffocus:ring-blue-500 focus:border-blue-500"
@@ -322,7 +322,7 @@ export const ContactModal: React.FC<ContactModalProps> = ({
                     required
                     disabled={isSubmitting}
                     rows={4}
-                    className="w-full border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/50 backdrop-blur-sm"
+                    className="w-full border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/50 backdrop-blur-sm"
                   />
                 </div>
 

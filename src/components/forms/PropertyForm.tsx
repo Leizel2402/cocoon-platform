@@ -207,7 +207,7 @@ export function PropertyForm({ onClose, onSuccess }: PropertyFormProps) {
         {/* Content */}
         <div className="p-6 overflow-y-auto max-h-[calc(90vh-200px)]">
           {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm font-medium mb-6">
+            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm font-medium mb-6">
               {error}
             </div>
           )}
@@ -224,7 +224,7 @@ export function PropertyForm({ onClose, onSuccess }: PropertyFormProps) {
                   type="text"
                   value={propertyData.name}
                   onChange={(e) => handlePropertyChange('name', e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   placeholder="e.g., Sunset Apartments"
                 />
               </div>
@@ -238,7 +238,7 @@ export function PropertyForm({ onClose, onSuccess }: PropertyFormProps) {
                     type="text"
                     value={propertyData.address.line1}
                     onChange={(e) => handlePropertyChange('address.line1', e.target.value)}
-                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     placeholder="123 Main Street"
                   />
                 </div>
@@ -250,7 +250,7 @@ export function PropertyForm({ onClose, onSuccess }: PropertyFormProps) {
                     type="text"
                     value={propertyData.address.line2}
                     onChange={(e) => handlePropertyChange('address.line2', e.target.value)}
-                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     placeholder="Apt 4B (optional)"
                   />
                 </div>
@@ -265,7 +265,7 @@ export function PropertyForm({ onClose, onSuccess }: PropertyFormProps) {
                     type="text"
                     value={propertyData.address.city}
                     onChange={(e) => handlePropertyChange('address.city', e.target.value)}
-                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     placeholder="San Francisco"
                   />
                 </div>
@@ -277,7 +277,7 @@ export function PropertyForm({ onClose, onSuccess }: PropertyFormProps) {
                     type="text"
                     value={propertyData.address.region}
                     onChange={(e) => handlePropertyChange('address.region', e.target.value)}
-                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     placeholder="CA"
                   />
                 </div>
@@ -289,7 +289,7 @@ export function PropertyForm({ onClose, onSuccess }: PropertyFormProps) {
                     type="text"
                     value={propertyData.address.postalCode}
                     onChange={(e) => handlePropertyChange('address.postalCode', e.target.value)}
-                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     placeholder="94102"
                   />
                 </div>
@@ -311,7 +311,7 @@ export function PropertyForm({ onClose, onSuccess }: PropertyFormProps) {
               </div>
 
               {units.map((unit, index) => (
-                <div key={index} className="border border-gray-200 rounded-xl p-6">
+                <div key={index} className="border border-gray-200 rounded-lg p-6">
                   <div className="flex items-center justify-between mb-4">
                     <h4 className="font-medium text-gray-900">Unit {index + 1}</h4>
                     {units.length > 1 && (
@@ -333,7 +333,7 @@ export function PropertyForm({ onClose, onSuccess }: PropertyFormProps) {
                         type="text"
                         value={unit.unitNumber || ''}
                         onChange={(e) => handleUnitChange(index, 'unitNumber', e.target.value)}
-                        className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                         placeholder="101"
                       />
                     </div>
@@ -347,7 +347,7 @@ export function PropertyForm({ onClose, onSuccess }: PropertyFormProps) {
                         min="0"
                         value={unit.bedrooms || 1}
                         onChange={(e) => handleUnitChange(index, 'bedrooms', parseInt(e.target.value))}
-                        className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       />
                     </div>
 
@@ -361,7 +361,7 @@ export function PropertyForm({ onClose, onSuccess }: PropertyFormProps) {
                         step="0.5"
                         value={unit.bathrooms || 1}
                         onChange={(e) => handleUnitChange(index, 'bathrooms', parseFloat(e.target.value))}
-                        className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       />
                     </div>
 
@@ -374,7 +374,7 @@ export function PropertyForm({ onClose, onSuccess }: PropertyFormProps) {
                         min="0"
                         value={unit.squareFeet || 0}
                         onChange={(e) => handleUnitChange(index, 'squareFeet', parseInt(e.target.value))}
-                        className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                         placeholder="1200"
                       />
                     </div>
@@ -388,7 +388,7 @@ export function PropertyForm({ onClose, onSuccess }: PropertyFormProps) {
                         min="0"
                         value={unit.rent || 0}
                         onChange={(e) => handleUnitChange(index, 'rent', parseInt(e.target.value))}
-                        className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                         placeholder="2500"
                       />
                     </div>
@@ -402,7 +402,7 @@ export function PropertyForm({ onClose, onSuccess }: PropertyFormProps) {
                         min="0"
                         value={unit.deposit || 0}
                         onChange={(e) => handleUnitChange(index, 'deposit', parseInt(e.target.value))}
-                        className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                         placeholder="2500"
                       />
                     </div>
@@ -416,7 +416,7 @@ export function PropertyForm({ onClose, onSuccess }: PropertyFormProps) {
                       value={unit.description || ''}
                       onChange={(e) => handleUnitChange(index, 'description', e.target.value)}
                       rows={3}
-                      className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       placeholder="Describe this unit..."
                     />
                   </div>

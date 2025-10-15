@@ -338,7 +338,7 @@ export function ModernPropertyCard({
           </div>
 
           {/* Beds, Baths, Sqft - Dynamic from Firebase data */}
-          <div className="flex items-center justify-between text-gray-600 mb-4 bg-gray-50 rounded-xl p-3">
+          <div className="flex items-center justify-between text-gray-600 mb-4 bg-gray-50 rounded-lg p-3">
             <div className="flex items-center">
               <Bed className="h-4 w-4 mr-1 text-blue-600" />
               <span className="text-sm">

@@ -239,7 +239,7 @@ export const UnitDetailsModal: React.FC<UnitDetailsModalProps> = ({
 
                   {/* Current Lease Term & Price */}
                   {selectedLeaseTerm && (
-                    <div className="p-4 bg-gradient-to-r from-blue-50 to-blue-100 rounded-xl border border-blue-200">
+                    <div className="p-4 bg-gradient-to-r from-blue-50 to-blue-100 rounded-lg border border-blue-200">
                       <div className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-blue-700 bg-clip-text text-transparent mb-1">
                         ${selectedLeaseTerm.rent.toLocaleString()}/mo
                       </div>
@@ -262,7 +262,7 @@ export const UnitDetailsModal: React.FC<UnitDetailsModalProps> = ({
                   <Building className="h-5 w-5 mr-2 text-blue-600" />
                   Floor Plan
                 </h4>
-                <div className="bg-gray-50 rounded-xl p-4">
+                <div className="bg-gray-50 rounded-lg p-4">
                   <img
                     src={unit.floorPlan}
                     alt={`${unit.bedrooms} bedroom floor plan`}
@@ -298,7 +298,7 @@ export const UnitDetailsModal: React.FC<UnitDetailsModalProps> = ({
                       }}
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
-                      className={`relative p-4 rounded-xl border-2 text-left transition-all duration-200 ${
+                      className={`relative p-4 rounded-lg border-2 text-left transition-all duration-200 ${
                         selectedLeaseTerm?.months === term.months &&
                         selectedLeaseTerm?.rent === term.rent
                           ? "border-blue-500 bg-gradient-to-r from-blue-50 to-blue-100 shadow-lg"
@@ -348,7 +348,7 @@ export const UnitDetailsModal: React.FC<UnitDetailsModalProps> = ({
                   <motion.div
                     key={index}
                     whileHover={{ scale: 1.02 }}
-                    className="flex items-center space-x-3 p-4 bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl border border-gray-200 hover:border-green-300 transition-all duration-200"
+                    className="flex items-center space-x-3 p-4 bg-gradient-to-r from-gray-50 to-gray-100 rounded-lg border border-gray-200 hover:border-green-300 transition-all duration-200"
                   >
                     {/* <div className="w-2 h-2 bg-green-500 rounded-full"></div> */}
                     <span className="text-sm font-medium text-gray-700">
@@ -372,7 +372,7 @@ export const UnitDetailsModal: React.FC<UnitDetailsModalProps> = ({
               <Button
                 onClick={() => onScheduleTour?.(unit)}
                 variant="outline"
-                className="w-full h-12 text-base font-semibold border-2 border-gray-300 hover:border-blue-500 hover:bg-blue-50 rounded-xl transition-all duration-200"
+                className="w-full h-12 text-base font-semibold border-2 border-gray-300 hover:border-blue-500 hover:bg-blue-50 rounded-lg transition-all duration-200"
               >
                 <Calendar className="h-4 w-4 mr-2" />
                 Schedule Tour
@@ -386,7 +386,7 @@ export const UnitDetailsModal: React.FC<UnitDetailsModalProps> = ({
               >
                 <Button
                   onClick={() => onApply?.(unit, selectedLeaseTerm)}
-                  className="w-full h-12 text-base font-semibold bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-200"
+                  className="w-full h-12 text-base font-semibold bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white rounded-lg shadow-lg hover:shadow-xl transition-all duration-200"
                 >
                   <FileText className="h-4 w-4 mr-2" />
                   Apply Now - {selectedLeaseTerm.months} months

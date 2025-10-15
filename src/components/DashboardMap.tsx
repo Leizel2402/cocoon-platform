@@ -719,7 +719,7 @@ const DashboardMap: React.FC<PropertyMapProps> = ({
                   }}
                 >
                   <Popup maxWidth={280} minWidth={260}>
-                    <div className="p-0 font-sans bg-white m-1.5 rounded-xl overflow-hidden shadow-2xl border border-gray-100">
+                    <div className="p-0 font-sans bg-white m-1.5 rounded-lg overflow-hidden shadow-2xl border border-gray-100">
                       {/* Property Image */}
                       <div className="w-full h-26 overflow-hidden relative bg-gray-100">
                         {property.image ? (
@@ -750,7 +750,7 @@ const DashboardMap: React.FC<PropertyMapProps> = ({
                         </div>
 
                         {/* Property Type Badge */}
-                        <div className="absolute top-2 left-2 bg-black bg-opacity-70 text-white px-2 py-1 rounded-xl text-xs font-semibold uppercase tracking-wider">
+                        <div className="absolute top-2 left-2 bg-black bg-opacity-70 text-white px-2 py-1 rounded-lg text-xs font-semibold uppercase tracking-wider">
                           {property.propertyType || "Property"}
                         </div>
 

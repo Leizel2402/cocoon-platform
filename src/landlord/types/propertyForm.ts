@@ -60,6 +60,7 @@ export interface UnitFormData {
   description: string;
   // Lease Terms for Unit
   lease_term_months: number; // Lease term in months
+  lease_term_options: string[]; // Available lease term options
   security_deposit_months: number; // Security deposit in months of rent
   first_month_rent_required: boolean; // First month rent required upfront
   last_month_rent_required: boolean; // Last month rent required upfront
@@ -82,6 +83,7 @@ export interface ListingFormData {
   availableDate?: Date;
   // Lease Terms for Listing
   lease_term_months: number; // Lease term in months
+  lease_term_options: string[]; // Available lease term options
   security_deposit_months: number; // Security deposit in months of rent
   first_month_rent_required: boolean; // First month rent required upfront
   last_month_rent_required: boolean; // Last month rent required upfront

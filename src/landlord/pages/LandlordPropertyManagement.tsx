@@ -152,7 +152,7 @@ const LandlordPropertyManagement: React.FC = () => {
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
+              <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
                 <Building className="h-6 w-6 text-green-600" />
               </div>
               <div>
@@ -195,7 +195,7 @@ const LandlordPropertyManagement: React.FC = () => {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <motion.div
                 whileHover={{ scale: 1.02 }}
-                className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-4 border border-blue-200 hover:shadow-lg transition-all duration-200"
+                className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-4 border border-blue-200 hover:shadow-lg transition-all duration-200"
               >
                 <div className="flex items-center justify-between mb-2">
                   <p className="text-blue-700 text-xs font-semibold">Total Properties</p>
@@ -207,7 +207,7 @@ const LandlordPropertyManagement: React.FC = () => {
               
               <motion.div
                 whileHover={{ scale: 1.02 }}
-                className="bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-4 border border-green-200 hover:shadow-lg transition-all duration-200"
+                className="bg-gradient-to-br from-green-50 to-green-100 rounded-lg p-4 border border-green-200 hover:shadow-lg transition-all duration-200"
               >
                 <div className="flex items-center justify-between mb-2">
                   <p className="text-green-700 text-xs font-semibold">Total Units</p>
@@ -219,7 +219,7 @@ const LandlordPropertyManagement: React.FC = () => {
               
               <motion.div
                 whileHover={{ scale: 1.02 }}
-                className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-4 border border-purple-200 hover:shadow-lg transition-all duration-200"
+                className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg p-4 border border-purple-200 hover:shadow-lg transition-all duration-200"
               >
                 <div className="flex items-center justify-between mb-2">
                   <p className="text-purple-700 text-xs font-semibold">Monthly Revenue</p>
@@ -231,7 +231,7 @@ const LandlordPropertyManagement: React.FC = () => {
               
               <motion.div
                 whileHover={{ scale: 1.02 }}
-                className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl p-4 border border-orange-200 hover:shadow-lg transition-all duration-200"
+                className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-lg p-4 border border-orange-200 hover:shadow-lg transition-all duration-200"
               >
                 <div className="flex items-center justify-between mb-2">
                   <p className="text-orange-700 text-xs font-semibold">Pending Items</p>
@@ -267,7 +267,7 @@ const LandlordPropertyManagement: React.FC = () => {
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`relative py-3 px-4 rounded-xl font-medium text-sm flex items-center gap-2 transition-all duration-200 ${
+                  className={`relative py-3 px-4 rounded-lg font-medium text-sm flex items-center gap-2 transition-all duration-200 ${
                     activeTab === tab.id
                       ? 'bg-gradient-to-r from-green-600 to-emerald-600 text-white shadow-lg'
                       : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
@@ -278,7 +278,7 @@ const LandlordPropertyManagement: React.FC = () => {
                   {activeTab === tab.id && (
                     <motion.div
                       layoutId="activeTab"
-                      className="absolute inset-0 bg-gradient-to-r from-green-600 to-emerald-600 rounded-xl -z-10"
+                      className="absolute inset-0 bg-gradient-to-r from-green-600 to-emerald-600 rounded-lg -z-10"
                       transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
                     />
                   )}
@@ -306,7 +306,7 @@ const LandlordPropertyManagement: React.FC = () => {
               >
                 <div className="flex items-center justify-between mb-6">
                   <div className="flex items-center">
-                    <div className="w-12 h-12 bg-gradient-to-br from-green-100 to-green-200 rounded-xl flex items-center justify-center mr-4">
+                    <div className="w-12 h-12 bg-gradient-to-br from-green-100 to-green-200 rounded-lg flex items-center justify-center mr-4">
                       <Building className="h-6 w-6 text-green-600" />
                     </div>
                     <div>
@@ -331,11 +331,11 @@ const LandlordPropertyManagement: React.FC = () => {
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ duration: 0.4, delay: index * 0.1 }}
                       whileHover={{ scale: 1.02, y: -2 }}
-                      className="p-5 bg-gradient-to-r from-gray-50 to-white rounded-xl border border-gray-200 hover:shadow-lg transition-all duration-300 hover:border-green-300"
+                      className="p-5 bg-gradient-to-r from-gray-50 to-white rounded-lg border border-gray-200 hover:shadow-lg transition-all duration-300 hover:border-green-300"
                     >
                       <div className="flex items-center justify-between mb-4">
                         <div className="flex items-center space-x-4">
-                          {/* <div className="w-12 h-12 bg-gradient-to-br from-blue-100 to-blue-200 rounded-xl flex items-center justify-center shadow-sm"> */}
+                          {/* <div className="w-12 h-12 bg-gradient-to-br from-blue-100 to-blue-200 rounded-lg flex items-center justify-center shadow-sm"> */}
                             <Home className="h-6 w-6 text-green-600" />
                           {/* </div> */}
                           <div>
@@ -385,7 +385,7 @@ const LandlordPropertyManagement: React.FC = () => {
               >
                 <div className="flex items-center justify-between mb-6">
                   <div className="flex items-center">
-                    <div className="w-12 h-12 bg-gradient-to-br from-blue-100 to-blue-200 rounded-xl flex items-center justify-center mr-4">
+                    <div className="w-12 h-12 bg-gradient-to-br from-blue-100 to-blue-200 rounded-lg flex items-center justify-center mr-4">
                       <Bell className="h-6 w-6 text-blue-600" />
                     </div>
                     <div>
@@ -410,7 +410,7 @@ const LandlordPropertyManagement: React.FC = () => {
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ duration: 0.4, delay: index * 0.1 }}
                       whileHover={{ scale: 1.01, x: 4 }}
-                      className={`p-4 rounded-xl border-l-4 transition-all duration-200 ${
+                      className={`p-4 rounded-lg border-l-4 transition-all duration-200 ${
                         activity.priority === 'high' ? 'bg-gradient-to-r from-red-50 to-red-100 border-red-500 hover:shadow-md' :
                         activity.status === 'completed' ? 'bg-gradient-to-r from-green-50 to-green-100 border-green-500 hover:shadow-md' :
                         activity.status === 'pending' ? 'bg-gradient-to-r from-yellow-50 to-yellow-100 border-yellow-500 hover:shadow-md' :
@@ -488,7 +488,7 @@ const LandlordPropertyManagement: React.FC = () => {
                   <div className="p-6">
                     <div className="flex items-center justify-between mb-6">
                       <div className="flex items-center space-x-4">
-                        <div className="w-14 h-14 bg-gradient-to-br from-green-100 to-green-200 rounded-xl flex items-center justify-center shadow-sm">
+                        <div className="w-14 h-14 bg-gradient-to-br from-green-100 to-green-200 rounded-lg flex items-center justify-center shadow-sm">
                           <Building className="h-7 w-7 text-green-600" />
                         </div>
                         <div>
@@ -509,11 +509,11 @@ const LandlordPropertyManagement: React.FC = () => {
                     </div>
 
                     <div className="grid grid-cols-2 gap-4 mb-6">
-                      <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-4 border border-blue-200">
+                      <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-4 border border-blue-200">
                         <p className="text-xs text-blue-700 font-semibold mb-1">Total Units</p>
                         <p className="text-xl font-bold text-gray-900">{property.units}</p>
                       </div>
-                      <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-4 border border-green-200">
+                      <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-lg p-4 border border-green-200">
                         <p className="text-xs text-green-700 font-semibold mb-1">Available</p>
                         <p className="text-xl font-bold text-green-600">{property.available}</p>
                       </div>

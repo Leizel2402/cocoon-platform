@@ -812,10 +812,27 @@ export function LearningCenter() {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50">
       {/* Header Banner */}
       <div className="sticky top-16 z-30 bg-gradient-to-r from-green-600 via-green-600 to-emerald-600 text-white">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="flex items-center justify-between">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
+          {/* Mobile Header */}
+          <div className="flex items-center justify-between mb-4 sm:hidden">
+            <div className="text-center flex-1">
+              <h1 className="text-xl font-bold">Learning Center</h1>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              className="bg-white/20 border-white/30 text-white hover:bg-white/30"
+              onClick={handleShareCenter}
+              title="Share Learning Center"
+            >
+              <Share2 className="h-4 w-4" />
+            </Button>
+          </div>
+
+          {/* Desktop Header */}
+          <div className="hidden sm:flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
+              <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
                 <BookOpen className="h-6 w-6 text-green-600" />
               </div>
               <div>
@@ -845,6 +862,25 @@ export function LearningCenter() {
               </div>
             </div>
           </div>
+
+          {/* Mobile Progress Info */}
+          <div className="sm:hidden bg-white/10 rounded-lg p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-green-50 text-sm">
+                  {showAllTopics 
+                    ? "Explore all educational resources" 
+                    : `Tailored content for ${getPersonaDisplayName(userPersona)}`
+                  }
+                </p>
+                <p className="text-green-100 text-xs">{completedModules}/{totalModules} modules completed</p>
+              </div>
+              <div className="text-right">
+                <p className="text-2xl font-bold text-white">{Math.round(overallProgress)}%</p>
+                <p className="text-green-100 text-xs">Progress</p>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -857,32 +893,32 @@ export function LearningCenter() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.1 }}
-            className="bg-white/80 backdrop-blur-md rounded-2xl shadow-xl p-6 mb-8 border border-white/20"
+            className="bg-white/80 backdrop-blur-md rounded-2xl shadow-xl p-4 sm:p-6 mb-6 sm:mb-8 border border-white/20"
           >
             <div className="flex items-center mb-6">
-              <div className="bg-green-100 p-2 rounded-xl mr-3">
+              <div className="bg-green-100 p-2 rounded-lg mr-3">
                 <Award className="h-6 w-6 text-green-600" />
               </div>
               <h2 className="text-xl font-bold text-gray-900">Learning Categories</h2>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
               {filteredCategories.map((category) => {
                 const Icon = category.icon;
                 return (
                   <motion.div
                     key={category.id}
                     whileHover={{ scale: 1.02 }}
-                    className={`bg-white rounded-xl p-6 shadow-sm border cursor-pointer hover:shadow-md transition-all duration-300 ${
+                    className={`bg-white rounded-lg p-4 sm:p-6 shadow-sm border cursor-pointer hover:shadow-md transition-all duration-300 ${
                       selectedCategory === category.id ? 'border-green-300 shadow-green-200 bg-green-50/30' : 'border-gray-200 hover:border-green-300'
                     }`}
                     onClick={() => setSelectedCategory(category.id)}
                   >
-                    <div className={`w-12 h-12 rounded-lg ${category.color} flex items-center justify-center mb-4`}>
-                      <Icon className="h-6 w-6" />
+                    <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-lg ${category.color} flex items-center justify-center mb-3 sm:mb-4`}>
+                      <Icon className="h-5 w-5 sm:h-6 sm:w-6" />
                     </div>
-                    <h3 className="font-semibold text-gray-900 mb-2">{category.name}</h3>
-                    <p className="text-sm text-gray-600 mb-3">{category.description}</p>
-                    <div className="flex items-center justify-between text-sm">
+                    <h3 className="font-semibold text-gray-900 mb-2 text-sm sm:text-base">{category.name}</h3>
+                    <p className="text-xs sm:text-sm text-gray-600 mb-2 sm:mb-3">{category.description}</p>
+                    <div className="flex items-center justify-between text-xs sm:text-sm">
                       <span className="text-gray-500">{category.moduleCount} modules</span>
                       <span className="text-green-600 font-medium">{category.completedCount} completed</span>
                     </div>
@@ -898,17 +934,17 @@ export function LearningCenter() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.2 }}
-          className="bg-white/80 backdrop-blur-md rounded-2xl shadow-xl p-6 mb-8 border border-white/20"
+          className="bg-white/80 backdrop-blur-md rounded-2xl shadow-xl p-4 sm:p-6 mb-6 sm:mb-8 border border-white/20"
         >
-          <div className="flex items-center justify-between mb-6">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 sm:mb-6 space-y-3 sm:space-y-0">
             <div className="flex items-center">
-              <div className="bg-blue-100 p-2 rounded-xl mr-3">
-                <Search className="h-6 w-6 text-blue-600" />
+              <div className="bg-blue-100 p-2 rounded-lg mr-3">
+                <Search className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600" />
               </div>
-              <h2 className="text-xl font-bold text-gray-900">Search & Filter</h2>
+              <h2 className="text-lg sm:text-xl font-bold text-gray-900">Search & Filter</h2>
             </div>
-            <div className="flex items-center space-x-4">
-              <div className="text-sm text-gray-600">
+            <div className="flex items-center justify-between sm:space-x-4">
+              <div className="text-xs sm:text-sm text-gray-600">
                 <span className="font-semibold">Modules:</span>{" "}
                 <span className="font-semibold text-blue-600">{filteredModules.length}</span>{" "}
                 found
@@ -932,17 +968,17 @@ export function LearningCenter() {
             </div>
           </div>
 
-          <div className="flex flex-col md:flex-row gap-4">
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
             <div className="flex-1">
               <div className="relative">
-                <div className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-blue-50 p-2 rounded-lg">
-                  <Search className="h-5 w-5 text-blue-600" />
+                <div className="absolute left-3 sm:left-4 top-1/2 transform -translate-y-1/2 bg-blue-50 p-1.5 sm:p-2 rounded-lg">
+                  <Search className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600" />
                 </div>
                 <Input
                   placeholder="Search learning modules..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-16 pr-4 py-3 border border-gray-200 rounded-lg focus:border-green-500 focus:ring-2 focus:ring-green-200 bg-white/80 backdrop-blur-sm text-sm placeholder-gray-500 transition-all duration-200"
+                  className="pl-12 sm:pl-16 pr-4 py-2.5 sm:py-3 border border-gray-200 rounded-lg focus:border-green-500 focus:ring-2 focus:ring-green-200 bg-white/80 backdrop-blur-sm text-sm placeholder-gray-500 transition-all duration-200"
                 />
               </div>
             </div>
@@ -951,7 +987,7 @@ export function LearningCenter() {
               <select
                 value={selectedType}
                 onChange={(e) => setSelectedType(e.target.value)}
-                className="px-4 py-3 border border-gray-200 rounded-lg focus:border-green-500 focus:ring-2 focus:ring-green-200 bg-white/80 backdrop-blur-sm transition-all duration-200"
+                className="w-full sm:w-auto px-3 sm:px-4 py-2.5 sm:py-3 border border-gray-200 rounded-lg focus:border-green-500 focus:ring-2 focus:ring-green-200 bg-white/80 backdrop-blur-sm transition-all duration-200 text-sm"
               >
                 <option value="all">All Types</option>
                 <option value="video">Videos</option>
@@ -994,7 +1030,7 @@ export function LearningCenter() {
             className="bg-white/80 backdrop-blur-md rounded-2xl shadow-xl overflow-hidden border border-white/20"
           >
             <div className="p-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
                 {filteredModules.map((module, index) => (
                   <motion.div
                     key={module.id}
@@ -1003,20 +1039,20 @@ export function LearningCenter() {
                     transition={{ duration: 0.3, delay: index * 0.05 }}
                     className="bg-white rounded-2xl shadow-lg border transition-all duration-300 hover:shadow-xl hover:border-green-300"
                   >
-                    <div className="p-6 pb-4">
+                    <div className="p-4 sm:p-6 pb-3 sm:pb-4">
                       <div className="flex items-start justify-between mb-3">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <div className="p-2 bg-green-100 rounded-lg text-green-600">
+                        <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+                          <div className="p-1.5 sm:p-2 bg-green-100 rounded-lg text-green-600">
                             {getTypeIcon(module.type)}
                           </div>
-                          <Badge className={getDifficultyColor(module.difficulty)}>
+                          <Badge className={`${getDifficultyColor(module.difficulty)} text-xs`}>
                             {module.difficulty}
                           </Badge>
                           {showAllTopics && (
-                            <Badge className={getPersonaColor(module.persona)}>
+                            <Badge className={`${getPersonaColor(module.persona)} text-xs`}>
                               <div className="flex items-center gap-1">
                                 {getPersonaIcon(module.persona)}
-                                {module.persona}
+                                <span className="hidden sm:inline">{module.persona}</span>
                               </div>
                             </Badge>
                           )}
@@ -1031,20 +1067,20 @@ export function LearningCenter() {
                         </Button>
                       </div>
 
-                      <h3 className="text-lg font-semibold text-gray-900 mb-2 line-clamp-2">
+                      <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-2 line-clamp-2">
                         {module.title}
                       </h3>
-                      <p className="text-gray-600 text-sm mb-4 line-clamp-3">
+                      <p className="text-gray-600 text-xs sm:text-sm mb-3 sm:mb-4 line-clamp-3">
                         {module.description}
                       </p>
 
-                      <div className="flex items-center justify-between text-sm text-gray-500 mb-4">
+                      <div className="flex items-center justify-between text-xs sm:text-sm text-gray-500 mb-3 sm:mb-4">
                         <div className="flex items-center">
-                          <Clock className="h-4 w-4 mr-1" />
+                          <Clock className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
                           <span>{module.duration} min</span>
                         </div>
                         <div className="flex items-center">
-                          <Star className="h-4 w-4 mr-1 text-yellow-400 fill-current" />
+                          <Star className="h-3 w-3 sm:h-4 sm:w-4 mr-1 text-yellow-400 fill-current" />
                           <span>{module.rating}</span>
                         </div>
                       </div>
@@ -1061,15 +1097,15 @@ export function LearningCenter() {
                     </div>
 
                     <div className="px-6 py-4 bg-gray-50 border-t">
-                      <div className="flex items-center justify-between">
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0">
                         <div className="flex items-center gap-2">
                           {module.completed ? (
-                            <Badge className="bg-green-100 text-green-800">
+                            <Badge className="bg-green-100 text-green-800 text-xs">
                               <CheckCircle className="h-3 w-3 mr-1" />
                               Completed
                             </Badge>
                           ) : (
-                            <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                            <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-xs">
                               {module.progress > 0 ? 'In Progress' : 'Not Started'}
                             </Badge>
                           )}
@@ -1078,25 +1114,27 @@ export function LearningCenter() {
                           <Button
                             variant="outline"
                             size="sm"
-                            className="border-gray-200 hover:bg-gray-50"
+                            className="border-gray-200 hover:bg-gray-50 text-xs sm:text-sm"
                             onClick={() => handleShareModule(module)}
                             title="Share module"
                           >
-                            <Share2 className="h-4 w-4" />
+                            <Share2 className="h-3 w-3 sm:h-4 sm:w-4" />
+                            <span className="hidden sm:inline ml-1">Share</span>
                           </Button>
                           <Button
                             variant="outline"
                             size="sm"
-                            className="border-gray-200 hover:bg-gray-50"
+                            className="border-gray-200 hover:bg-gray-50 text-xs sm:text-sm"
                             onClick={() => handleCopyLink(module)}
                             title="Copy link"
                           >
-                            <Copy className="h-4 w-4" />
+                            <Copy className="h-3 w-3 sm:h-4 sm:w-4" />
+                            <span className="hidden sm:inline ml-1">Copy</span>
                           </Button>
                           <Button
                             size="sm"
                             onClick={() => handleStartModule(module)}
-                            className="bg-gradient-to-r from-green-600 to-emerald-600 text-white hover:from-green-700 hover:to-emerald-700"
+                            className="bg-gradient-to-r from-green-600 to-emerald-600 text-white hover:from-green-700 hover:to-emerald-700 text-xs sm:text-sm"
                           >
                             {module.progress > 0 ? 'Continue' : 'Start'}
                           </Button>
@@ -1121,7 +1159,7 @@ export function LearningCenter() {
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
                   transition={{ delay: 0.1, type: "spring", stiffness: 200 }}
-                  className="w-10 h-10 bg-gradient-to-r from-green-500 to-green-600 rounded-xl flex items-center justify-center shadow-lg"
+                  className="w-10 h-10 bg-gradient-to-r from-green-500 to-green-600 rounded-lg flex items-center justify-center shadow-lg"
                 >
                   <Share2 className="h-5 w-5 text-white" />
                 </motion.div>
@@ -1142,7 +1180,7 @@ export function LearningCenter() {
 
           {selectedModule && (
             <div className="px-6 pb-4">
-              <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
+              <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
                 <div className="flex items-start space-x-3">
                   <div className="p-2 bg-green-100 rounded-lg text-green-600">
                     {getTypeIcon(selectedModule.type)}
@@ -1176,9 +1214,9 @@ export function LearningCenter() {
               <motion.button
                 whileTap={{ scale: 0.98 }}
                 onClick={handleEmailShare}
-                className="w-full flex items-center space-x-3 p-4 rounded-xl border border-gray-200 hover:border-green-300 hover:bg-green-50 transition-all duration-200 group"
+                className="w-full flex items-center space-x-3 p-4 rounded-lg border border-gray-200 hover:border-green-300 hover:bg-green-50 transition-all duration-200 group"
               >
-                <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center group-hover:bg-blue-200 transition-colors">
+                <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center group-hover:bg-blue-200 transition-colors">
                   <Mail className="h-5 w-5 text-blue-600" />
                 </div>
                 <div className="flex-1 text-left">
@@ -1190,9 +1228,9 @@ export function LearningCenter() {
               <motion.button
                 whileTap={{ scale: 0.98 }}
                 onClick={handleTextShare}
-                className="w-full flex items-center space-x-3 p-4 rounded-xl border border-gray-200 hover:border-green-300 hover:bg-green-50 transition-all duration-200 group"
+                className="w-full flex items-center space-x-3 p-4 rounded-lg border border-gray-200 hover:border-green-300 hover:bg-green-50 transition-all duration-200 group"
               >
-                <div className="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center group-hover:bg-green-200 transition-colors">
+                <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center group-hover:bg-green-200 transition-colors">
                   <MessageSquare className="h-5 w-5 text-green-600" />
                 </div>
                 <div className="flex-1 text-left">
@@ -1204,9 +1242,9 @@ export function LearningCenter() {
               <motion.button
                 whileTap={{ scale: 0.98 }}
                 onClick={handleModalCopyLink}
-                className="w-full flex items-center space-x-3 p-4 rounded-xl border border-gray-200 hover:border-green-300 hover:bg-green-50 transition-all duration-200 group"
+                className="w-full flex items-center space-x-3 p-4 rounded-lg border border-gray-200 hover:border-green-300 hover:bg-green-50 transition-all duration-200 group"
               >
-                <div className="w-10 h-10 bg-gray-100 rounded-xl flex items-center justify-center group-hover:bg-gray-200 transition-colors">
+                <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center group-hover:bg-gray-200 transition-colors">
                   <Link className="h-5 w-5 text-gray-600" />
                 </div>
                 <div className="flex-1 text-left">
@@ -1229,7 +1267,7 @@ export function LearningCenter() {
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
                   transition={{ delay: 0.1, type: "spring", stiffness: 200 }}
-                  className="w-10 h-10 bg-gradient-to-r from-green-500 to-green-600 rounded-xl flex items-center justify-center shadow-lg"
+                  className="w-10 h-10 bg-gradient-to-r from-green-500 to-green-600 rounded-lg flex items-center justify-center shadow-lg"
                 >
                   <BookOpen className="h-5 w-5 text-white" />
                 </motion.div>
@@ -1249,9 +1287,9 @@ export function LearningCenter() {
           </DialogHeader>
 
           <div className="px-6 pb-4">
-            <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-4 border border-green-200">
+            <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg p-4 border border-green-200">
               <div className="flex items-start space-x-3">
-                <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
+                <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
                   <BookOpen className="h-6 w-6 text-green-600" />
                 </div>
                 <div className="flex-1 min-w-0">
@@ -1279,9 +1317,9 @@ export function LearningCenter() {
               <motion.button
                 whileTap={{ scale: 0.98 }}
                 onClick={handleCenterEmailShare}
-                className="w-full flex items-center space-x-3 p-4 rounded-xl border border-gray-200 hover:border-green-300 hover:bg-green-50 transition-all duration-200 group"
+                className="w-full flex items-center space-x-3 p-4 rounded-lg border border-gray-200 hover:border-green-300 hover:bg-green-50 transition-all duration-200 group"
               >
-                <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center group-hover:bg-blue-200 transition-colors">
+                <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center group-hover:bg-blue-200 transition-colors">
                   <Mail className="h-5 w-5 text-blue-600" />
                 </div>
                 <div className="flex-1 text-left">
@@ -1293,9 +1331,9 @@ export function LearningCenter() {
               <motion.button
                 whileTap={{ scale: 0.98 }}
                 onClick={handleCenterTextShare}
-                className="w-full flex items-center space-x-3 p-4 rounded-xl border border-gray-200 hover:border-green-300 hover:bg-green-50 transition-all duration-200 group"
+                className="w-full flex items-center space-x-3 p-4 rounded-lg border border-gray-200 hover:border-green-300 hover:bg-green-50 transition-all duration-200 group"
               >
-                <div className="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center group-hover:bg-green-200 transition-colors">
+                <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center group-hover:bg-green-200 transition-colors">
                   <MessageSquare className="h-5 w-5 text-green-600" />
                 </div>
                 <div className="flex-1 text-left">
@@ -1307,9 +1345,9 @@ export function LearningCenter() {
               <motion.button
                 whileTap={{ scale: 0.98 }}
                 onClick={handleCenterCopyLink}
-                className="w-full flex items-center space-x-3 p-4 rounded-xl border border-gray-200 hover:border-green-300 hover:bg-green-50 transition-all duration-200 group"
+                className="w-full flex items-center space-x-3 p-4 rounded-lg border border-gray-200 hover:border-green-300 hover:bg-green-50 transition-all duration-200 group"
               >
-                <div className="w-10 h-10 bg-gray-100 rounded-xl flex items-center justify-center group-hover:bg-gray-200 transition-colors">
+                <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center group-hover:bg-gray-200 transition-colors">
                   <Link className="h-5 w-5 text-gray-600" />
                 </div>
                 <div className="flex-1 text-left">

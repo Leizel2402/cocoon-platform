@@ -774,6 +774,13 @@ const Dashboards = () => {
               description: prop.description,
               pet_friendly: prop.pet_friendly || false,
               available_date: prop.availableDate,
+              lease_term_options: prop.lease_term_options || [], 
+              lease_term_months: prop.lease_term_months,
+              security_deposit_months: prop.security_deposit_months,
+              first_month_rent_required: prop.first_month_rent_required,
+              last_month_rent_required: prop.last_month_rent_required,
+              pet_deposit: prop.pet_deposit,
+              application_fee: prop.application_fee,
             };
           } else {
             // Data from properties collection (new landlord form format)
@@ -876,6 +883,13 @@ const Dashboards = () => {
               location: prop.location,
               // Address object (keep original for detailed display)
               addressObject: prop.address,
+              lease_term_options: prop.lease_term_options || [],
+              lease_term_months: prop.lease_term_months,
+              security_deposit_months: prop.security_deposit_months,
+              first_month_rent_required: prop.first_month_rent_required,
+              last_month_rent_required: prop.last_month_rent_required,
+              pet_deposit: prop.pet_deposit,
+              application_fee: prop.application_fee,
             };
           }
         });
@@ -1094,6 +1108,14 @@ const Dashboards = () => {
                 concession: null,
               },
             ],
+            lease_term_options: unit.lease_term_options || ['12 Months'],
+            lease_term_months: unit.lease_term_months,
+            security_deposit_months: unit.security_deposit_months,
+            first_month_rent_required: unit.first_month_rent_required,
+            last_month_rent_required: unit.last_month_rent_required,
+            pet_deposit: unit.pet_deposit,
+            application_fee: unit.application_fee,
+            
           };
         });
 
@@ -1762,7 +1784,7 @@ const Dashboards = () => {
                         <ChevronDown className="ml-2 h-4 w-4" />
                       </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="w-80 p-6 bg-white border-2 border-gray-200 shadow-2xl rounded-xl z-50">
+                    <PopoverContent className="w-80 p-6 bg-white border-2 border-gray-200 shadow-2xl rounded-lg z-50">
                       <div className="space-y-6">
                         {/* Header */}
                         <div className="flex items-center justify-between">
@@ -1777,7 +1799,7 @@ const Dashboards = () => {
 
                         {/* Price Range Slider */}
                         <div className="space-y-4">
-                          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-4 border border-blue-200">
+                          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-4 border border-blue-200">
                             <div className="flex items-center justify-between mb-3">
                               <div className="text-center">
                                 <div className="text-2xl font-bold text-blue-600">
@@ -2213,7 +2235,7 @@ const Dashboards = () => {
                       </h2>
                       {/* Enhanced Filter Summary - Only show when filters are applied */}
                       {searchSummary.activeFilters > 0 && (
-                        <div className="mt-6 bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+                        <div className="mt-6 bg-white rounded-lg border border-gray-200 shadow-sm p-4">
                           {/* Header with Remove All */}
                           <div className="flex items-center justify-between mb-4">
                             <div className="flex items-center space-x-2">
@@ -2295,7 +2317,7 @@ const Dashboards = () => {
 
                     {/* <div className="flex items-center space-x-3">
                       <span className="text-sm text-gray-600 font-medium">{t('sort')}</span>
-                      <Button variant="outline" size="sm" className="rounded-xl px-4 py-2 border-gray-200 hover:bg-green-50">{t('default')} ▼</Button>
+                      <Button variant="outline" size="sm" className="rounded-lg px-4 py-2 border-gray-200 hover:bg-green-50">{t('default')} ▼</Button>
                     </div> */}
                   </div>
 
@@ -2526,7 +2548,7 @@ const Dashboards = () => {
       {/* Save Search Modal */}
       {showSaveSearchModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-6 w-full max-w-md mx-4 shadow-2xl">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4 shadow-2xl">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-xl font-bold text-gray-900">Save Filters</h3>
               <button

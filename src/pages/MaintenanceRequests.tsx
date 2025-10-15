@@ -244,7 +244,7 @@ export function MaintenanceRequests() {
         <button
           type="button"
           onClick={() => setIsOpen(!isOpen)}
-          className="w-full p-3 border border-gray-200 rounded-xl focus:border-green-500 focus:ring-green-200 bg-white text-left flex items-center justify-between"
+          className="w-full p-3 border border-gray-200 rounded-lg focus:border-green-500 focus:ring-green-200 bg-white text-left flex items-center justify-between"
         >
           <div className="flex items-center space-x-2">
             {selectedOption?.icon}
@@ -256,7 +256,7 @@ export function MaintenanceRequests() {
         </button>
         
         {isOpen && (
-          <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg">
+          <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg">
             {options.map((option) => (
               <button
                 key={option.value}
@@ -292,29 +292,37 @@ export function MaintenanceRequests() {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50">
       {/* Header Banner */}
       <div className="sticky top-16 z-30 bg-gradient-to-r from-green-600 via-green-600 to-emerald-600 text-white">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-            <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
-                  <Wrench className="h-6 w-6 text-green-600" />
-                </div>
-              {/* <button 
-                onClick={() => navigate('/portal')}
-                className="p-2 hover:bg-white/20 rounded-lg transition-colors"
-              >
-                <ArrowLeft className="h-5 w-5" />
-              </button> */}
-            <div>
-                <h1 className="text-2xl font-bold">Maintenance Requests</h1>
-                <p className="text-sm text-green-50">
-                Submit and track maintenance requests for your property
-              </p>
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
+          {/* Mobile Header */}
+          <div className="flex items-center justify-between mb-4 sm:hidden">
+            <div className="text-center flex-1">
+              <h1 className="text-xl font-bold">Maintenance Requests</h1>
             </div>
-            </div>
-            <div className="flex items-center space-x-3">
             <Button
               onClick={() => setShowNewRequestForm(true)}
-                className="bg-white text-green-600 hover:bg-green-50 font-semibold transition-all duration-200 shadow-lg"
+              size="sm"
+              className="bg-white text-green-600 hover:bg-green-50 font-semibold transition-all duration-200 shadow-lg"
+            >
+              <Plus className="h-4 w-4" />
+            </Button>
+          </div>
+
+          {/* Desktop Header */}
+          <div className="hidden sm:flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                <Wrench className="h-6 w-6 text-green-600" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold">Maintenance Requests</h1>
+                <p className="text-sm text-green-50">
+                  Submit and track maintenance requests for your property
+                </p>
+              </div>
+            </div>
+            <Button
+              onClick={() => setShowNewRequestForm(true)}
+              className="bg-white text-green-600 hover:bg-green-50 font-semibold transition-all duration-200 shadow-lg"
             >
               <Plus className="h-4 w-4 mr-2" />
               New Request
@@ -322,69 +330,68 @@ export function MaintenanceRequests() {
           </div>
         </div>
       </div>
-      </div>
 
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Quick Stats */}
-        {/* <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-          <div className="bg-white rounded-xl p-4 border border-gray-100">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
+          <div className="bg-white rounded-lg p-3 sm:p-4 border border-gray-100 hover:shadow-md transition-shadow">
             <div className="flex items-center justify-between">
-              <div>
-                <p className="text-gray-600 text-sm font-medium">Total Requests</p>
-                <p className="text-2xl font-bold text-gray-900">{requests.length}</p>
+              <div className="flex-1">
+                <p className="text-gray-600 text-xs sm:text-sm font-medium">Total Requests</p>
+                <p className="text-lg sm:text-2xl font-bold text-gray-900">{requests.length}</p>
               </div>
-              <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                <Wrench className="h-5 w-5 text-blue-600" />
+              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                <Wrench className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600" />
               </div>
             </div>
           </div>
           
-          <div className="bg-white rounded-xl p-4 border border-gray-100">
+          <div className="bg-white rounded-lg p-3 sm:p-4 border border-gray-100 hover:shadow-md transition-shadow">
             <div className="flex items-center justify-between">
-              <div>
-                <p className="text-gray-600 text-sm font-medium">In Progress</p>
-                <p className="text-2xl font-bold text-yellow-600">
+              <div className="flex-1">
+                <p className="text-gray-600 text-xs sm:text-sm font-medium">In Progress</p>
+                <p className="text-lg sm:text-2xl font-bold text-yellow-600">
                   {requests.filter(r => r.status === 'in_progress').length}
                 </p>
               </div>
-              <div className="w-10 h-10 bg-yellow-100 rounded-lg flex items-center justify-center">
-                <AlertTriangle className="h-5 w-5 text-yellow-600" />
+              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-yellow-100 rounded-lg flex items-center justify-center">
+                <AlertTriangle className="h-4 w-4 sm:h-5 sm:w-5 text-yellow-600" />
               </div>
             </div>
           </div>
           
-          <div className="bg-white rounded-xl p-4 border border-gray-100">
+          <div className="bg-white rounded-lg p-3 sm:p-4 border border-gray-100 hover:shadow-md transition-shadow">
             <div className="flex items-center justify-between">
-              <div>
-                <p className="text-gray-600 text-sm font-medium">Completed</p>
-                <p className="text-2xl font-bold text-green-600">
+              <div className="flex-1">
+                <p className="text-gray-600 text-xs sm:text-sm font-medium">Completed</p>
+                <p className="text-lg sm:text-2xl font-bold text-green-600">
                   {requests.filter(r => r.status === 'completed').length}
                 </p>
               </div>
-              <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                <CheckCircle className="h-5 w-5 text-green-600" />
+              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                <CheckCircle className="h-4 w-4 sm:h-5 sm:w-5 text-green-600" />
               </div>
             </div>
           </div>
           
-          <div className="bg-white rounded-xl p-4 border border-gray-100">
+          <div className="bg-white rounded-lg p-3 sm:p-4 border border-gray-100 hover:shadow-md transition-shadow">
             <div className="flex items-center justify-between">
-              <div>
-                <p className="text-gray-600 text-sm font-medium">Pending</p>
-                <p className="text-2xl font-bold text-blue-600">
+              <div className="flex-1">
+                <p className="text-gray-600 text-xs sm:text-sm font-medium">Pending</p>
+                <p className="text-lg sm:text-2xl font-bold text-blue-600">
                   {requests.filter(r => r.status === 'submitted').length}
                 </p>
               </div>
-              <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                <Clock className="h-5 w-5 text-blue-600" />
+              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                <Clock className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600" />
               </div>
             </div>
           </div>
-        </div> */}
+        </div>
 
-      {/* Search and Filter Bar */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-6">
-          <div className="flex flex-col md:flex-row gap-4">
+        {/* Search and Filter Bar */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 sm:p-6 mb-6">
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
             {/* Search */}
             <div className="flex-1">
               <div className="relative">
@@ -393,7 +400,7 @@ export function MaintenanceRequests() {
                   placeholder="Search maintenance requests..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 border-gray-200 focus:border-green-500 focus:ring-green-200"
+                  className="pl-10 border-gray-200 focus:border-green-500 focus:ring-green-200 w-full"
                 />
               </div>
             </div>
@@ -411,15 +418,12 @@ export function MaintenanceRequests() {
                   variant={filterStatus === filter.key ? "default" : "outline"}
                   size="sm"
                   onClick={() => setFilterStatus(filter.key as 'all' | 'submitted' | 'in_progress' | 'completed')}
-                  className={filterStatus === filter.key 
+                  className={`text-xs sm:text-sm ${filterStatus === filter.key 
                     ? "bg-green-600 hover:bg-green-700 text-white" 
                     : "border-gray-200 hover:bg-green-50 text-gray-700"
-                  }
+                  }`}
                 >
                   {filter.label}
-                  {/* <span className="ml-1 px-1.5 py-0.5 bg-gray-200 text-gray-600 rounded-full text-xs">
-                    {filter.count}
-                  </span> */}
                 </Button>
               ))}
           </div>
@@ -461,7 +465,7 @@ export function MaintenanceRequests() {
             {/* Modal Content */}
             <div className="p-6 space-y-6 max-h-[70vh] overflow-y-auto">
               {/* Property Info */}
-              <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
+              <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
                 <div className="flex items-center space-x-3">
                   <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
                     <MapPin className="h-4 w-4 text-green-600" />
@@ -482,7 +486,7 @@ export function MaintenanceRequests() {
                   placeholder="e.g., Kitchen sink is leaking"
                   value={newRequest.title}
                   onChange={(e) => setNewRequest(prev => ({ ...prev, title: e.target.value }))}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 />
                 <p className="text-xs text-gray-500">Brief description of the problem</p>
               </div>
@@ -497,7 +501,7 @@ export function MaintenanceRequests() {
                   value={newRequest.description}
                   onChange={(e) => setNewRequest(prev => ({ ...prev, description: e.target.value }))}
                   rows={4}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 />
                 <p className="text-xs text-gray-500">Include when the issue started, how often it occurs, etc.</p>
               </div>
@@ -556,7 +560,7 @@ export function MaintenanceRequests() {
                     onChange={handleImageUpload}
                     className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                   />
-                  <div className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:border-green-400 hover:bg-green-50 transition-colors">
+                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-green-400 hover:bg-green-50 transition-colors">
                     <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
                       <Upload className="h-8 w-8 text-gray-400" />
                     </div>
@@ -590,7 +594,7 @@ export function MaintenanceRequests() {
               </div>
 
               {/* Additional Info */}
-              <div className="bg-blue-50 rounded-xl p-4 border border-blue-200">
+              <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
                 <div className="flex items-start space-x-3">
                   <div className="w-5 h-5 bg-blue-100 rounded-full flex items-center justify-center mt-0.5">
                     <span className="text-blue-600 text-xs font-bold">i</span>
@@ -628,14 +632,14 @@ export function MaintenanceRequests() {
 
       {/* Requests List */}
         {filteredRequests.length === 0 ? (
-          <div className="text-center py-16">
-            <div className="bg-gradient-to-r from-green-100 to-emerald-100 rounded-full w-24 h-24 flex items-center justify-center mx-auto mb-6">
-              <Wrench className="h-12 w-12 text-green-600" />
+          <div className="text-center py-12 sm:py-16">
+            <div className="bg-gradient-to-r from-green-100 to-emerald-100 rounded-full w-20 h-20 sm:w-24 sm:h-24 flex items-center justify-center mx-auto mb-4 sm:mb-6">
+              <Wrench className="h-10 w-10 sm:h-12 sm:w-12 text-green-600" />
             </div>
-            <h3 className="text-2xl font-bold text-gray-900 mb-4">
+            <h3 className="text-xl sm:text-2xl font-bold text-gray-900 mb-3 sm:mb-4">
               {searchTerm ? 'No requests found' : 'No maintenance requests yet'}
             </h3>
-            <p className="text-gray-600 text-lg mb-8">
+            <p className="text-gray-600 text-sm sm:text-lg mb-4 sm:mb-8 max-w-md mx-auto px-4">
               {searchTerm 
                 ? 'Try adjusting your search terms'
                 : 'Submit your first maintenance request to get started'
@@ -660,21 +664,42 @@ export function MaintenanceRequests() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.1 }}
               >
-                <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 hover:shadow-lg transition-all duration-300 cursor-pointer"
+                <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 sm:p-6 hover:shadow-lg transition-all duration-300 cursor-pointer"
                      onClick={() => setSelectedRequest(request)}>
-                  <div className="flex items-start justify-between mb-4">
-                      <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
-                        <h3 className="text-lg font-bold text-gray-900">{request.title}</h3>
-                        <div className="flex items-center gap-2">
-                          <span className={`px-3 py-1  flex rounded-full text-xs font-semibold ${getStatusColor(request.status)}`}>
+                  {/* Mobile Layout */}
+                  <div className="sm:hidden">
+                    <div className="flex items-start gap-3 mb-4">
+                      <div className="flex-1 min-w-0">
+                        <h3 className="text-base font-bold text-gray-900 mb-2 truncate">{request.title}</h3>
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className={`px-2 py-1 flex rounded-full text-xs font-semibold ${getStatusColor(request.status)}`}>
                             {getStatusIcon(request.status)}
                             <span className="ml-1 capitalize">{request.status.replace('_', ' ')}</span>
                           </span>
-                          <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getPriorityColor(request.priority)}`}>
-                            {request.priority} priority
+                          <span className={`px-2 py-1 rounded-full text-xs font-semibold ${getPriorityColor(request.priority)}`}>
+                            {request.priority}
                           </span>
                         </div>
+                        <p className="text-gray-600 text-xs mb-2 line-clamp-2">{request.description}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Desktop Layout */}
+                  <div className="hidden sm:block">
+                    <div className="flex items-start justify-between mb-4">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-2">
+                          <h3 className="text-lg font-bold text-gray-900">{request.title}</h3>
+                          <div className="flex items-center gap-2">
+                            <span className={`px-3 py-1 flex rounded-full text-xs font-semibold ${getStatusColor(request.status)}`}>
+                              {getStatusIcon(request.status)}
+                              <span className="ml-1 capitalize">{request.status.replace('_', ' ')}</span>
+                            </span>
+                            <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getPriorityColor(request.priority)}`}>
+                              {request.priority} priority
+                            </span>
+                          </div>
                         </div>
                       <p className="text-gray-600 text-sm mb-3 line-clamp-2">{request.description}</p>
                       <div className="flex items-center text-sm text-gray-500">
@@ -695,6 +720,7 @@ export function MaintenanceRequests() {
                         )}
                       </div>
                     </div>
+                  </div>
                   
                   <div className="flex items-center justify-between pt-4 border-t border-gray-100">
                       <div className="flex items-center gap-2">
@@ -736,7 +762,7 @@ export function MaintenanceRequests() {
       {/* Request Detail Modal */}
       {selectedRequest && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center p-6 border-b">
               <h2 className="text-xl font-semibold">Request Details</h2>
               <Button
@@ -823,6 +849,16 @@ export function MaintenanceRequests() {
           </div>
         </div>
       )}
+
+      {/* Mobile Floating Action Button */}
+      <div className="fixed bottom-6 right-6 sm:hidden z-50">
+        <Button
+          onClick={() => setShowNewRequestForm(true)}
+          className="w-14 h-14 rounded-full bg-green-600 hover:bg-green-700 text-white shadow-lg hover:shadow-xl transition-all duration-200"
+        >
+          <Plus className="h-6 w-6" />
+        </Button>
+      </div>
     </div>
   );
 }

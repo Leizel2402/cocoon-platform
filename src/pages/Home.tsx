@@ -450,7 +450,7 @@ export function Home() {
                 </>
               ) : (
                 <>
-                  <div className="bg-white rounded-xl sm:rounded-2xl shadow-2xl border border-gray-100 overflow-hidden">
+                  <div className="bg-white rounded-lg sm:rounded-2xl shadow-2xl border border-gray-100 overflow-hidden">
                     <AddyChat
                       initialSearch={chatQuery}
                       onComplete={(filters) => {
@@ -548,7 +548,7 @@ export function Home() {
                     whileTap={{ scale: 0.95 }}
                     whileHover={{ scale: 1.02 }}
                     onClick={() => navigate("/property")}
-                    className="inline-flex items-center px-6 sm:px-8 py-3 sm:py-4 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg sm:rounded-xl hover:from-green-700 hover:to-emerald-700 transition-all duration-200 font-semibold shadow-lg hover:shadow-xl text-sm sm:text-base"
+                    className="inline-flex items-center px-6 sm:px-8 py-3 sm:py-4 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg sm:rounded-lg hover:from-green-700 hover:to-emerald-700 transition-all duration-200 font-semibold shadow-lg hover:shadow-xl text-sm sm:text-base"
                   >
                     <span className="hidden sm:inline">Browse More Properties</span>
                     <span className="sm:hidden">Browse More</span>
@@ -585,7 +585,7 @@ export function Home() {
                     });
                     handleSearch();
                   }}
-                  className="px-6 sm:px-8 py-3 sm:py-4 bg-gradient-to-r from-green-600 to-blue-600 text-white rounded-lg sm:rounded-xl hover:from-green-700 hover:to-blue-700 transition-all duration-200 font-semibold shadow-lg hover:shadow-xl text-sm sm:text-base"
+                  className="px-6 sm:px-8 py-3 sm:py-4 bg-gradient-to-r from-green-600 to-blue-600 text-white rounded-lg sm:rounded-lg hover:from-green-700 hover:to-blue-700 transition-all duration-200 font-semibold shadow-lg hover:shadow-xl text-sm sm:text-base"
                 >
                   Reset Filters
                 </motion.button>
@@ -622,7 +622,7 @@ export function Home() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6, delay: 0.1 }}
-                className="text-center p-6 sm:p-8 rounded-xl sm:rounded-2xl bg-gradient-to-br from-green-50 to-green-100 border border-green-200"
+                className="text-center p-6 sm:p-8 rounded-lg sm:rounded-2xl bg-gradient-to-br from-green-50 to-green-100 border border-green-200"
               >
                 <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-r from-green-500 to-green-600 rounded-full flex items-center justify-center mx-auto mb-4 sm:mb-6">
                   <HomeIcon className="h-6 w-6 sm:h-8 sm:w-8 text-white" />
@@ -640,7 +640,7 @@ export function Home() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6, delay: 0.2 }}
-                className="text-center p-6 sm:p-8 rounded-xl sm:rounded-2xl bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200"
+                className="text-center p-6 sm:p-8 rounded-lg sm:rounded-2xl bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200"
               >
                 <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-r from-blue-500 to-blue-600 rounded-full flex items-center justify-center mx-auto mb-4 sm:mb-6">
                   <Users className="h-6 w-6 sm:h-8 sm:w-8 text-white" />
@@ -658,7 +658,7 @@ export function Home() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6, delay: 0.3 }}
-                className="text-center p-6 sm:p-8 rounded-xl sm:rounded-2xl bg-gradient-to-br from-purple-50 to-purple-100 border border-purple-200 sm:col-span-2 lg:col-span-1"
+                className="text-center p-6 sm:p-8 rounded-lg sm:rounded-2xl bg-gradient-to-br from-purple-50 to-purple-100 border border-purple-200 sm:col-span-2 lg:col-span-1"
               >
                 <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-r from-purple-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4 sm:mb-6">
                   <Shield className="h-6 w-6 sm:h-8 sm:w-8 text-white" />

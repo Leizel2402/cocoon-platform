@@ -170,7 +170,7 @@ const PropertyBasicInfo: React.FC<PropertyBasicInfoProps> = ({ data, onChange, e
     <div className="space-y-8">
       {/* Header */}
       <div className="flex items-center gap-3 mb-6">
-        <div className="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center">
+        <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
           <Building className="h-5 w-5 text-green-600" />
         </div>
         <div>
@@ -193,7 +193,7 @@ const PropertyBasicInfo: React.FC<PropertyBasicInfoProps> = ({ data, onChange, e
             value={data.name}
             onChange={(e) => onChange({ ...data, name: e.target.value })}
             placeholder="Enter property name"
-            className={`w-full px-4 py-3 border rounded-xl focus:outline-none bg-white/50 backdrop-blur-sm ${
+            className={`w-full px-4 py-3 border rounded-lg focus:outline-none bg-white/50 backdrop-blur-sm ${
               errors?.name ? 'border-red-500 focus:ring-red-200' : 'border-gray-200 focus:ring-green-200'
             }`}
             required
@@ -216,7 +216,7 @@ const PropertyBasicInfo: React.FC<PropertyBasicInfoProps> = ({ data, onChange, e
             value={data.title}
             onChange={(e) => onChange({ ...data, title: e.target.value })}
             placeholder="Enter property title for listings"
-            className={`w-full px-4 py-3 border rounded-xl focus:outline-none bg-white/50 backdrop-blur-sm ${
+            className={`w-full px-4 py-3 border rounded-lg focus:outline-none bg-white/50 backdrop-blur-sm ${
               errors?.title ? 'border-red-500 focus:ring-red-200' : 'border-gray-200 focus:ring-green-200'
             }`}
             required
@@ -238,7 +238,7 @@ const PropertyBasicInfo: React.FC<PropertyBasicInfoProps> = ({ data, onChange, e
             value={data.property_type}
             onValueChange={(value) => onChange({ ...data, property_type: value, propertyType: value })}
           >
-            <SelectTrigger className={`w-full px-4 py-3 border rounded-xl focus:outline-none bg-white/50 backdrop-blur-sm ${
+            <SelectTrigger className={`w-full px-4 py-3 border rounded-lg focus:outline-none bg-white/50 backdrop-blur-sm ${
               errors?.property_type ? 'border-red-500 focus:ring-red-200' : 'border-gray-200 focus:ring-green-200'
             }`}>
               <SelectValue placeholder="Select property type" />
@@ -278,7 +278,7 @@ const PropertyBasicInfo: React.FC<PropertyBasicInfoProps> = ({ data, onChange, e
               value={data.address.line1}
               onChange={(e) => handleAddressChange('line1', e.target.value)}
               placeholder="123 Main Street"
-              className={`w-full px-4 py-3 border rounded-xl focus:outline-none bg-white/50 backdrop-blur-sm ${
+              className={`w-full px-4 py-3 border rounded-lg focus:outline-none bg-white/50 backdrop-blur-sm ${
                 errors?.address?.line1 ? 'border-red-500 focus:ring-red-200' : 'border-gray-200 focus:ring-green-200'
               }`}
               required
@@ -301,7 +301,7 @@ const PropertyBasicInfo: React.FC<PropertyBasicInfoProps> = ({ data, onChange, e
               value={data.address.line2 || ''}
               onChange={(e) => handleAddressChange('line2', e.target.value)}
               placeholder="Apt 4B, Suite 200, etc."
-              className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-green-200 bg-white/50 backdrop-blur-sm"
+              className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-green-200 bg-white/50 backdrop-blur-sm"
             />
           </div>
 
@@ -319,7 +319,7 @@ const PropertyBasicInfo: React.FC<PropertyBasicInfoProps> = ({ data, onChange, e
                 value={data.address.city}
                 onChange={(e) => handleAddressChange('city', e.target.value)}
                 placeholder="San Francisco"
-                className={`w-full px-4 py-3 border rounded-xl focus:outline-none bg-white/50 backdrop-blur-sm ${
+                className={`w-full px-4 py-3 border rounded-lg focus:outline-none bg-white/50 backdrop-blur-sm ${
                   errors?.address?.city ? 'border-red-500 focus:ring-red-200' : 'border-gray-200 focus:ring-green-200'
                 }`}
                 required
@@ -340,7 +340,7 @@ const PropertyBasicInfo: React.FC<PropertyBasicInfoProps> = ({ data, onChange, e
                 value={data.address.region}
                 onValueChange={(value) => handleAddressChange('region', value)}
               >
-                <SelectTrigger className={`w-full px-4 py-3 border rounded-xl focus:outline-none bg-white/50 backdrop-blur-sm ${
+                <SelectTrigger className={`w-full px-4 py-3 border rounded-lg focus:outline-none bg-white/50 backdrop-blur-sm ${
                   errors?.address?.region ? 'border-red-500 focus:ring-red-200' : 'border-gray-200 focus:ring-green-200'
                 }`}>
                   <SelectValue placeholder="Select state" />
@@ -370,7 +370,7 @@ const PropertyBasicInfo: React.FC<PropertyBasicInfoProps> = ({ data, onChange, e
                 value={data.address.postalCode}
                 onChange={(e) => handleAddressChange('postalCode', e.target.value)}
                 placeholder="94102"
-                className={`w-full px-4 py-3 border rounded-xl focus:outline-none bg-white/50 backdrop-blur-sm ${
+                className={`w-full px-4 py-3 border rounded-lg focus:outline-none bg-white/50 backdrop-blur-sm ${
                   errors?.address?.postalCode ? 'border-red-500 focus:ring-red-200' : 'border-gray-200 focus:ring-green-200'
                 }`}
                 required
@@ -394,7 +394,7 @@ const PropertyBasicInfo: React.FC<PropertyBasicInfoProps> = ({ data, onChange, e
               value={data.address.country}
               onChange={(e) => handleAddressChange('country', e.target.value)}
               placeholder="United States"
-              className={`w-full px-4 py-3 border rounded-xl focus:outline-none bg-white/50 backdrop-blur-sm ${
+              className={`w-full px-4 py-3 border rounded-lg focus:outline-none bg-white/50 backdrop-blur-sm ${
                 errors?.address?.country ? 'border-red-500 focus:ring-red-200' : 'border-gray-200 focus:ring-green-200'
               }`}
               required
@@ -419,7 +419,7 @@ const PropertyBasicInfo: React.FC<PropertyBasicInfoProps> = ({ data, onChange, e
               type="button"
               variant="outline"
               onClick={() => getCurrentLocation()}
-              className="flex-1 px-4 py-3 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors"
+              className="flex-1 px-4 py-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
             >
               Use Current Location
             </Button>
@@ -427,7 +427,7 @@ const PropertyBasicInfo: React.FC<PropertyBasicInfoProps> = ({ data, onChange, e
               type="button"
               variant="outline"
               onClick={() => setShowLocationInput(!showLocationInput)}
-              className="px-4 py-3 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors"
+              className="px-4 py-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
             >
               {showLocationInput ? 'Hide' : 'Manual Entry'}
             </Button>
@@ -449,7 +449,7 @@ const PropertyBasicInfo: React.FC<PropertyBasicInfoProps> = ({ data, onChange, e
                   value={data.location.lat || ''}
                   onChange={(e) => handleLocationChange('lat', parseFloat(e.target.value) || 0)}
                   placeholder="37.7749"
-                  className={`w-full px-4 py-3 border rounded-xl focus:outline-none bg-white/50 backdrop-blur-sm ${
+                  className={`w-full px-4 py-3 border rounded-lg focus:outline-none bg-white/50 backdrop-blur-sm ${
                     errors?.location?.lat ? 'border-red-500 focus:ring-red-200' : 'border-gray-200 focus:ring-green-200'
                   }`}
                   required
@@ -473,7 +473,7 @@ const PropertyBasicInfo: React.FC<PropertyBasicInfoProps> = ({ data, onChange, e
                   value={data.location.lng || ''}
                   onChange={(e) => handleLocationChange('lng', parseFloat(e.target.value) || 0)}
                   placeholder="-122.4194"
-                  className={`w-full px-4 py-3 border rounded-xl focus:outline-none bg-white/50 backdrop-blur-sm ${
+                  className={`w-full px-4 py-3 border rounded-lg focus:outline-none bg-white/50 backdrop-blur-sm ${
                     errors?.location?.lng ? 'border-red-500 focus:ring-red-200' : 'border-gray-200 focus:ring-green-200'
                   }`}
                   required
@@ -487,7 +487,7 @@ const PropertyBasicInfo: React.FC<PropertyBasicInfoProps> = ({ data, onChange, e
 
           {/* Display current coordinates */}
           {(data.location.lat && data.location.lng) && (
-            <div className="p-4 bg-gray-50 rounded-xl border border-gray-200">
+            <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
               <p className="text-sm text-gray-600">
                 <strong>Current Location:</strong> {data.location.lat.toFixed(6)}, {data.location.lng.toFixed(6)}
               </p>
@@ -520,7 +520,7 @@ const PropertyBasicInfo: React.FC<PropertyBasicInfoProps> = ({ data, onChange, e
                 max="10"
                 value={data.bedrooms}
                 onChange={(e) => onChange({ ...data, bedrooms: parseInt(e.target.value) || 0 })}
-                className={`w-full px-4 py-3 border rounded-xl focus:outline-none bg-white/50 backdrop-blur-sm ${
+                className={`w-full px-4 py-3 border rounded-lg focus:outline-none bg-white/50 backdrop-blur-sm ${
                   errors?.bedrooms ? 'border-red-500 focus:ring-red-200' : 'border-gray-200 focus:ring-green-200'
                 }`}
                 required
@@ -545,7 +545,7 @@ const PropertyBasicInfo: React.FC<PropertyBasicInfoProps> = ({ data, onChange, e
                 step="0.5"
                 value={data.bathrooms}
                 onChange={(e) => onChange({ ...data, bathrooms: parseFloat(e.target.value) || 0 })}
-                className={`w-full px-4 py-3 border rounded-xl focus:outline-none bg-white/50 backdrop-blur-sm ${
+                className={`w-full px-4 py-3 border rounded-lg focus:outline-none bg-white/50 backdrop-blur-sm ${
                   errors?.bathrooms ? 'border-red-500 focus:ring-red-200' : 'border-gray-200 focus:ring-green-200'
                 }`}
                 required
@@ -568,7 +568,7 @@ const PropertyBasicInfo: React.FC<PropertyBasicInfoProps> = ({ data, onChange, e
                 min="0"
                 value={data.square_feet}
                 onChange={(e) => onChange({ ...data, square_feet: parseInt(e.target.value) || 0 })}
-                className={`w-full px-4 py-3 border rounded-xl focus:outline-none bg-white/50 backdrop-blur-sm ${
+                className={`w-full px-4 py-3 border rounded-lg focus:outline-none bg-white/50 backdrop-blur-sm ${
                   errors?.square_feet ? 'border-red-500 focus:ring-red-200' : 'border-gray-200 focus:ring-green-200'
                 }`}
                 required
@@ -598,7 +598,7 @@ const PropertyBasicInfo: React.FC<PropertyBasicInfoProps> = ({ data, onChange, e
                   onChange({ ...data, rent_amount: value });
                 }}
                 placeholder="2,500"
-                className={`w-full pl-8 pr-4 py-3 border rounded-xl focus:outline-none bg-white/50 backdrop-blur-sm ${
+                className={`w-full pl-8 pr-4 py-3 border rounded-lg focus:outline-none bg-white/50 backdrop-blur-sm ${
                   errors?.rent_amount ? 'border-red-500 focus:ring-red-200' : 'border-gray-200 focus:ring-green-200'
                 }`}
                 required
@@ -629,7 +629,7 @@ const PropertyBasicInfo: React.FC<PropertyBasicInfoProps> = ({ data, onChange, e
                 step="0.1"
                 value={data.rating}
                 onChange={(e) => onChange({ ...data, rating: parseFloat(e.target.value) || 0 })}
-                className={`w-24 px-4 py-3 border rounded-xl focus:outline-none bg-white/50 backdrop-blur-sm ${
+                className={`w-24 px-4 py-3 border rounded-lg focus:outline-none bg-white/50 backdrop-blur-sm ${
                   errors?.rating ? 'border-red-500 focus:ring-red-200' : 'border-gray-200 focus:ring-green-200'
                 }`}
                 required
@@ -643,7 +643,7 @@ const PropertyBasicInfo: React.FC<PropertyBasicInfoProps> = ({ data, onChange, e
 
           {/* Availability and Features */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="flex items-center space-x-3 p-4 bg-gray-50 rounded-xl border border-gray-200">
+            <div className="flex items-center space-x-3 p-4 bg-gray-50 rounded-lg border border-gray-200">
               <Checkbox
                 id="isAvailable"
                 checked={data.is_available}
@@ -655,7 +655,7 @@ const PropertyBasicInfo: React.FC<PropertyBasicInfoProps> = ({ data, onChange, e
               </Label>
             </div>
 
-            <div className="flex items-center space-x-3 p-4 bg-gray-50 rounded-xl border border-gray-200">
+            <div className="flex items-center space-x-3 p-4 bg-gray-50 rounded-lg border border-gray-200">
               <Checkbox
                 id="petFriendly"
                 checked={data.pet_friendly}
@@ -667,7 +667,7 @@ const PropertyBasicInfo: React.FC<PropertyBasicInfoProps> = ({ data, onChange, e
               </Label>
             </div>
 
-            <div className="flex items-center space-x-3 p-4 bg-gray-50 rounded-xl border border-gray-200">
+            <div className="flex items-center space-x-3 p-4 bg-gray-50 rounded-lg border border-gray-200">
               <Checkbox
                 id="isRentWiseNetwork"
                 checked={data.isRentWiseNetwork}
@@ -694,7 +694,7 @@ const PropertyBasicInfo: React.FC<PropertyBasicInfoProps> = ({ data, onChange, e
                 type="date"
                 value={data.available_date || ''}
                 onChange={(e) => onChange({ ...data, available_date: e.target.value || null })}
-                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-green-200 bg-white/50 backdrop-blur-sm"
+                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-green-200 bg-white/50 backdrop-blur-sm"
               />
             </div>
           )}
@@ -724,7 +724,7 @@ const PropertyBasicInfo: React.FC<PropertyBasicInfoProps> = ({ data, onChange, e
                   onChange({ ...data, lease_term_months: months });
                 }}
               >
-                <SelectTrigger className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-green-200 bg-white/50 backdrop-blur-sm">
+                <SelectTrigger className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-green-200 bg-white/50 backdrop-blur-sm">
                   <SelectValue placeholder="Select lease term" />
                 </SelectTrigger>
                 <SelectContent className="z-[9999] max-h-60 overflow-y-auto">
@@ -751,7 +751,7 @@ const PropertyBasicInfo: React.FC<PropertyBasicInfoProps> = ({ data, onChange, e
                   onChange({ ...data, security_deposit_months: months });
                 }}
               >
-                <SelectTrigger className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-green-200 bg-white/50 backdrop-blur-sm">
+                <SelectTrigger className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-green-200 bg-white/50 backdrop-blur-sm">
                   <SelectValue placeholder="Select security deposit" />
                 </SelectTrigger>
                 <SelectContent className="z-[9999] max-h-60 overflow-y-auto">
@@ -769,7 +769,7 @@ const PropertyBasicInfo: React.FC<PropertyBasicInfoProps> = ({ data, onChange, e
           <div className="space-y-4">
             <Label className="text-base font-semibold">Rent Payment Requirements</Label>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="flex items-center space-x-3 p-4 bg-gray-50 rounded-xl border border-gray-200">
+              <div className="flex items-center space-x-3 p-4 bg-gray-50 rounded-lg border border-gray-200">
                 <Checkbox
                   id="firstMonthRequired"
                   checked={data.first_month_rent_required}
@@ -781,7 +781,7 @@ const PropertyBasicInfo: React.FC<PropertyBasicInfoProps> = ({ data, onChange, e
                 </Label>
               </div>
 
-              <div className="flex items-center space-x-3 p-4 bg-gray-50 rounded-xl border border-gray-200">
+              <div className="flex items-center space-x-3 p-4 bg-gray-50 rounded-lg border border-gray-200">
                 <Checkbox
                   id="lastMonthRequired"
                   checked={data.last_month_rent_required}
@@ -868,7 +868,7 @@ const PropertyBasicInfo: React.FC<PropertyBasicInfoProps> = ({ data, onChange, e
             onChange={(e) => onChange({ ...data, description: e.target.value })}
             placeholder="Describe the property, its features, location, and what makes it special..."
             rows={4}
-            className={`w-full px-4 py-3 border rounded-xl focus:outline-none bg-white/50 backdrop-blur-sm resize-none ${
+            className={`w-full px-4 py-3 border rounded-lg focus:outline-none bg-white/50 backdrop-blur-sm resize-none ${
               errors?.description ? 'border-red-500 focus:ring-red-200' : 'border-gray-200 focus:ring-green-200'
             }`}
             required
