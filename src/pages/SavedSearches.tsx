@@ -192,7 +192,7 @@ export function SavedSearches() {
     // Navigate to property page with search parameters
     const params = new URLSearchParams();
     if (search.searchLocation) params.set('location', search.searchLocation);
-    if (search.priceRange[0] !== 0 || search.priceRange[1] !== 5000) {
+    if (search.priceRange[0] !== 0 || search.priceRange[1] !== 10000) {
       params.set('minPrice', search.priceRange[0].toString());
       params.set('maxPrice', search.priceRange[1].toString());
     }

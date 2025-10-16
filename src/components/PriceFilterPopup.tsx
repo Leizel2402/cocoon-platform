@@ -26,7 +26,7 @@ const PriceFilterPopup: React.FC<PriceFilterPopupProps> = ({
 
   // Predefined price options
   const priceOptions = [
-    0, 500, 800, 1000, 1200, 1400, 1600, 1800, 2000, 2200, 2400, 2600, 2800, 3000, 3500, 4000, 4500, 5000
+    0, 500, 800, 1000, 1200, 1400, 1600, 1800, 2000, 2200, 2400, 2600, 2800, 3000, 3500, 4000, 4500, 5000, 6000, 7000, 8000, 9000, 10000
   ];
 
   // Close dropdowns when clicking outside

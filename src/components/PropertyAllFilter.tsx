@@ -107,7 +107,7 @@ const SearchFilters: React.FC<SearchFiltersProps> = ({
   ];
 
   const handleReset = () => {
-    setPriceRange([500, 5000]);
+    setPriceRange([500, 10000]);
     setSelectedBeds([]);
     setSelectedBaths([]);
     setSelectedHomeTypes([]);
@@ -158,7 +158,7 @@ const SearchFilters: React.FC<SearchFiltersProps> = ({
             <Slider
               value={priceRange}
               onValueChange={setPriceRange}
-              max={5000}
+              max={10000}
               min={500}
               step={100}
               className="w-full bg-blue-500 rounded-full h-3"

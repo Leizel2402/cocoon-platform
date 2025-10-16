@@ -3,6 +3,7 @@ import { PropertyCreationData } from '../../types/propertyForm';
 import { Badge } from '../../../components/ui/badge';
 import { Button } from '../../../components/ui/Button';
 import { Building, MapPin, DollarSign, Home, FileText, Calendar, CheckCircle, Star } from 'lucide-react';
+import { useScrollToTop } from '../../../hooks/useScrollToTop';
 
 interface PropertyFormReviewProps {
   data: PropertyCreationData;
@@ -17,6 +18,7 @@ const PropertyFormReview: React.FC<PropertyFormReviewProps> = ({
   onEdit,
   isSubmitting = false
 }) => {
+  const { FloatingScrollButton } = useScrollToTop();
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
@@ -392,6 +394,9 @@ const PropertyFormReview: React.FC<PropertyFormReviewProps> = ({
           {isSubmitting ? 'Creating Property...' : 'Create Property'}
         </Button>
       </div>
+      
+      {/* Floating Scroll Button */}
+      <FloatingScrollButton />
     </div>
   );
 };

@@ -249,6 +249,11 @@ export function ProspectDashboard() {
                 <option value="3000">$3,000</option>
                 <option value="4000">$4,000</option>
                 <option value="5000">$5,000</option>
+                <option value="6000">$6,000</option>
+                <option value="7000">$7,000</option>
+                <option value="8000">$8,000</option>
+                <option value="9000">$9,000</option>
+                <option value="10000">$10,000</option>
               </select>
 
               <select

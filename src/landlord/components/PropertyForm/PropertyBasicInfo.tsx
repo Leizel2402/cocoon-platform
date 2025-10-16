@@ -7,7 +7,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Textarea } from '../../../components/ui/textarea';
 import { Checkbox } from '../../../components/ui/checkbox';
 import { Badge } from '../../../components/ui/badge';
-import { MapPin, Building, Globe, Home, Star, X, Plus, Camera, FileText } from 'lucide-react';
+import { useToast } from '../../../hooks/use-toast';
+import { useAuth } from '../../../hooks/useAuth';
+import { useScrollToTop } from '../../../hooks/useScrollToTop';
+import { MapPin, Building, Globe, Home, Star, X, Plus, Camera, FileText, User } from 'lucide-react';
 
 interface PropertyBasicInfoProps {
   data: PropertyFormData;
@@ -36,10 +39,17 @@ interface PropertyBasicInfoProps {
   };
 }
 
-const PropertyBasicInfo: React.FC<PropertyBasicInfoProps> = ({ data, onChange, errors }) => {
+const PropertyBasicInfo: React.FC<PropertyBasicInfoProps> = ({ 
+  data, 
+  onChange, 
+  errors
+}) => {
   const [showLocationInput, setShowLocationInput] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [isDragOver, setIsDragOver] = useState(false);
+  const { toast } = useToast();
+  const { user } = useAuth();
+  const { FloatingScrollButton } = useScrollToTop();
 
   const handleAddressChange = (field: string, value: string) => {
     onChange({
@@ -70,6 +80,45 @@ const PropertyBasicInfo: React.FC<PropertyBasicInfoProps> = ({ data, onChange, e
       },
     });
   };
+
+  const handleUserDetailsChange = (field: string, value: string) => {
+    onChange({
+      ...data,
+      userDetails: {
+        ...data.userDetails,
+        [field]: value,
+      },
+    });
+  };
+
+  const populateFromAuthUser = () => {
+    if (!user) {
+      toast({
+        title: 'No User Data',
+        description: 'Unable to get user information. Please enter contact details manually.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    const userDetails = {
+      name: user.displayName || user.email?.split('@')[0] || '',
+      phone: user.phone || '', // Phone number not available in Firebase Auth by default
+      email: user.email || '',
+    };
+
+    onChange({
+      ...data,
+      userDetails,
+    });
+
+    toast({
+      title: 'Contact Information Updated',
+      description: 'Contact details have been populated from your account information.',
+      variant: 'default',
+    });
+  };
+
 
   const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
@@ -149,21 +198,84 @@ const PropertyBasicInfo: React.FC<PropertyBasicInfoProps> = ({ data, onChange, e
   };
 
   const getCurrentLocation = () => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          handleLocationChange('lat', position.coords.latitude);
-          handleLocationChange('lng', position.coords.longitude);
-          setShowLocationInput(false);
-        },
-        (error) => {
-          console.error('Error getting location:', error);
-          setShowLocationInput(true);
-        }
-      );
-    } else {
+    if (!navigator.geolocation) {
+      toast({
+        title: 'Geolocation Not Supported',
+        description: 'Your browser does not support geolocation. Please use manual entry.',
+        variant: 'destructive',
+      });
       setShowLocationInput(true);
+      return;
     }
+
+    // Show loading state
+    const button = document.querySelector('[data-location-button]') as HTMLButtonElement;
+    if (button) {
+      button.disabled = true;
+      button.textContent = 'Getting Location...';
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        handleLocationChange('lat', position.coords.latitude);
+        handleLocationChange('lng', position.coords.longitude);
+        setShowLocationInput(false);
+        
+        // Reset button
+        if (button) {
+          button.disabled = false;
+          button.textContent = 'Use Current Location';
+        }
+        
+        toast({
+          title: 'Location Set Successfully!',
+          description: `Latitude: ${position.coords.latitude.toFixed(6)}, Longitude: ${position.coords.longitude.toFixed(6)}`,
+          variant: 'default',
+        });
+      },
+      (error) => {
+        console.error('Error getting location:', error);
+        setShowLocationInput(true);
+        
+        // Reset button
+        if (button) {
+          button.disabled = false;
+          button.textContent = 'Use Current Location';
+        }
+        
+        let errorMessage = 'Unable to get your current location. ';
+        let errorTitle = 'Location Error';
+        
+        switch (error.code) {
+          case error.PERMISSION_DENIED:
+            errorMessage += 'Please allow location access in your browser settings and try again.';
+            errorTitle = 'Permission Denied';
+            break;
+          case error.POSITION_UNAVAILABLE:
+            errorMessage += 'Location information is unavailable.';
+            errorTitle = 'Location Unavailable';
+            break;
+          case error.TIMEOUT:
+            errorMessage += 'Location request timed out. Please try again.';
+            errorTitle = 'Request Timeout';
+            break;
+          default:
+            errorMessage += 'An unknown error occurred.';
+            break;
+        }
+        
+        toast({
+          title: errorTitle,
+          description: errorMessage,
+          variant: 'destructive',
+        });
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 300000 // 5 minutes
+      }
+    );
   };
 
   return (
@@ -419,7 +531,8 @@ const PropertyBasicInfo: React.FC<PropertyBasicInfoProps> = ({ data, onChange, e
               type="button"
               variant="outline"
               onClick={() => getCurrentLocation()}
-              className="flex-1 px-4 py-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+              data-location-button
+              className="flex-1 px-4 py-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Use Current Location
             </Button>
@@ -1022,6 +1135,82 @@ const PropertyBasicInfo: React.FC<PropertyBasicInfoProps> = ({ data, onChange, e
           </div>
         </div>
 
+        {/* User Details Section */}
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
+                <User className="h-4 w-4 text-purple-600" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900">Contact Information</h3>
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={populateFromAuthUser}
+              className="text-purple-600 hover:text-purple-700 hover:bg-purple-50 px-3 py-2 border border-purple-200 rounded-lg"
+            >
+              Use My Account Info
+            </Button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div>
+              <Label
+                htmlFor="propertyUserName"
+                className="block text-sm font-semibold text-gray-700 mb-2"
+              >
+                Name *
+              </Label>
+              <Input
+                id="propertyUserName"
+                value={data.userDetails.name}
+                onChange={(e) => handleUserDetailsChange('name', e.target.value)}
+                placeholder="John Doe"
+                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-green-200 bg-white/50 backdrop-blur-sm"
+                required
+              />
+            </div>
+
+            <div>
+              <Label
+                htmlFor="propertyUserPhone"
+                className="block text-sm font-semibold text-gray-700 mb-2"
+              >
+                Phone Number *
+              </Label>
+              <Input
+                id="propertyUserPhone"
+                type="tel"
+                value={data.userDetails.phone}
+                onChange={(e) => handleUserDetailsChange('phone', e.target.value)}
+                placeholder="(555) 123-4567"
+                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-green-200 bg-white/50 backdrop-blur-sm"
+                required
+              />
+            </div>
+
+            <div>
+              <Label
+                htmlFor="propertyUserEmail"
+                className="block text-sm font-semibold text-gray-700 mb-2"
+              >
+                Email Address *
+              </Label>
+              <Input
+                id="propertyUserEmail"
+                type="email"
+                value={data.userDetails.email}
+                onChange={(e) => handleUserDetailsChange('email', e.target.value)}
+                placeholder="john@example.com"
+                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-green-200 bg-white/50 backdrop-blur-sm"
+                required
+              />
+            </div>
+          </div>
+        </div>
+
         {/* Social Media Feeds */}
         <div className="space-y-4">
           <div className="flex items-center gap-2">
@@ -1035,7 +1224,9 @@ const PropertyBasicInfo: React.FC<PropertyBasicInfoProps> = ({ data, onChange, e
               <Input
                 id="instagram"
                 value={data.socialFeeds?.instagram || ''}
-                onChange={(e) => handleSocialFeedsChange('instagram', e.target.value)}
+                onChange={(e) => {
+                  handleSocialFeedsChange('instagram', e.target.value);
+                }}
                 placeholder="@propertyname"
               />
             </div>
@@ -1045,7 +1236,9 @@ const PropertyBasicInfo: React.FC<PropertyBasicInfoProps> = ({ data, onChange, e
               <Input
                 id="tiktok"
                 value={data.socialFeeds?.tiktok || ''}
-                onChange={(e) => handleSocialFeedsChange('tiktok', e.target.value)}
+                onChange={(e) => {
+                  handleSocialFeedsChange('tiktok', e.target.value);
+                }}
                 placeholder="@propertyname"
               />
             </div>
@@ -1055,12 +1248,17 @@ const PropertyBasicInfo: React.FC<PropertyBasicInfoProps> = ({ data, onChange, e
               <Input
                 id="youtube"
                 value={data.socialFeeds?.youtube || ''}
-                onChange={(e) => handleSocialFeedsChange('youtube', e.target.value)}
+                onChange={(e) => {
+                  handleSocialFeedsChange('youtube', e.target.value);
+                }}
                 placeholder="Channel name or URL"
               />
             </div>
           </div>
         </div>
+
+    {/* Floating Scroll Button */}
+    <FloatingScrollButton />
       </div>
     </div>
   );

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useAuth } from '../../../hooks/useAuth';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../../../lib/firebase';
@@ -15,6 +15,38 @@ import { Building, Plus, ArrowLeft, List } from 'lucide-react';
 const PropertyForm: React.FC = () => {
   const { user } = useAuth();
   const { toast } = useToast();
+  const stepperRef = useRef<HTMLDivElement>(null);
+  
+  // Function to scroll to navigation buttons with slower speed
+  const scrollToNavigation = () => {
+    if (stepperRef.current) {
+      // Use a custom slow scroll implementation
+      const targetElement = stepperRef.current;
+      const targetPosition = targetElement.offsetTop - 100; // 100px offset from top
+      const startPosition = window.pageYOffset;
+      const distance = targetPosition - startPosition;
+      const duration = 1500; // 1.5 seconds for slower scroll
+      let start: number | null = null;
+
+      const animation = (currentTime: number) => {
+        if (start === null) start = currentTime;
+        const timeElapsed = currentTime - start;
+        const run = easeInOutQuad(timeElapsed, startPosition, distance, duration);
+        window.scrollTo(0, run);
+        if (timeElapsed < duration) requestAnimationFrame(animation);
+      };
+
+      // Easing function for smooth animation
+      const easeInOutQuad = (t: number, b: number, c: number, d: number) => {
+        t /= d / 2;
+        if (t < 1) return c / 2 * t * t + b;
+        t--;
+        return -c / 2 * (t * (t - 2) - 1) + b;
+      };
+
+      requestAnimationFrame(animation);
+    }
+  };
   
   const [formState, setFormState] = useState<PropertyFormState>({
     currentStep: 'property',
@@ -48,6 +80,11 @@ const PropertyForm: React.FC = () => {
         description: '',
         rating: 0,
         isRentWiseNetwork: false,
+        userDetails: {
+          name: '',
+          phone: '',
+          email: '',
+        },
         socialFeeds: {},
         // Lease Terms
         lease_term_months: 12,
@@ -282,9 +319,13 @@ const PropertyForm: React.FC = () => {
       propertyData.last_month_rent_required !== formState.data.property.last_month_rent_required ||
       JSON.stringify(propertyData.lease_term_options) !== JSON.stringify(formState.data.property.lease_term_options);
 
-    // Update existing units with new lease terms if they changed
+    // Check if amenities have changed
+    const amenitiesChanged = 
+      JSON.stringify(propertyData.amenities) !== JSON.stringify(formState.data.property.amenities);
+
+    // Update existing units with new lease terms and amenities if they changed
     let updatedUnits = formState.data.units;
-    if (leaseTermsChanged) {
+    if (leaseTermsChanged || amenitiesChanged) {
       updatedUnits = formState.data.units.map(unit => ({
         ...unit,
         lease_term_months: propertyData.lease_term_months,
@@ -292,12 +333,14 @@ const PropertyForm: React.FC = () => {
         security_deposit_months: propertyData.security_deposit_months,
         first_month_rent_required: propertyData.first_month_rent_required,
         last_month_rent_required: propertyData.last_month_rent_required,
+        // Only update amenities if they changed and unit doesn't have custom amenities
+        amenities: amenitiesChanged ? [...propertyData.amenities] : unit.amenities,
       }));
     }
 
-    // Update existing listings with new lease terms if they changed
+    // Update existing listings with new lease terms and amenities if they changed
     let updatedListings = formState.data.listings;
-    if (leaseTermsChanged) {
+    if (leaseTermsChanged || amenitiesChanged) {
       updatedListings = formState.data.listings.map(listing => ({
         ...listing,
         lease_term_months: propertyData.lease_term_months,
@@ -305,6 +348,8 @@ const PropertyForm: React.FC = () => {
         security_deposit_months: propertyData.security_deposit_months,
         first_month_rent_required: propertyData.first_month_rent_required,
         last_month_rent_required: propertyData.last_month_rent_required,
+        // Only update amenities if they changed and listing doesn't have custom amenities
+        amenities: amenitiesChanged ? [...propertyData.amenities] : listing.amenities,
       }));
     }
     
@@ -382,9 +427,15 @@ const PropertyForm: React.FC = () => {
       rent: 0,
       deposit: 0,
       available: true,
-      amenities: [],
+      amenities: [...formState.data.property.amenities], // Inherit amenities from property
       images: [],
+      floorImage: '',
       description: '',
+      userDetails: {
+        name: '',
+        phone: '',
+        email: '',
+      },
       // Lease Terms for Unit - inherit from property
       lease_term_months: formState.data.property.lease_term_months,
       lease_term_options: formState.data.property.lease_term_options,
@@ -419,8 +470,13 @@ const PropertyForm: React.FC = () => {
       bathrooms: 1,
       squareFeet: 0,
       images: [],
-      amenities: [],
+      amenities: [...formState.data.property.amenities], // Inherit amenities from property
       available: true,
+      userDetails: {
+        name: '',
+        phone: '',
+        email: '',
+      },
       // Lease Terms for Listing - inherit from property
       lease_term_months: formState.data.property.lease_term_months,
       lease_term_options: formState.data.property.lease_term_options,
@@ -483,11 +539,13 @@ const PropertyForm: React.FC = () => {
       const propertyData = {
         ...formState.data.property,
         landlordId: user.uid,
-        lease_term_options: formState.data.property.lease_term_options,
+        // Ensure lease_term_options is explicitly set
+        lease_term_options: formState.data.property.lease_term_options || ['12 Months'],
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       };
       console.log('Creating property with lease_term_options:', propertyData.lease_term_options);
+      console.log('Property data being saved:', propertyData);
       const propertyRef = await addDoc(collection(db, 'properties'), propertyData);
 
       // Create units
@@ -496,11 +554,17 @@ const PropertyForm: React.FC = () => {
           ...unit,
           propertyId: propertyRef.id,
           landlordId: user.uid,
-          lease_term_options: unit.lease_term_options || formState.data.property.lease_term_options,
+          // Ensure lease_term_options is explicitly set
+          lease_term_options: unit.lease_term_options && unit.lease_term_options.length > 0 
+            ? unit.lease_term_options 
+            : formState.data.property.lease_term_options,
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
         };
         console.log('Creating unit with lease_term_options:', unitData.lease_term_options);
+        console.log('Unit lease_term_options type:', typeof unitData.lease_term_options);
+        console.log('Unit lease_term_options length:', unitData.lease_term_options?.length);
+        console.log('Unit data being saved:', unitData);
         return addDoc(collection(db, 'units'), unitData);
       });
       const unitRefs = await Promise.all(unitPromises);
@@ -522,7 +586,7 @@ const PropertyForm: React.FC = () => {
       await Promise.all(listingPromises);
 
       toast({
-        title: 'Success',
+        title: 'Property created successfully!',
         description: 'Property created successfully!',
       });
 
@@ -559,6 +623,11 @@ const PropertyForm: React.FC = () => {
             description: '',
             rating: 0,
             isRentWiseNetwork: false,
+            userDetails: {
+              name: '',
+              phone: '',
+              email: '',
+            },
             socialFeeds: {},
             // Lease Terms
             lease_term_months: 12,
@@ -664,6 +733,8 @@ const PropertyForm: React.FC = () => {
                         first_month_rent_required: formState.data.property.first_month_rent_required,
                         last_month_rent_required: formState.data.property.last_month_rent_required,
                       }}
+                      propertyAmenities={formState.data.property.amenities}
+                      onLastFieldComplete={scrollToNavigation}
                     />
                   </div>
                 ))}
@@ -716,6 +787,8 @@ const PropertyForm: React.FC = () => {
                         first_month_rent_required: formState.data.property.first_month_rent_required,
                         last_month_rent_required: formState.data.property.last_month_rent_required,
                       }}
+                      propertyAmenities={formState.data.property.amenities}
+                      onLastFieldComplete={scrollToNavigation}
                     />
                   </div>
                 ))}
@@ -760,7 +833,7 @@ const PropertyForm: React.FC = () => {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => window.history.back()}
+                // onClick={() => window.history.back()}
                 className="bg-white text-green-600 hover:bg-green-50 font-semibold transition-all duration-200 shadow-lg"
               >
                 <ArrowLeft className="h-4 w-4 mr-2" />
@@ -775,7 +848,7 @@ const PropertyForm: React.FC = () => {
         <div className="container mx-auto">
 
           {/* Form Stepper */}
-          <div className="mb-8">
+          <div ref={stepperRef} className="mb-8">
             <PropertyFormStepper
               currentStep={formState.currentStep}
               onStepChange={goToStep}

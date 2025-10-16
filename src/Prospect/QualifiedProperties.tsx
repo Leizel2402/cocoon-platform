@@ -146,7 +146,7 @@ const QualifiedProperties: React.FC<QualifiedPropertiesProps> = ({
   const [searchFilters, setSearchFilters] = useState({
     location: "",
     minPrice: 500,
-    maxPrice: 5000,
+    maxPrice: 10000,
     moveInDate: "",
     petFriendly: null as boolean | null,
   });
@@ -742,7 +742,7 @@ const QualifiedProperties: React.FC<QualifiedPropertiesProps> = ({
                       setSearchFilters({
                         location: "",
                         minPrice: 500,
-                        maxPrice: 5000,
+                        maxPrice: 10000,
                         moveInDate: "",
                       petFriendly: null,
                     });

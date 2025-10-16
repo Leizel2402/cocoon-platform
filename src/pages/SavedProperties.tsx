@@ -219,10 +219,10 @@ export function SavedProperties() {
 
   const handleViewUnits = async (property: SavedProperty) => {
     // Load units for this property
-    await loadUnitsForProperty(property.propertyId);
+    await loadUnitsForProperty(property.id);
+    // console.log("property",property);
     
-    // Navigate to dashboard with propertyId parameter to open unit selection
-    navigate(`/dashboard?propertyId=${property.propertyId}`);
+  
   };
 
 

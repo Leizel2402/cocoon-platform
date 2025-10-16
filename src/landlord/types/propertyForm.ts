@@ -32,6 +32,12 @@ export interface PropertyFormData {
   description: string; // Property description
   rating: number; // Property rating
   isRentWiseNetwork: boolean; // RentWise Network status
+  // User Details
+  userDetails: {
+    name: string;
+    phone: string;
+    email: string;
+  };
   // Lease Terms
   lease_term_months: number; // Default lease term in months
   lease_term_options: string[]; // Available lease term options
@@ -57,7 +63,14 @@ export interface UnitFormData {
   availableDate?: Date;
   amenities: string[];
   images: string[];
+  floorImage?: string; // Floor plan image
   description: string;
+  // User Details
+  userDetails: {
+    name: string;
+    phone: string;
+    email: string;
+  };
   // Lease Terms for Unit
   lease_term_months: number; // Lease term in months
   lease_term_options: string[]; // Available lease term options
@@ -81,6 +94,12 @@ export interface ListingFormData {
   amenities: string[];
   available: boolean;
   availableDate?: Date;
+  // User Details
+  userDetails: {
+    name: string;
+    phone: string;
+    email: string;
+  };
   // Lease Terms for Listing
   lease_term_months: number; // Lease term in months
   lease_term_options: string[]; // Available lease term options
@@ -291,7 +310,7 @@ export type USState = typeof US_STATES[number];
 
 // Lease term options
 export const LEASE_TERM_OPTIONS = [
-  'Month-to-Month',
+  '1 Month',
   '3 Months',
   '6 Months', 
   '9 Months',
@@ -307,7 +326,7 @@ export type LeaseTermOption = typeof LEASE_TERM_OPTIONS[number];
 
 // Lease term months mapping
 export const LEASE_TERM_MONTHS: Record<string, number> = {
-  'Month-to-Month': 1,
+  '1 Month': 1,
   '3 Months': 3,
   '6 Months': 6,
   '9 Months': 9,

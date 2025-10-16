@@ -335,7 +335,7 @@ const Dashboards = () => {
   };
 
   // Enhanced filter states with better state management
-  const [priceRange, setPriceRange] = useState<[number, number]>([0, 5000]);
+  const [priceRange, setPriceRange] = useState<[number, number]>([0, 10000]);
   const [selectedBeds, setSelectedBeds] = useState<string[]>([]);
   const [selectedBaths, setSelectedBaths] = useState<string[]>([]);
 
@@ -364,7 +364,7 @@ const Dashboards = () => {
         setSearchLocation("");
         break;
       case "price":
-        setPriceRange([0, 5000]);
+        setPriceRange([0, 10000]);
         break;
       case "beds":
         setSelectedBeds([]);
@@ -428,9 +428,9 @@ const Dashboards = () => {
   const [parkingType, setParkingType] = useState<string[]>([]);
   const [utilityPolicy, setUtilityPolicy] = useState<string[]>([]);
   const [squareFootage, setSquareFootage] = useState<[number, number]>([
-    500, 3000,
+    0, 10000,
   ]);
-  const [yearBuilt, setYearBuilt] = useState<[number, number]>([1980, 2024]);
+  const [yearBuilt, setYearBuilt] = useState<[number, number]>([1900, 2030]);
   const [additionalSpecialties, setAdditionalSpecialties] = useState<string[]>(
     []
   );
@@ -747,6 +747,8 @@ const Dashboards = () => {
 
         const transformedProperties = querySnapshot.docs.map((doc: any) => {
           const prop = doc.data();
+          console.log("prop", prop);
+          
           // Handle different data structures from listings vs properties
           if (collectionName === "listings") {
             // Data from listings collection (migrated data)
@@ -783,6 +785,7 @@ const Dashboards = () => {
               application_fee: prop.application_fee,
             };
           } else {
+            console.log("prop properties", prop);
             // Data from properties collection (new landlord form format)
             // Handle both string and object address formats
             let addressString = "";
@@ -836,7 +839,8 @@ const Dashboards = () => {
                 updatedAt = new Date(prop.updatedAt);
               }
             }
-
+            console.log("doc", doc.id);
+            
             return {
               id: doc.id,
               name: prop.name || prop.title || "",
@@ -852,7 +856,7 @@ const Dashboards = () => {
               amenities: prop.amenities || [],
               image: imageUrl,
               coordinates: coordinates,
-              propertyType: prop.property_type || prop.propertyType || "",
+              propertyType: prop.propertyType || prop.property_type || "",
               isRentWiseNetwork: prop.isRentWiseNetwork || false,
               rent_amount: prop.rent_amount,
               bedrooms: prop.bedrooms,
@@ -877,12 +881,22 @@ const Dashboards = () => {
               socialFeeds: prop.socialFeeds,
               // Images array
               images: prop.images || [],
-              // Property type details
+              // Property type details (keep both for compatibility)
               property_type: prop.property_type,
               // Location object
               location: prop.location,
               // Address object (keep original for detailed display)
               addressObject: prop.address,
+              // Future fields (will be undefined if not present)
+              year_built: prop.year_built,
+              yearBuilt: prop.yearBuilt,
+              features: prop.features,
+              parkingType: prop.parkingType,
+              utilityPolicy: prop.utilityPolicy,
+              specialties: prop.specialties,
+              laundryFacilities: prop.laundryFacilities,
+              propertyFeatures: prop.propertyFeatures,
+              // Lease and application details
               lease_term_options: prop.lease_term_options || [],
               lease_term_months: prop.lease_term_months,
               security_deposit_months: prop.security_deposit_months,
@@ -894,6 +908,8 @@ const Dashboards = () => {
           }
         });
 
+        console.log("Transformed properties count:", transformedProperties.length);
+        console.log("Transformed properties:", transformedProperties);
         setDatabaseProperties(transformedProperties);
       } catch (error) {
         console.error("Error loading properties from Firebase:", error);
@@ -1153,10 +1169,10 @@ const Dashboards = () => {
     }
 
     // Price range filter
-    if (priceRange[0] !== 0 || priceRange[1] !== 5000) {
+    if (priceRange[0] !== 0 || priceRange[1] !== 10000) {
       activeFilters++;
       const priceLabel =
-        priceRange[1] === 5000
+        priceRange[1] === 10000
           ? `Price: Up To $${(priceRange[1] / 1000).toFixed(1)}k`
           : `Price: $${priceRange[0].toLocaleString()} - $${priceRange[1].toLocaleString()}`;
       filterDetails.push({
@@ -1381,8 +1397,8 @@ const Dashboards = () => {
     // Price filter - handle both database and sample data formats
     let priceInRange = true;
 
-    // Skip price filtering if range is set to show all prices (0 to 5000)
-    if (priceRange[0] === 0 && priceRange[1] === 5000) {
+    // Skip price filtering if range is set to show all prices (0 to 10000)
+    if (priceRange[0] === 0 && priceRange[1] === 10000) {
       priceInRange = true;
     } else if (property.rent_amount && property.rent_amount > 0) {
       // Database format: numeric rent_amount (preferred)
@@ -1441,8 +1457,7 @@ const Dashboards = () => {
     // Home type filter using the actual propertyType field
     const typeMatch =
       selectedHomeTypes.length === 0 ||
-      selectedHomeTypes.includes(property.propertyType || "Apartment") ||
-      selectedHomeTypes.includes(property.property_type || "Apartment");
+      selectedHomeTypes.includes(property.propertyType || property.property_type || "Apartment");
 
     // Amenities filter
     const amenitiesMatch =
@@ -1451,7 +1466,7 @@ const Dashboards = () => {
         property.amenities?.includes(amenity)
       );
 
-    // Features filter - use amenities array since features field doesn't exist in Firebase
+    // Features filter - check both features field and amenities array
     const featuresMatch =
       selectedFeatures.length === 0 ||
       selectedFeatures.every(
@@ -1471,7 +1486,7 @@ const Dashboards = () => {
       (petPolicy === "No Pets" && !property.pet_friendly) ||
       property.petPolicy === petPolicy;
 
-    // Parking type filter - check amenities for parking
+    // Parking type filter - check both parkingType field and amenities array
     const parkingMatch =
       parkingType.length === 0 ||
       parkingType.some(
@@ -1485,7 +1500,7 @@ const Dashboards = () => {
           )
       );
 
-    // Utility policy filter - check amenities for utilities
+    // Utility policy filter - check both utilityPolicy field and amenities array
     const utilityMatch =
       utilityPolicy.length === 0 ||
       utilityPolicy.some(
@@ -1516,7 +1531,7 @@ const Dashboards = () => {
         property.yearBuilt >= yearBuilt[0] &&
         property.yearBuilt <= yearBuilt[1]);
 
-    // Additional specialties filter - check amenities for specialties
+    // Additional specialties filter - check both specialties field and amenities array
     const specialtiesMatch =
       additionalSpecialties.length === 0 ||
       additionalSpecialties.some(
@@ -1527,7 +1542,7 @@ const Dashboards = () => {
           )
       );
 
-    // Laundry facilities filter - check amenities for laundry
+    // Laundry facilities filter - check both laundryFacilities field and amenities array
     const laundryMatch =
       laundryFacilities.length === 0 ||
       laundryFacilities.some(
@@ -1546,7 +1561,7 @@ const Dashboards = () => {
       !selectedRating ||
       (property.rating && property.rating >= parseFloat(selectedRating));
 
-    // Property features filter - check amenities for features
+    // Property features filter - check both propertyFeatures field and amenities array
     const propertyFeaturesMatch =
       propertyFeatures.length === 0 ||
       propertyFeatures.some(
@@ -1580,11 +1595,18 @@ const Dashboards = () => {
       propertyFeaturesMatch &&
       rentwiseMatch;
 
+    // Debug logging for failed filters (simplified)
+    if (!finalResult) {
+      console.log("Property filtered out:", property.id, property.name);
+    }
+
     return finalResult;
   });
 
   // Update search summary with filtered results count
   useEffect(() => {
+    console.log("Filtered properties count:", filteredProperties.length);
+    console.log("Filtered properties:", filteredProperties);
     setSearchSummary((prev) => ({
       ...prev,
       totalResults: filteredProperties.length,
@@ -1771,12 +1793,12 @@ const Dashboards = () => {
                     <PopoverTrigger asChild>
                       <Button
                         className={`text-sm px-4 py-3 rounded-lg border-2 transition-all duration-200 ${
-                          priceRange[0] === 0 && priceRange[1] === 5000
+                          priceRange[0] === 0 && priceRange[1] === 10000
                             ? "border-gray-200 bg-white text-gray-700 hover:bg-gray-50"
                             : "border-blue-500 bg-blue-50 text-blue-700 hover:bg-blue-100"
                         }`}
                       >
-                        {priceRange[0] === 0 && priceRange[1] === 5000
+                        {priceRange[0] === 0 && priceRange[1] === 10000
                           ? "Any Price"
                           : priceRange[0] === 0
                           ? `Up to $${(priceRange[1] / 1000).toFixed(1)}k`
@@ -1816,11 +1838,11 @@ const Dashboards = () => {
                                       className="h-3 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full absolute"
                                       style={{
                                         left: `${
-                                          (priceRange[0] / 5000) * 100
+                                          (priceRange[0] / 10000) * 100
                                         }%`,
                                         width: `${
                                           ((priceRange[1] - priceRange[0]) /
-                                            5000) *
+                                            10000) *
                                           100
                                         }%`,
                                       }}
@@ -1831,7 +1853,7 @@ const Dashboards = () => {
                                   <input
                                     type="range"
                                     min="0"
-                                    max="5000"
+                                    max="10000"
                                     step="100"
                                     value={priceRange[0]}
                                     onChange={(e) => {
@@ -1849,7 +1871,7 @@ const Dashboards = () => {
                                   <input
                                     type="range"
                                     min="0"
-                                    max="5000"
+                                    max="10000"
                                     step="100"
                                     value={priceRange[1]}
                                     onChange={(e) => {
@@ -1884,7 +1906,7 @@ const Dashboards = () => {
                                 <input
                                   type="number"
                                   min="0"
-                                  max="5000"
+                                  max="10000"
                                   step="100"
                                   value={priceRange[0]}
                                   onChange={(e) => {
@@ -1913,7 +1935,7 @@ const Dashboards = () => {
                                 <input
                                   type="number"
                                   min="0"
-                                  max="5000"
+                                  max="10000"
                                   step="100"
                                   value={priceRange[1]}
                                   onChange={(e) => {
@@ -1926,7 +1948,7 @@ const Dashboards = () => {
                                     setPriceRange([newMin, newMax]);
                                   }}
                                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                  placeholder="5000"
+                                  placeholder="10000"
                                 />
                               </div>
                             </div>
@@ -1939,7 +1961,7 @@ const Dashboards = () => {
                         <div className="flex items-center justify-between pt-4 border-t border-gray-200">
                           <Button
                             variant="outline"
-                            onClick={() => setPriceRange([0, 5000])}
+                            onClick={() => setPriceRange([0, 10000])}
                             className="text-sm px-6 py-2 rounded-lg border-gray-300 hover:bg-gray-50 transition-colors"
                           >
                             Reset
@@ -2102,7 +2124,7 @@ const Dashboards = () => {
                       variant="outline"
                       onClick={() => {
                         setSearchLocation("");
-                        setPriceRange([500, 5000]);
+                        setPriceRange([500, 10000]);
                         setSelectedBeds([]);
                         setSelectedBaths([]);
                         setSelectedHomeTypes([]);
@@ -2112,8 +2134,8 @@ const Dashboards = () => {
                         setPetPolicy("");
                         setParkingType([]);
                         setUtilityPolicy([]);
-                        setSquareFootage([500, 3000] as [number, number]);
-                        setYearBuilt([1980, 2024] as [number, number]);
+                        setSquareFootage([0, 10000] as [number, number]);
+                        setYearBuilt([1900, 2030] as [number, number]);
                         setAdditionalSpecialties([]);
                         setLaundryFacilities([]);
                         setSelectedRating("");
@@ -2251,7 +2273,7 @@ const Dashboards = () => {
                             <button
                               onClick={() => {
                                 setSearchLocation("");
-                                setPriceRange([0, 5000]);
+                                setPriceRange([0, 10000]);
                                 setSelectedBeds([]);
                                 setSelectedBaths([]);
                                 setSelectedHomeTypes([]);
@@ -2261,11 +2283,11 @@ const Dashboards = () => {
                                 setPetPolicy("");
                                 setParkingType([]);
                                 setUtilityPolicy([]);
-                                setSquareFootage([500, 3000] as [
+                                setSquareFootage([0, 10000] as [
                                   number,
                                   number
                                 ]);
-                                setYearBuilt([1980, 2024] as [number, number]);
+                                setYearBuilt([1900, 2030] as [number, number]);
                                 setAdditionalSpecialties([]);
                                 setLaundryFacilities([]);
                                 setSelectedRating("");
@@ -2371,6 +2393,8 @@ const Dashboards = () => {
                             onViewUnits={async (property) => {
                               setSelectedProperty(property);
                               // Load units for this specific property
+                            
+                              
                               await loadUnitsForProperty(
                                 property.id.toString()
                               );
