@@ -1,9 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   collection,
   query,
   where,
-  orderBy,
   getDocs,
   doc,
   updateDoc,
@@ -13,6 +12,28 @@ import { db } from "../lib/firebase";
 import { useAuth } from "../hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import { Application, Property } from "../types";
+
+// Extended Property interface to include unit-specific details
+interface ExtendedProperty extends Property {
+  // Unit-specific properties
+  unitId?: string;
+  unitNumber?: string;
+  unitType?: string;
+  unitFloorLevel?: string;
+  unitSqft?: number;
+  unitBedrooms?: number;
+  unitBathrooms?: number;
+  unitRent?: number;
+  unitAvailableDate?: string;
+  unitDeposit?: number;
+  unitAmenities?: string[];
+  unitFeatures?: string[];
+  unitImages?: string[];
+  unitDescription?: string;
+  selectedLeaseTerm?: string;
+  selectedLeaseTermMonths?: number;
+  selectedLeaseTermRent?: number;
+}
 import { motion } from "framer-motion";
 import {
   FileText,
@@ -27,14 +48,8 @@ import {
   CheckCircle,
   AlertCircle,
   RefreshCw,
-  Filter,
   Search,
-  MoreVertical,
-  Phone,
-  Mail,
   FileCheck,
-  TrendingUp,
-  BarChart3,
   Home,
   User,
   Users,
@@ -62,14 +77,14 @@ import { useToast } from "../hooks/use-toast";
 // Extended Application interface with comprehensive details matching ApplicationProcess
 interface ExtendedApplication extends Application {
   // Override status to include additional states
-  status: "submitted" | "under_review" | "approved" | "rejected" | "withdrawn" | "started" | "screening";
+  status: "submitted" | "approved" | "rejected" | "started" | "screening";
   status_updated_at: Date;
   landlord_notes?: string;
   documents_required?: string[];
   documents_submitted?: string[];
   communication_count?: number;
   last_communication?: Date;
-  
+
   // Add missing required properties from base Application interface
   prospectId: string;
   landlordId: string;
@@ -101,10 +116,43 @@ interface ExtendedApplication extends Application {
     };
   };
   createdAt: Date;
-  updatedAt?: Date;
+  updatedAt: Date;
+
+  // Add property reference for UI display
+  property?: ExtendedProperty;
+
+  // Add unit-specific properties
+  isUnitSpecific?: boolean;
+
+  // Add application metadata for unit details
+  applicationMetadata?: {
+    unitId?: string;
+    propertyId?: string;
+    unitNumber?: string;
+    unitType?: string;
+    unitFloorLevel?: string;
+    unitSqft?: number;
+    unitBedrooms?: number;
+    unitBathrooms?: number;
+    unitRent?: number;
+    unitAvailableDate?: string;
+    unitDeposit?: number;
+    propertyName?: string;
+    propertyAddress?: string;
+    selectedLeaseTerm?: string;
+    selectedLeaseTermMonths?: number;
+    selectedLeaseTermRent?: number;
+    submittedBy?: string;
+  };
+
+  // Add review and submit permissions
+  reviewAndSubmit?: {
+    backgroundCheckPermission?: boolean;
+    textMessagePermission?: boolean;
+  };
 
   // Personal Information (from ApplicationProcess)
-  personalInfo?: {
+  personalInfo: {
     firstName: string;
     middleInitial?: string;
     lastName: string;
@@ -113,6 +161,11 @@ interface ExtendedApplication extends Application {
     dateOfBirth: string;
     ssn?: string;
     isCitizen: boolean;
+    emergencyContact: {
+      name: string;
+      phone: string;
+      relationship: string;
+    };
   };
 
   // Financial Information
@@ -130,7 +183,6 @@ interface ExtendedApplication extends Application {
     otherIncomeDetails?: string;
   };
 
-
   // Lease Holders & Guarantors
   leaseHolders?: Array<{
     firstName: string;
@@ -140,6 +192,10 @@ interface ExtendedApplication extends Application {
     dateOfBirth: string;
     ssn?: string;
     employmentStatus: string;
+    middleInitial?: string;
+    monthlyIncome?: string;
+    employerName?: string;
+    position?: string;
   }>;
 
   guarantors?: Array<{
@@ -156,7 +212,9 @@ interface ExtendedApplication extends Application {
     firstName: string;
     lastName: string;
     dateOfBirth: string;
-    relationship: string;
+    relationship?: string;
+    middleInitial?: string;
+    age?: string;
   }>;
 
   // Additional Information
@@ -188,18 +246,22 @@ interface ExtendedApplication extends Application {
   };
 
   // Documents
-  documents?: {
-    id: Array<{ name: string; url: string; type: string }>;
-    payStubs?: Array<{ name: string; url: string; type: string }>;
-    bankStatements?: Array<{ name: string; url: string; type: string }>;
-    taxReturns?: Array<{ name: string; url: string; type: string }>;
-    references?: Array<{ name: string; url: string; type: string }>;
-    other?: Array<{ name: string; url: string; type: string }>;
-  };
+  documents: string[]; // Firebase Storage URLs
 
   // Additional fields from your Firebase structure
   desiredLeaseTerm?: string;
-  references?: Array<{ name: string; url: string; type: string }>;
+  references: {
+    personal: {
+      name: string;
+      phone: string;
+      relationship: string;
+    };
+    professional: {
+      name: string;
+      phone: string;
+      position: string;
+    };
+  };
   moveInDate: Date;
   leaseLength: number;
 
@@ -220,7 +282,6 @@ interface ExtendedApplication extends Application {
 
 export function MyApplications() {
   const [applications, setApplications] = useState<ExtendedApplication[]>([]);
-  const [properties, setProperties] = useState<Property[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -233,309 +294,587 @@ export function MyApplications() {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const loadApplications = async (isRefresh = false) => {
-    if (!user) {
-      setLoading(false);
-      return;
+  // Dynamic utility functions
+  const parseAddress = (
+    address:
+      | string
+      | {
+          line1: string;
+          line2?: string;
+          city: string;
+          region: string;
+          postalCode: string;
+          country: string;
+        }
+      | undefined
+  ) => {
+    if (!address) return { city: "", state: "", fullAddress: "" };
+
+    // Handle object address format
+    if (typeof address === "object") {
+      return {
+        city: address.city || "",
+        state: address.region || "",
+        fullAddress: `${address.line1}${
+          address.line2 ? `, ${address.line2}` : ""
+        }, ${address.city}, ${address.region} ${address.postalCode}`,
+      };
     }
 
-    if (isRefresh) {
-      setRefreshing(true);
-    } else {
-      setLoading(true);
+    // Handle string address format
+    const parts = address.split(",").map((part) => part.trim());
+    if (parts.length >= 2) {
+      return {
+        city: parts[0],
+        state: parts[1],
+        fullAddress: address,
+      };
     }
 
-    try {
-      // Load user's applications from Firebase
+    return { city: address, state: "", fullAddress: address };
+  };
+
+  const getPropertyImage = (property: ExtendedProperty | undefined) => {
+    // Priority: unit images > property image > placeholder
+    if (property?.unitImages && property.unitImages.length > 0) {
+      return property.unitImages[0];
+    }
+    if (property?.image) {
+      return property.image;
+    }
+    return "";
+  };
+
+  const loadApplications = useCallback(
+    async (isRefresh = false) => {
+      if (!user) {
+        setLoading(false);
+        return;
+      }
+
+      if (isRefresh) {
+        setRefreshing(true);
+      } else {
+        setLoading(true);
+      }
+
+      try {
+        // Load user's applications from Firebase
         const applicationsQuery = query(
           collection(db, "applications"),
-        where("submittedBy", "==", user.uid),
-        orderBy("submittedAt", "desc")
+          where("applicationMetadata.submittedBy", "==", user.uid)
         );
         const applicationsSnapshot = await getDocs(applicationsQuery);
-
-      console.log("Firebase Applications Query Results:", {
-        totalDocs: applicationsSnapshot.docs.length,
-        userUid: user.uid,
-        docs: applicationsSnapshot.docs.map((doc) => ({
-          id: doc.id,
-          data: doc.data(),
-        })),
-      });
 
         const applicationsData = applicationsSnapshot.docs.map((doc) => {
           const data = doc.data();
 
-        // Debug log for each document
-        console.log("Processing application document:", {
-          docId: doc.id,
-          data: data,
-          timelineType: typeof data.timeline,
-          timelineIsArray: Array.isArray(data.timeline),
-        });
+          console.log("applicationsSnapshot", data);
 
           return {
             id: doc.id,
-          // Required properties from base Application interface
-          prospectId: data.submittedBy || user.uid,
-          landlordId: data.landlordId || "unknown",
-          propertyId: data.propertyId || "general-application",
-          appFeeCents: data.appFeeCents || 0,
-          piiTokens: {
-            ssnToken: data.ssnToken || "",
-            ssnLast4: data.ssnLast4 || ""
-          },
-          employmentInfo: {
-            employer: data.employerName || data.employers?.[0]?.name || "",
-            position: data.employers?.[0]?.position || "",
-            monthlyIncome: data.employers?.[0]?.income ? parseInt(data.employers[0].income.replace(/[,$]/g, '')) : 0,
-            employmentLength: 0 // Default value
-          },
-          housingHistory: {
-            currentAddress: {
-              street: data.currentStreet || "",
-              city: data.currentCity || "",
-              state: data.currentState || "",
-              zip: data.currentZip || "",
-              duration: data.currentDuration || ""
+            // Required properties from base Application interface
+            prospectId: data.applicationMetadata?.submittedBy || user.uid,
+            landlordId: data.landlordId || "unknown",
+            propertyId:
+              data.applicationMetadata?.propertyId || "general-application",
+            appFeeCents: data.appFeeCents || 0,
+            piiTokens: {
+              ssnToken: data.ssnToken || "",
+              ssnLast4: data.ssnLast4 || "",
             },
-            previousAddress: data.previousStreet ? {
-              street: data.previousStreet || "",
-              city: data.previousCity || "",
-              state: data.previousState || "",
-              zip: data.previousZip || ""
-            } : undefined
-          },
-          createdAt: data.submittedAt ? (data.submittedAt.toDate ? data.submittedAt.toDate() : new Date(data.submittedAt)) : new Date(),
-          updatedAt: data.updatedAt ? (data.updatedAt.toDate ? data.updatedAt.toDate() : new Date(data.updatedAt)) : undefined,
-          
-          // Map your Firebase structure to the expected structure
-          user_id: data.submittedBy,
-          property_id: data.propertyId,
-          move_in_date: data.moveInDate
-            ? data.moveInDate.toDate
-              ? data.moveInDate.toDate()
-              : new Date(data.moveInDate)
-            : new Date(),
-          income: data.income || 0,
-          notes: data.notes || data.additionalInfo || "",
-          created_at: data.submittedAt
-            ? data.submittedAt.toDate
-              ? data.submittedAt.toDate()
-              : new Date(data.submittedAt)
-            : new Date(),
-          status: data.status === "pending" ? "submitted" : data.status,
-          status_updated_at: data.submittedAt
-            ? data.submittedAt.toDate
-              ? data.submittedAt.toDate()
-              : new Date(data.submittedAt)
-            : new Date(),
-          landlord_notes: data.landlordNotes || "",
-          documents_required: Array.isArray(data.documentsRequired)
-            ? data.documentsRequired
-            : [],
-          documents_submitted: Array.isArray(data.documentsSubmitted)
-            ? data.documentsSubmitted
-            : [],
-          communication_count: data.communicationCount || 0,
-          last_communication: data.lastCommunication
-            ? data.lastCommunication.toDate
-              ? data.lastCommunication.toDate()
-              : new Date(data.lastCommunication)
-            : undefined,
-
-          // Map additional fields from your Firebase structure
-          personalInfo: {
-            firstName: data.firstName || "",
-            middleInitial: data.middleInitial || "",
-            lastName: data.lastName || "",
-            email: data.email || "",
-            phone: data.phone || "",
-            dateOfBirth: data.dateOfBirth || "",
-            ssn: data.ssn || "",
-            isCitizen: data.isCitizen || true,
-          },
-
-          financialInfo: {
-            employment: data.employment || "",
-            employerName: data.employerName || "",
-            employers: Array.isArray(data.employers) ? data.employers : [],
-            hasOtherIncome: data.hasOtherIncome || false,
-            otherIncomeDetails: data.otherIncomeDetails || "",
-          },
-
-
-          // Lease Holders & Guarantors
-          leaseHolders: Array.isArray(data.leaseHolders)
-            ? data.leaseHolders
-            : [],
-          guarantors: Array.isArray(data.guarantors) ? data.guarantors : [],
-
-          // Additional Occupants
-          additionalOccupants: Array.isArray(data.additionalOccupants)
-            ? data.additionalOccupants
-            : [],
-
-          additionalInfo: {
-            pets: Array.isArray(data.pets) ? data.pets : [],
-            hasPets: data.hasPets || false,
-            vehicles: Array.isArray(data.vehicles) ? data.vehicles : [],
-            hasVehicles: data.hasVehicles || false,
-            emergencyContact: data.emergencyContact || {
-              name: "",
-              phone: "",
-              email: "",
-              relation: "",
+            employmentInfo: {
+              employer:
+                data.financialInfo?.employerName ||
+                data.financialInfo?.employers?.[0]?.name ||
+                "",
+              position: data.financialInfo?.employers?.[0]?.position || "",
+              monthlyIncome: data.financialInfo?.employers?.[0]?.income
+                ? parseInt(
+                    data.financialInfo.employers[0].income.replace(/[,$]/g, "")
+                  )
+                : 0,
+              employmentLength: 0, // Default value
             },
-            additionalInfo: data.additionalInfo || "",
-          },
+            housingHistory: {
+              currentAddress: {
+                street: data.housingHistory?.currentAddress?.street || "",
+                city: data.housingHistory?.currentAddress?.city || "",
+                state: data.housingHistory?.currentAddress?.state || "",
+                zip: data.housingHistory?.currentAddress?.zip || "",
+                duration: data.housingHistory?.currentAddress?.duration || "",
+              },
+              previousAddress: data.housingHistory?.previousAddress
+                ? {
+                    street: data.housingHistory.previousAddress.street || "",
+                    city: data.housingHistory.previousAddress.city || "",
+                    state: data.housingHistory.previousAddress.state || "",
+                    zip: data.housingHistory.previousAddress.zip || "",
+                  }
+                : undefined,
+            },
+            createdAt: data.submittedAt
+              ? data.submittedAt.toDate
+                ? data.submittedAt.toDate()
+                : new Date(data.submittedAt)
+              : new Date(),
+            updatedAt: data.updatedAt
+              ? data.updatedAt.toDate
+                ? data.updatedAt.toDate()
+                : new Date(data.updatedAt)
+              : new Date(),
 
-          documents: {
-            id: Array.isArray(data.documents?.id) ? data.documents.id : [],
-            payStubs: Array.isArray(data.documents?.payStubs)
-              ? data.documents.payStubs
+            // Map your Firebase structure to the expected structure
+            user_id: data.applicationMetadata?.submittedBy,
+            property_id:
+              data.applicationMetadata?.propertyId || "general-application",
+            move_in_date: data.personalInfo?.moveInDate
+              ? new Date(data.personalInfo.moveInDate)
+              : new Date(),
+            income: data.financialInfo?.employers?.[0]?.income
+              ? parseInt(
+                  data.financialInfo.employers[0].income.replace(/[,$]/g, "")
+                )
+              : 0,
+            notes: data.additionalInfo?.notes || "",
+            created_at: data.submittedAt
+              ? data.submittedAt.toDate
+                ? data.submittedAt.toDate()
+                : new Date(data.submittedAt)
+              : new Date(),
+            status: data.status === "pending" ? "submitted" : data.status,
+            status_updated_at: data.submittedAt
+              ? data.submittedAt.toDate
+                ? data.submittedAt.toDate()
+                : new Date(data.submittedAt)
+              : new Date(),
+            landlord_notes: data.landlordNotes || "",
+            documents_required: Array.isArray(data.documentsRequired)
+              ? data.documentsRequired
               : [],
-            bankStatements: Array.isArray(data.documents?.bankStatements)
-              ? data.documents.bankStatements
+            documents_submitted: Array.isArray(data.documentsSubmitted)
+              ? data.documentsSubmitted
               : [],
-            taxReturns: Array.isArray(data.documents?.taxReturns)
-              ? data.documents.taxReturns
-              : [],
-            references: Array.isArray(data.documents?.references)
-              ? data.documents.references
-              : [],
-            other: Array.isArray(data.documents?.other)
-              ? data.documents.other
-              : [],
-          },
+            communication_count: data.communicationCount || 0,
+            last_communication: data.lastCommunication
+              ? data.lastCommunication.toDate
+                ? data.lastCommunication.toDate()
+                : new Date(data.lastCommunication)
+              : undefined,
 
-          permissions: {
-            backgroundCheckPermission: data.backgroundCheckPermission || false,
-            textMessagePermission: data.textMessagePermission || true,
-          },
-
-          // Additional fields from your structure
-          desiredLeaseTerm: data.desiredLeaseTerm || "",
+            // Map additional fields from your Firebase structure
+            personalInfo: {
+              firstName: data.personalInfo?.firstName || "",
+              middleInitial: data.personalInfo?.middleInitial || "",
+              lastName: data.personalInfo?.lastName || "",
+              email: data.personalInfo?.email || "",
+              phone: data.personalInfo?.phone || "",
+              dateOfBirth: data.personalInfo?.dateOfBirth || "",
+              ssn: data.personalInfo?.ssn || "",
+              isCitizen: data.personalInfo?.isCitizen || true,
+              emergencyContact: data.additionalInfo?.emergencyContact || {
+                name: "",
+                phone: "",
+                relationship: "",
+              },
+            },
           
-          // Add missing properties for ExtendedApplication
-          references: data.references || [],
-          moveInDate: data.moveInDate ? (data.moveInDate.toDate ? data.moveInDate.toDate() : new Date(data.moveInDate)) : new Date(),
-          leaseLength: data.leaseLength || 12,
+            
+            financialInfo: {
+              employment: data.financialInfo?.employmentStatus || "",
+              employerName: data.financialInfo?.employerName || "",
+              employers: Array.isArray(data.financialInfo?.employers)
+                ? data.financialInfo.employers
+                : [],
+              hasOtherIncome: data.financialInfo?.hasOtherIncome || false,
+              otherIncomeDetails: data.financialInfo?.otherIncomeDetails || "",
+            },
 
-          timeline: Array.isArray(data.timeline)
-            ? data.timeline.map((event: any) => ({
-                ...event,
-                date: event.date?.toDate
-                  ? event.date.toDate()
-                  : new Date(event.date),
-              }))
-            : [],
-        };
-      }) as ExtendedApplication[];
+            // Lease Holders & Guarantors
+            leaseHolders: Array.isArray(
+              data.leaseHoldersAndGuarantors?.leaseHolders
+            )
+              ? data.leaseHoldersAndGuarantors.leaseHolders
+              : [],
+            guarantors: Array.isArray(
+              data.leaseHoldersAndGuarantors?.guarantors
+            )
+              ? data.leaseHoldersAndGuarantors.guarantors
+              : [],
 
-      // Load properties from Firebase or JSON
-      let propertiesData: Property[] = [];
-      try {
-        // Try to load from Firebase first
-        const propertiesQuery = query(collection(db, "properties"));
-        const propertiesSnapshot = await getDocs(propertiesQuery);
-        propertiesData = propertiesSnapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        })) as Property[];
+            // Additional Occupants
+            additionalOccupants: Array.isArray(
+              data.additionalOccupants?.occupants
+            )
+              ? data.additionalOccupants.occupants
+              : [],
 
-        console.log("Firebase Properties Query Results:", {
-          totalProperties: propertiesData.length,
-          properties: propertiesData,
-        });
-      } catch (firebaseError) {
-        console.log("Properties not found in Firebase, trying JSON fallback");
+            additionalInfo: {
+              pets: Array.isArray(data.additionalInfo?.pets?.pets)
+                ? data.additionalInfo.pets.pets
+                : [],
+              hasPets: data.additionalInfo?.pets?.hasPets || false,
+              vehicles: Array.isArray(data.additionalInfo?.vehicles?.vehicles)
+                ? data.additionalInfo.vehicles.vehicles
+                : [],
+              hasVehicles: data.additionalInfo?.vehicles?.hasVehicles || false,
+              emergencyContact: data.additionalInfo?.emergencyContact || {
+                name: "",
+                phone: "",
+                email: "",
+                relation: "",
+              },
+              additionalInfo: data.additionalInfo?.notes || "",
+            },
+
+            documents: [], // Firebase Storage URLs - would need to be populated from actual document URLs
+
+            permissions: {
+              backgroundCheckPermission:
+                data.reviewAndSubmit?.backgroundCheckPermission || false,
+              textMessagePermission:
+                data.reviewAndSubmit?.textMessagePermission || true,
+            },
+
+            // Additional fields from your structure
+            desiredLeaseTerm:
+              data.personalInfo?.desiredLeaseTerm ||
+              data.applicationMetadata?.selectedLeaseTermMonths?.toString() ||
+              "",
+
+            // Add missing properties for ExtendedApplication
+            references: {
+              personal: {
+                name: "",
+                phone: "",
+                relationship: "",
+              },
+              professional: {
+                name: "",
+                phone: "",
+                position: "",
+              },
+            },
+            moveInDate: data.personalInfo?.moveInDate
+              ? new Date(data.personalInfo.moveInDate)
+              : new Date(),
+            leaseLength:
+              data.applicationMetadata?.selectedLeaseTermMonths || 12,
+
+            timeline: Array.isArray(data.timeline)
+              ? data.timeline.map(
+                  (event: {
+                    date: unknown;
+                    status: string;
+                    message: string;
+                    updatedBy: string;
+                  }) => ({
+                    ...event,
+                    date:
+                      event.date &&
+                      typeof event.date === "object" &&
+                      "toDate" in event.date
+                        ? (event.date as { toDate: () => Date }).toDate()
+                        : new Date(event.date as string),
+                  })
+                )
+              : [],
+
+          // Add application metadata
+          applicationMetadata: data.applicationMetadata || undefined,
+
+          // Add review and submit permissions
+          reviewAndSubmit: data.reviewAndSubmit || undefined,
+          };
+        }) as ExtendedApplication[];
+
+        // Load properties and units dynamically from Firebase
+        let propertiesData: Property[] = [];
+        let unitsData: Record<string, unknown>[] = [];
+
         try {
-          // Fallback to JSON file
-        const propertiesResponse = await fetch("/data/properties.json");
-          propertiesData = await propertiesResponse.json();
-        } catch (jsonError) {
-          console.error("Error loading properties:", jsonError);
+          // Load properties
+          const propertiesQuery = query(collection(db, "properties"));
+          const propertiesSnapshot = await getDocs(propertiesQuery);
+          propertiesData = propertiesSnapshot.docs.map((doc) => ({
+            id: doc.id,
+            ...doc.data(),
+          })) as Property[];
+
+          console.log("🏠 Loaded properties:", propertiesData.length);
+
+          // Load units (if you have a units collection)
+          try {
+            const unitsQuery = query(collection(db, "units"));
+            const unitsSnapshot = await getDocs(unitsQuery);
+            unitsData = unitsSnapshot.docs.map((doc) => ({
+              id: doc.id,
+              ...doc.data(),
+            }));
+            console.log("🏢 Loaded units:", unitsData.length);
+          } catch {
+            console.log(
+              "ℹ️ No units collection found, using applicationMetadata only"
+            );
+          }
+        } catch (error) {
+          console.error("❌ Error loading properties:", error);
+          // No fallback - keep empty array for dynamic handling
         }
-      }
 
         // Enrich applications with property data
-        const enrichedApplications = applicationsData.map((app) => ({
-          ...app,
-        property: propertiesData.find((p) => p.id === app.property_id) || {
-          id: app.property_id,
-          title:
-            app.property_id === "general-application"
-              ? "General Application"
-              : "Property",
-          city: "Unknown",
-          state: "Unknown",
-          rent: 0,
-          image:
-            "https://images.pexels.com/photos/106399/pexels-photo-106399.jpeg?auto=compress&cs=tinysrgb&w=800",
-        },
-        }));
+
+        // Dynamic property enrichment - load additional data as needed
+        const enrichedApplications = await Promise.all(
+          applicationsData.map(async (app) => {
+            // Check if this is a unit-specific application
+            const hasUnitDetails = Boolean(
+              app.applicationMetadata &&
+                (app.applicationMetadata.unitId ||
+                  app.applicationMetadata.propertyId)
+            );
+
+            let property;
+
+            if (hasUnitDetails && app.applicationMetadata) {
+              // Unit-specific application - get comprehensive unit details
+              const unitData = app.applicationMetadata;
+
+              // Try to find detailed unit information from units collection
+              const detailedUnit = unitsData.find(
+                (u) => u.id === unitData.unitId
+              ) as Record<string, unknown> | undefined;
+
+              // Try to find existing property data
+              const existingProperty = propertiesData.find(
+                (p) => p.id === unitData.propertyId
+              );
+
+              // Merge all available data sources
+              const mergedUnitData = {
+                // Start with applicationMetadata (most current)
+                ...unitData,
+                // Override with detailed unit data if available
+                ...(detailedUnit && {
+                  unitNumber:
+                    (detailedUnit.unitNumber as string) || unitData.unitNumber,
+                  unitType:
+                    (detailedUnit.unitType as string) || unitData.unitType,
+                  unitFloorLevel:
+                    (detailedUnit.floorLevel as string) ||
+                    unitData.unitFloorLevel,
+                  unitSqft:
+                    (detailedUnit.sqft as number) ||
+                    (detailedUnit.squareFootage as number) ||
+                    unitData.unitSqft,
+                  unitBedrooms:
+                    (detailedUnit.bedrooms as number) || unitData.unitBedrooms,
+                  unitBathrooms:
+                    (detailedUnit.bathrooms as number) ||
+                    unitData.unitBathrooms,
+                  unitRent:
+                    (detailedUnit.rent as number) ||
+                    (detailedUnit.baseRent as number) ||
+                    unitData.unitRent,
+                  unitAvailableDate:
+                    (detailedUnit.availableDate as string) ||
+                    unitData.unitAvailableDate,
+                  unitDeposit:
+                    (detailedUnit.deposit as number) || unitData.unitDeposit,
+                  unitAmenities: Array.isArray(detailedUnit.amenities)
+                    ? (detailedUnit.amenities as string[])
+                    : [],
+                  unitFeatures: Array.isArray(detailedUnit.features)
+                    ? (detailedUnit.features as string[])
+                    : [],
+                  unitImages: Array.isArray(detailedUnit.images)
+                    ? (detailedUnit.images as string[])
+                    : [],
+                  unitDescription: (detailedUnit.description as string) || "",
+                }),
+              };
+
+              if (existingProperty) {
+                // Parse existing property address
+                const addressInfo = parseAddress(existingProperty.address);
+
+                // Merge existing property data with comprehensive unit details
+                property = {
+                  ...existingProperty,
+                  // Override with unit-specific data
+
+                  rent:
+                    mergedUnitData.unitRent ||
+                    mergedUnitData.selectedLeaseTermRent ||
+                    existingProperty.rent,
+                  // Ensure address is properly formatted
+                  address: addressInfo.fullAddress,
+                  city: addressInfo.city,
+                  state: addressInfo.state,
+                  // Add comprehensive unit-specific details
+                  unitId: mergedUnitData.unitId,
+                  unitNumber: mergedUnitData.unitNumber,
+                  unitType: mergedUnitData.unitType,
+                  unitFloorLevel: mergedUnitData.unitFloorLevel,
+                  unitSqft: mergedUnitData.unitSqft,
+                  unitBedrooms: mergedUnitData.unitBedrooms,
+                  unitBathrooms: mergedUnitData.unitBathrooms,
+                  unitRent: mergedUnitData.unitRent,
+                  unitAvailableDate: mergedUnitData.unitAvailableDate,
+                  unitDeposit: mergedUnitData.unitDeposit,
+                  unitAmenities: mergedUnitData.unitAmenities,
+                  unitFeatures: mergedUnitData.unitFeatures,
+                  unitImages: mergedUnitData.unitImages,
+                  unitDescription: mergedUnitData.unitDescription,
+                  selectedLeaseTerm: mergedUnitData.selectedLeaseTerm,
+                  selectedLeaseTermMonths:
+                    mergedUnitData.selectedLeaseTermMonths,
+                  selectedLeaseTermRent: mergedUnitData.selectedLeaseTermRent,
+                };
+              } else {
+                // Create property from comprehensive unit data
+                const addressInfo = parseAddress(
+                  mergedUnitData.propertyAddress || ""
+                );
+
+                property = {
+                  id: mergedUnitData.propertyId || app.propertyId,
+                  title: mergedUnitData.propertyName || "Property",
+                  address: addressInfo.fullAddress,
+                  city: addressInfo.city,
+                  state: addressInfo.state,
+                  rent: mergedUnitData.selectedLeaseTermRent || 0,
+                  beds: mergedUnitData.unitBedrooms || 0,
+                  baths: mergedUnitData.unitBathrooms || 0,
+                  rating: 0,
+                  available: "Available",
+                  image:
+                    Array.isArray(mergedUnitData.unitImages) &&
+                    mergedUnitData.unitImages.length > 0
+                      ? mergedUnitData.unitImages[0]
+                      : "",
+                  // Comprehensive unit-specific details
+                  unitId: mergedUnitData.unitId,
+                  unitNumber: mergedUnitData.unitNumber,
+                  unitType: mergedUnitData.unitType,
+                  unitFloorLevel: mergedUnitData.unitFloorLevel,
+                  unitSqft: mergedUnitData.unitSqft,
+                  unitBedrooms: mergedUnitData.unitBedrooms,
+                  unitBathrooms: mergedUnitData.unitBathrooms,
+                  unitRent: mergedUnitData.unitRent,
+                  unitAvailableDate: mergedUnitData.unitAvailableDate,
+                  unitDeposit: mergedUnitData.unitDeposit,
+                  unitAmenities: mergedUnitData.unitAmenities,
+                  unitFeatures: mergedUnitData.unitFeatures,
+                  unitImages: mergedUnitData.unitImages,
+                  unitDescription: mergedUnitData.unitDescription,
+                  selectedLeaseTerm: mergedUnitData.selectedLeaseTerm,
+                  selectedLeaseTermMonths:
+                    mergedUnitData.selectedLeaseTermMonths,
+                  selectedLeaseTermRent: mergedUnitData.selectedLeaseTermRent,
+                };
+              }
+            } else {
+              // General application - find property or create minimal data
+              const foundProperty = propertiesData.find(
+                (p) => p.id === app.propertyId
+              );
+
+              if (foundProperty) {
+                // Parse the found property's address
+                const addressInfo = parseAddress(foundProperty.address);
+                property = {
+                  ...foundProperty,
+                  address: addressInfo.fullAddress,
+                  city: addressInfo.city,
+                  state: addressInfo.state,
+                };
+              } else {
+                // Create minimal property data for general application
+                property = {
+                  id: app.propertyId,
+                  title: "General Application",
+                  address: "",
+                  city: "",
+                  state: "",
+                  rent: 0,
+                  beds: 0,
+                  baths: 0,
+                  rating: 0,
+                  available: "Unknown",
+                  image: "",
+                };
+              }
+            }
+
+            return {
+              ...app,
+              property: property as ExtendedProperty,
+              isUnitSpecific: !!hasUnitDetails,
+            };
+          })
+        );
 
         setApplications(enrichedApplications);
-        setProperties(propertiesData);
 
-      if (isRefresh) {
-        toast({
-          title: "Applications refreshed",
-          description: "Your applications have been updated.",
-        });
-      }
+        if (isRefresh) {
+          toast({
+            title: "Applications refreshed",
+            description: "Your applications have been updated.",
+          });
+        }
       } catch (error) {
         console.error("Error loading applications:", error);
-      setApplications([]);
-      toast({
-        title: "Error loading applications",
-        description: "Failed to load your applications. Please try again.",
-        variant: "destructive",
-      });
+        setApplications([]);
+        toast({
+          title: "Error loading applications",
+          description: "Failed to load your applications. Please try again.",
+          variant: "destructive",
+        });
       } finally {
         setLoading(false);
-      setRefreshing(false);
+        setRefreshing(false);
       }
-    };
+    },
+    [user, toast]
+  );
 
   useEffect(() => {
     loadApplications();
-  }, [user]);
+  }, [user, loadApplications]);
 
   const handleRefresh = () => {
     loadApplications(true);
   };
 
   // Helper functions
+  // Dynamic status handling
   const getStatusColor = (status: ExtendedApplication["status"]) => {
-    switch (status) {
-      case "submitted":
-        return "bg-blue-100 text-blue-800";
-      case "under_review":
-        return "bg-yellow-100 text-yellow-800";
-      case "approved":
-        return "bg-green-100 text-green-800";
-      case "rejected":
-        return "bg-red-100 text-red-800";
-      case "withdrawn":
-        return "bg-gray-100 text-gray-800";
-      default:
-        return "bg-gray-100 text-gray-800";
-    }
+    const statusColors: Record<string, string> = {
+      submitted: "bg-blue-100 text-blue-800",
+      screening: "bg-yellow-100 text-yellow-800",
+      approved: "bg-green-100 text-green-800",
+      rejected: "bg-red-100 text-red-800",
+      started: "bg-gray-100 text-gray-800",
+      pending: "bg-orange-100 text-orange-800",
+      under_review: "bg-purple-100 text-purple-800",
+      withdrawn: "bg-gray-100 text-gray-600",
+    };
+
+    return statusColors[status] || "bg-gray-100 text-gray-800";
   };
 
   const getStatusIcon = (status: ExtendedApplication["status"]) => {
     switch (status) {
       case "submitted":
         return <FileText className="h-3 w-3" />;
-      case "under_review":
+      case "screening":
         return <RefreshCw className="h-3 w-3" />;
       case "approved":
         return <CheckCircle className="h-3 w-3" />;
       case "rejected":
         return <X className="h-3 w-3" />;
-      case "withdrawn":
+      case "started":
         return <AlertCircle className="h-3 w-3" />;
       default:
         return <FileText className="h-3 w-3" />;
@@ -546,14 +885,14 @@ export function MyApplications() {
     switch (status) {
       case "submitted":
         return "Submitted";
-      case "under_review":
-        return "Under Review";
+      case "screening":
+        return "Screening";
       case "approved":
         return "Approved";
       case "rejected":
         return "Rejected";
-      case "withdrawn":
-        return "Withdrawn";
+      case "started":
+        return "Started";
       default:
         return "Unknown";
     }
@@ -566,19 +905,26 @@ export function MyApplications() {
         app.property?.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
         app.property?.city.toLowerCase().includes(searchTerm.toLowerCase()) ||
         app.property?.state.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesStatus = statusFilter === "all" || app.status === statusFilter;
+      const matchesStatus =
+        statusFilter === "all" || app.status === statusFilter;
       return matchesSearch && matchesStatus;
     })
     .sort((a, b) => {
       switch (sortBy) {
         case "newest":
-          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+          return (
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+          );
         case "oldest":
-          return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+          return (
+            new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+          );
         case "status":
           return a.status.localeCompare(b.status);
         case "property":
-          return (a.property?.title || "").localeCompare(b.property?.title || "");
+          return (a.property?.title || "").localeCompare(
+            b.property?.title || ""
+          );
         default:
           return 0;
       }
@@ -588,8 +934,7 @@ export function MyApplications() {
   const stats = {
     total: applications.length,
     submitted: applications.filter((app) => app.status === "submitted").length,
-    underReview: applications.filter((app) => app.status === "under_review")
-      .length,
+    screening: applications.filter((app) => app.status === "screening").length,
     approved: applications.filter((app) => app.status === "approved").length,
     rejected: applications.filter((app) => app.status === "rejected").length,
   };
@@ -604,7 +949,7 @@ export function MyApplications() {
       // Update in Firebase
       const applicationRef = doc(db, "applications", applicationId);
       await updateDoc(applicationRef, {
-        status: "withdrawn",
+        status: "rejected",
         status_updated_at: serverTimestamp(),
         timeline: serverTimestamp(), // This will be handled by a cloud function or manually updated
       });
@@ -615,15 +960,15 @@ export function MyApplications() {
           app.id === applicationId
             ? {
                 ...app,
-                status: "withdrawn" as const,
+                status: "rejected" as const,
                 status_updated_at: new Date(),
                 timeline: [
                   ...(app.timeline || []),
                   {
                     date: new Date(),
-                    status: "withdrawn",
+                    status: "rejected",
                     message: "Application withdrawn by applicant",
-                    updatedBy: user?.user_metadata?.first_name || "You",
+                    updatedBy: user?.email || "You",
                   },
                 ],
               }
@@ -644,6 +989,7 @@ export function MyApplications() {
       });
     }
   };
+  console.log("filteredApplications", filteredApplications);
 
   const handleContactLandlord = (application: ExtendedApplication) => {
     // This would typically open a messaging interface or redirect to a communication page
@@ -656,7 +1002,7 @@ export function MyApplications() {
   };
 
   const handleDownloadDocument = (
-    documentUrl: string,
+    _documentUrl: string,
     documentName: string
   ) => {
     // This would handle document download
@@ -696,7 +1042,9 @@ export function MyApplications() {
                 <FileText className="h-5 w-5 sm:h-6 sm:w-6 text-green-600" />
               </div>
               <div>
-                <h1 className="text-xl sm:text-2xl font-bold text-white">My Applications</h1>
+                <h1 className="text-xl sm:text-2xl font-bold text-white">
+                  My Applications
+                </h1>
                 <p className="text-xs sm:text-sm text-green-50">
                   Track your rental applications and their status •{" "}
                   {stats.total} Application{stats.total !== 1 ? "s" : ""}
@@ -725,7 +1073,11 @@ export function MyApplications() {
                 disabled={refreshing}
                 className="bg-white/20 border-white/30 text-white hover:bg-white/30 text-xs sm:text-sm"
               >
-                <RefreshCw className={`h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2 ${refreshing ? "animate-spin" : ""}`} />
+                <RefreshCw
+                  className={`h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2 ${
+                    refreshing ? "animate-spin" : ""
+                  }`}
+                />
                 <span className="hidden sm:inline">Refresh</span>
               </Button>
             </div>
@@ -747,7 +1099,7 @@ export function MyApplications() {
             <div className="flex items-center">
               <div className="bg-green-100 p-2 rounded-lg mr-3">
                 <Search className="h-5 w-5 sm:h-6 sm:w-6 text-green-600" />
-            </div>
+              </div>
               <h2 className="text-lg sm:text-xl font-bold text-gray-900">
                 Search & Filter
               </h2>
@@ -786,13 +1138,13 @@ export function MyApplications() {
                 <SelectContent>
                   <SelectItem value="all">All Status</SelectItem>
                   <SelectItem value="submitted">Submitted</SelectItem>
-                  <SelectItem value="under_review">Under Review</SelectItem>
+                  <SelectItem value="screening">Screening</SelectItem>
                   <SelectItem value="approved">Approved</SelectItem>
                   <SelectItem value="rejected">Rejected</SelectItem>
-                  <SelectItem value="withdrawn">Withdrawn</SelectItem>
+                  <SelectItem value="started">Started</SelectItem>
                 </SelectContent>
               </Select>
-              
+
               <Select value={sortBy} onValueChange={setSortBy}>
                 <SelectTrigger className="w-full sm:w-[180px] lg:w-[200px] h-12 bg-white/80 backdrop-blur-sm border-gray-200 focus:border-green-500 focus:ring-2 focus:ring-green-200 transition-all duration-200">
                   <SelectValue placeholder="Sort by" />
@@ -809,9 +1161,9 @@ export function MyApplications() {
         </motion.div>
 
         {applications.length > 0 ? (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
             className="bg-white/80 backdrop-blur-md rounded-2xl shadow-xl overflow-hidden border border-white/20"
           >
@@ -826,16 +1178,30 @@ export function MyApplications() {
                     className="bg-white rounded-2xl shadow-lg border transition-all duration-300 hover:shadow-xl hover:border-green-300"
                   >
                     <div className="flex flex-col lg:flex-row">
-                  {/* Property Image */}
+                      {/* Property Image */}
                       <div className="lg:w-1/3">
                         <div className="relative h-48 sm:h-56 lg:h-full">
                           <img
-                            src={
-                              application.property?.image ||
-                              "https://images.pexels.com/photos/106399/pexels-photo-106399.jpeg?auto=compress&cs=tinysrgb&w=800"
+                            src={getPropertyImage(application.property)}
+                            alt={
+                              application.isUnitSpecific &&
+                              application.property?.unitNumber
+                                ? `Unit ${application.property.unitNumber}`
+                                : application.property?.title || "Property"
                             }
-                            alt={application.property?.title || "Property"}
-                            className="w-full h-full object-cover lg:rounded-l-2xl "
+                            className="w-full h-full object-cover lg:rounded-l-2xl"
+                            onError={(e) => {
+                              // Dynamic fallback - could load from a service or use a placeholder
+                              const target = e.target as HTMLImageElement;
+                              const altText =
+                                application.isUnitSpecific &&
+                                application.property?.unitNumber
+                                  ? `Unit ${application.property.unitNumber}`
+                                  : application.property?.title || "Property";
+                              target.src = `https://via.placeholder.com/400x300/4F46E5/FFFFFF?text=${encodeURIComponent(
+                                altText
+                              )}`;
+                            }}
                           />
                           <div className="absolute top-3 right-3 sm:top-4 sm:right-4">
                             <Badge
@@ -844,100 +1210,229 @@ export function MyApplications() {
                               )} flex items-center gap-1 text-xs sm:text-sm`}
                             >
                               {getStatusIcon(application.status)}
-                              <span className="hidden sm:inline">{getStatusDisplayName(application.status)}</span>
+                              <span className="hidden sm:inline">
+                                {getStatusDisplayName(application.status)}
+                              </span>
                             </Badge>
+                          </div>
+                          {application.isUnitSpecific &&
+                            application.property?.unitNumber && (
+                              <div className="absolute top-3 left-3 sm:top-4 sm:left-4">
+                                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-600 text-white">
+                                  Unit {application.property.unitNumber}
+                                </span>
+                              </div>
+                            )}
+                        </div>
                       </div>
-                    </div>
-                  </div>
 
-                  {/* Application Details */}
+                      {/* Application Details */}
                       <div className="lg:w-2/3 p-4 sm:p-6">
                         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-4 space-y-3 sm:space-y-0">
                           <div className="flex-1">
-                            <h3 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">
-                              {application.property?.title ||
-                                "Property Application"}
-                        </h3>
-                        <div className="flex items-center text-gray-600 mb-2">
-                              <MapPin className="h-4 w-4 sm:h-5 sm:w-5 mr-2 text-green-500" />
-                              <span className="text-sm sm:text-lg">
-                                {application.property?.city},{" "}
-                                {application.property?.state}
-                          </span>
-                        </div>
-                      </div>
+                            {application.isUnitSpecific &&
+                            application.property?.unitNumber ? (
+                              // Unit-specific application - show unit as primary
+                              <>
+                                <h3 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">
+                                  Unit {application.property.unitNumber}
+                                </h3>
+                                <div className="flex items-center text-blue-600 mb-2">
+                                  <span className="text-sm font-medium">
+                                    {application.property.unitType}
+                                    {application.property.unitSqft &&
+                                      ` • ${application.property.unitSqft} sq ft`}
+                                    {application.property.unitFloorLevel &&
+                                      ` • ${application.property.unitFloorLevel}`}
+                                  </span>
+                                </div>
+                                <div className="flex items-center text-gray-600 mb-2">
+                                  <MapPin className="h-4 w-4 sm:h-5 sm:w-5 mr-2 text-green-500" />
+                                  <span className="text-sm sm:text-lg">
+                                    {typeof application.property?.address ===
+                                    "string"
+                                      ? application.property.address
+                                      : `${application.property?.city || ""}, ${
+                                          application.property?.state || ""
+                                        }`}
+                                  </span>
+                                </div>
+                                {application.property.unitBedrooms &&
+                                  application.property.unitBathrooms && (
+                                    <div className="flex items-center text-gray-500 text-sm">
+                                      <span>
+                                        {application.property.unitBedrooms} bed
+                                      </span>
+                                      <span className="mx-2">•</span>
+                                      <span>
+                                        {application.property.unitBathrooms}{" "}
+                                        bath
+                                      </span>
+                                    </div>
+                                  )}
+                              </>
+                            ) : (
+                              // General application - show property details
+                              <>
+                                <h3 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">
+                                  {application.property?.title ||
+                                    "Property Application"}
+                                </h3>
+                                <div className="flex items-center text-gray-600 mb-2">
+                                  <MapPin className="h-4 w-4 sm:h-5 sm:w-5 mr-2 text-green-500" />
+                                  <span className="text-sm sm:text-lg">
+                                    {typeof application.property?.address ===
+                                    "string"
+                                      ? application.property.address
+                                      : `${application.property?.city || ""}, ${
+                                          application.property?.state || ""
+                                        }`}
+                                  </span>
+                                </div>
+                              </>
+                            )}
+                          </div>
                           <div className="text-left sm:text-right">
                             <div className="text-2xl sm:text-3xl font-bold text-green-600">
-                          ${application.property?.rent.toLocaleString()}
+                              $
+                              {(
+                                application.property?.selectedLeaseTermRent ||
+                                application.property?.rent ||
+                                application.property?.unitRent ||
+                                0
+                              ).toLocaleString()}
+                            </div>
+                            <div className="text-sm sm:text-base text-gray-500">
+                              per month
+                            </div>
+
+                            {application.isUnitSpecific &&
+                              application.property?.selectedLeaseTerm && (
+                                <div className="text-xs text-blue-600 mt-1">
+                                  {typeof application.property
+                                    .selectedLeaseTerm === "string"
+                                    ? application.property.selectedLeaseTerm
+                                    : `${
+                                        application.property
+                                          .selectedLeaseTermMonths || 12
+                                      } months`}
+                                </div>
+                              )}
+                          </div>
                         </div>
-                            <div className="text-sm sm:text-base text-gray-500">per month</div>
-                      </div>
-                    </div>
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 mb-4 sm:mb-6">
                           <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-4 border border-blue-200">
-                        <div className="flex items-center mb-2">
+                            <div className="flex items-center mb-2">
                               <div className="bg-blue-100 p-2 rounded-lg mr-3">
                                 <Calendar className="h-4 w-4 text-blue-600" />
                               </div>
                               <span className="font-semibold text-gray-700">
                                 Move-in Date
                               </span>
-                        </div>
-                        <p className="text-gray-900 font-medium">
+                            </div>
+                            <p className="text-gray-900 font-medium">
                               {new Date(
-                                application.move_in_date
+                                application.moveInDate
                               ).toLocaleDateString("en-US", {
                                 year: "numeric",
                                 month: "long",
                                 day: "numeric",
-                          })}
-                        </p>
-                      </div>
+                              })}
+                            </p>
+                          </div>
+
+                          {application.isUnitSpecific &&
+                            application.property?.selectedLeaseTermMonths && (
+                              <div className="bg-gradient-to-br from-indigo-50 to-indigo-100 rounded-lg p-4 border border-indigo-200">
+                                <div className="flex items-center mb-2">
+                                  <div className="bg-indigo-100 p-2 rounded-lg mr-3">
+                                    <Clock className="h-4 w-4 text-indigo-600" />
+                                  </div>
+                                  <span className="font-semibold text-gray-700">
+                                    Lease Term
+                                  </span>
+                                </div>
+                                <p className="text-gray-900 font-medium">
+                                  {application.property.selectedLeaseTermMonths}{" "}
+                                  months
+                                </p>
+                              </div>
+                            )}
 
                           <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-lg p-4 border border-green-200">
-                        <div className="flex items-center mb-2">
+                            <div className="flex items-center mb-2">
                               <div className="bg-green-100 p-2 rounded-lg mr-3">
                                 <DollarSign className="h-4 w-4 text-green-600" />
                               </div>
                               <span className="font-semibold text-gray-700">
                                 Monthly Income
                               </span>
-                        </div>
-                        <p className="text-gray-900 font-medium">
-                          ${application.income.toLocaleString()}
-                        </p>
-                      </div>
+                            </div>
+                            <p className="text-gray-900 font-medium">
+                              $
+                              {application.employmentInfo?.monthlyIncome?.toLocaleString() ||
+                                "0"}
+                            </p>
+                          </div>
 
                           <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg p-4 border border-purple-200">
-                        <div className="flex items-center mb-2">
+                            <div className="flex items-center mb-2">
                               <div className="bg-purple-100 p-2 rounded-lg mr-3">
                                 <Clock className="h-4 w-4 text-purple-600" />
                               </div>
                               <span className="font-semibold text-gray-700">
                                 Applied
                               </span>
-                        </div>
-                        <p className="text-gray-900 font-medium">
+                            </div>
+                            <p className="text-gray-900 font-medium">
                               {new Date(
-                                application.created_at
+                                application.createdAt
                               ).toLocaleDateString("en-US", {
                                 year: "numeric",
                                 month: "short",
                                 day: "numeric",
-                          })}
-                        </p>
-                      </div>
-                    </div>
+                              })}
+                            </p>
+                          </div>
+                          {/* Document Status */}
+                          {application.documents_required && (
+                            <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg p-4 border border-purple-200">
+                              <h4 className="font-semibold text-gray-700 mb-2 flex items-center">
+                                <FileCheck className="h-4 w-4 mr-2 text-purple-600" />
+                                Document Status
+                              </h4>
+                              <div className="grid grid-cols-2 gap-2 text-sm">
+                                <div>
+                                  <span className="text-gray-600">
+                                    Required:
+                                  </span>
+                                  <span className="ml-2 font-medium">
+                                    {application.documents_required.length}
+                                  </span>
+                                </div>
+                                <div>
+                                  <span className="text-gray-600">
+                                    Submitted:
+                                  </span>
+                                  <span className="ml-2 font-medium text-green-600">
+                                    {application.documents_submitted?.length ||
+                                      0}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
 
-                    {application.notes && (
+                        {application.notes && (
                           <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-lg p-4 border border-gray-200">
                             <h4 className="font-semibold text-gray-700 mb-2">
                               Additional Notes
                             </h4>
-                        <p className="text-gray-600">{application.notes}</p>
-                      </div>
-                    )}
+                            <p className="text-gray-600">{application.notes}</p>
+                          </div>
+                        )}
 
                         {/* Landlord Notes */}
                         {application.landlord_notes && (
@@ -949,32 +1444,6 @@ export function MyApplications() {
                             <p className="text-gray-600">
                               {application.landlord_notes}
                             </p>
-                          </div>
-                        )}
-
-                        {/* Document Status */}
-                        {application.documents_required && (
-                          <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg p-4 border border-purple-200 mt-4">
-                            <h4 className="font-semibold text-gray-700 mb-2 flex items-center">
-                              <FileCheck className="h-4 w-4 mr-2 text-purple-600" />
-                              Document Status
-                            </h4>
-                            <div className="grid grid-cols-2 gap-2 text-sm">
-                              <div>
-                                <span className="text-gray-600">Required:</span>
-                                <span className="ml-2 font-medium">
-                                  {application.documents_required.length}
-                                </span>
-                              </div>
-                              <div>
-                                <span className="text-gray-600">
-                                  Submitted:
-                                </span>
-                                <span className="ml-2 font-medium text-green-600">
-                                  {application.documents_submitted?.length || 0}
-                                </span>
-                              </div>
-                            </div>
                           </div>
                         )}
 
@@ -1005,7 +1474,7 @@ export function MyApplications() {
                           </div>
                           <div className="flex flex-col sm:flex-row items-stretch sm:items-center space-y-2 sm:space-y-0 sm:space-x-2">
                             {application.status === "submitted" ||
-                            application.status === "under_review" ? (
+                            application.status === "screening" ? (
                               <Button
                                 variant="outline"
                                 size="sm"
@@ -1015,7 +1484,9 @@ export function MyApplications() {
                                 className="border-red-200 text-red-600 hover:bg-red-50 text-xs sm:text-sm"
                               >
                                 <X className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-                                <span className="hidden sm:inline">Withdraw</span>
+                                <span className="hidden sm:inline">
+                                  Withdraw
+                                </span>
                               </Button>
                             ) : null}
                             {application.status === "approved" && (
@@ -1024,16 +1495,18 @@ export function MyApplications() {
                                 className="bg-gradient-to-r from-green-600 to-emerald-600 text-white hover:from-green-700 hover:to-emerald-700 text-xs sm:text-sm"
                               >
                                 <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-                                <span className="hidden sm:inline">Contact to Sign Lease</span>
+                                <span className="hidden sm:inline">
+                                  Contact to Sign Lease
+                                </span>
                               </Button>
                             )}
                           </div>
                         </div>
-                  </div>
-                </div>
-              </motion.div>
-            ))}
-          </div>
+                      </div>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
             </div>
           </motion.div>
         ) : (
@@ -1060,11 +1533,11 @@ export function MyApplications() {
                   <>
                     <motion.button
                       onClick={() => navigate("/property")}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
                       className="inline-flex items-center justify-center px-6 sm:px-8 py-3 sm:py-4 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg hover:from-green-700 hover:to-emerald-700 transition-all duration-200 font-semibold shadow-lg hover:shadow-xl text-sm sm:text-base"
-              >
-                Browse Properties
+                    >
+                      Browse Properties
                     </motion.button>
                     <motion.button
                       onClick={handleRefresh}
@@ -1124,7 +1597,7 @@ export function MyApplications() {
           </DialogHeader>
 
           {selectedApplication && (
-            <div className="p-4 sm:p-6 max-h-[80vh] overflow-y-auto bg-gray-50">
+            <div className="p-4 sm:p-6 max-h-[90vh] overflow-y-auto bg-gray-50">
               {/* Application Timeline */}
               {selectedApplication.timeline &&
                 selectedApplication.timeline.length > 0 && (
@@ -1152,7 +1625,7 @@ export function MyApplications() {
                               className={`w-4 h-4 rounded-full mt-2 shadow-sm ${
                                 event.status === "submitted"
                                   ? "bg-blue-500"
-                                  : event.status === "under_review"
+                                  : event.status === "screening"
                                   ? "bg-yellow-500"
                                   : event.status === "approved"
                                   ? "bg-green-500"
@@ -1191,20 +1664,142 @@ export function MyApplications() {
                 >
                   <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
                     <Home className="h-5 w-5 mr-2 text-green-600" />
-                    Property Information
+                    {selectedApplication.isUnitSpecific
+                      ? "Unit Information"
+                      : "Property Information"}
                   </h3>
                   <div className="space-y-3">
-                    <div>
-                      <span className="text-sm text-gray-600">Property:</span>
-                      <p className="font-medium">
-                        {selectedApplication.property?.title}
-                      </p>
-                    </div>
+                    {selectedApplication.isUnitSpecific &&
+                    selectedApplication.property?.unitNumber ? (
+                      // Unit-specific information
+                      <>
+                        <div>
+                          <span className="text-sm text-gray-600">Unit:</span>
+                          <p className="font-medium text-lg">
+                            Unit {selectedApplication.property.unitNumber}
+                          </p>
+                        </div>
+                        <div>
+                          <span className="text-sm text-gray-600">
+                            Property:
+                          </span>
+                          <p className="font-medium">
+                            {selectedApplication.property?.title}
+                          </p>
+                        </div>
+                      </>
+                    ) : (
+                      // General property information
+                      <div>
+                        <span className="text-sm text-gray-600">Property:</span>
+                        <p className="font-medium">
+                          {selectedApplication.property?.title}
+                        </p>
+                      </div>
+                    )}
+                    {selectedApplication.isUnitSpecific &&
+                      selectedApplication.property?.unitNumber && (
+                        <div className="space-y-2">
+                          <div>
+                            <span className="text-sm text-gray-600">
+                              Unit Details:
+                            </span>
+                            <p className="font-medium">
+                              Unit {selectedApplication.property.unitNumber} •{" "}
+                              {selectedApplication.property.unitType}
+                              {selectedApplication.property.unitFloorLevel &&
+                                ` • ${selectedApplication.property.unitFloorLevel}`}
+                            </p>
+                          </div>
+
+                          {(selectedApplication.property.unitSqft ||
+                            selectedApplication.property.unitBedrooms ||
+                            selectedApplication.property.unitBathrooms) && (
+                            <div className="grid grid-cols-3 gap-4 text-sm">
+                              {selectedApplication.property.unitSqft && (
+                                <div>
+                                  <span className="text-gray-600">Size:</span>
+                                  <p className="font-medium">
+                                    {selectedApplication.property.unitSqft} sq
+                                    ft
+                                  </p>
+                                </div>
+                              )}
+                              {selectedApplication.property.unitBedrooms && (
+                                <div>
+                                  <span className="text-gray-600">
+                                    Bedrooms:
+                                  </span>
+                                  <p className="font-medium">
+                                    {selectedApplication.property.unitBedrooms}
+                                  </p>
+                                </div>
+                              )}
+                              {selectedApplication.property.unitBathrooms && (
+                                <div>
+                                  <span className="text-gray-600">
+                                    Bathrooms:
+                                  </span>
+                                  <p className="font-medium">
+                                    {selectedApplication.property.unitBathrooms}
+                                  </p>
+                                </div>
+                              )}
+                            </div>
+                          )}
+
+                          {selectedApplication.property.unitAmenities &&
+                            selectedApplication.property.unitAmenities.length >
+                              0 && (
+                              <div>
+                                <span className="text-sm text-gray-600">
+                                  Amenities:
+                                </span>
+                                <div className="flex flex-wrap gap-1 mt-1">
+                                  {selectedApplication.property.unitAmenities
+                                    .slice(0, 5)
+                                    .map((amenity: string, index: number) => (
+                                      <span
+                                        key={index}
+                                        className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full"
+                                      >
+                                        {amenity}
+                                      </span>
+                                    ))}
+                                  {selectedApplication.property.unitAmenities
+                                    .length > 5 && (
+                                    <span className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded-full">
+                                      +
+                                      {selectedApplication.property
+                                        .unitAmenities.length - 5}{" "}
+                                      more
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            )}
+
+                          {selectedApplication.property.unitDescription && (
+                            <div>
+                              <span className="text-sm text-gray-600">
+                                Description:
+                              </span>
+                              <p className="text-sm text-gray-700 mt-1">
+                                {selectedApplication.property.unitDescription}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      )}
                     <div>
                       <span className="text-sm text-gray-600">Location:</span>
                       <p className="font-medium">
-                        {selectedApplication.property?.city},{" "}
-                        {selectedApplication.property?.state}
+                        {typeof selectedApplication.property?.address ===
+                        "string"
+                          ? selectedApplication.property.address
+                          : `${selectedApplication.property?.city || ""}, ${
+                              selectedApplication.property?.state || ""
+                            }`}
                       </p>
                     </div>
                     <div>
@@ -1212,7 +1807,13 @@ export function MyApplications() {
                         Monthly Rent:
                       </span>
                       <p className="font-medium text-green-600">
-                        ${selectedApplication.property?.rent.toLocaleString()}
+                        $
+                        {(
+                           selectedApplication.property?.selectedLeaseTermRent ||
+                          selectedApplication.property?.rent ||
+                          selectedApplication.property?.unitRent ||
+                          0
+                        ).toLocaleString()}
                       </p>
                     </div>
                     <div>
@@ -1221,7 +1822,7 @@ export function MyApplications() {
                       </span>
                       <p className="font-medium">
                         {new Date(
-                          selectedApplication.move_in_date
+                          selectedApplication.moveInDate
                         ).toLocaleDateString()}
                       </p>
                     </div>
@@ -1255,7 +1856,7 @@ export function MyApplications() {
                       <span className="text-sm text-gray-600">Applied:</span>
                       <p className="font-medium">
                         {new Date(
-                          selectedApplication.created_at
+                          selectedApplication.createdAt
                         ).toLocaleDateString()}
                       </p>
                     </div>
@@ -1274,7 +1875,9 @@ export function MyApplications() {
                         Monthly Income:
                       </span>
                       <p className="font-medium">
-                        ${selectedApplication.income.toLocaleString()}
+                        $
+                        {selectedApplication.employmentInfo?.monthlyIncome?.toLocaleString() ||
+                          "0"}
                       </p>
                     </div>
                     {selectedApplication.desiredLeaseTerm && (
@@ -1343,6 +1946,16 @@ export function MyApplications() {
                             : "Non-Citizen"}
                         </p>
                       </div>
+                      {selectedApplication.personalInfo.ssn && (
+                        <div>
+                          <span className="text-sm text-gray-600">
+                            SSN (Last 4):
+                          </span>
+                          <p className="font-medium">
+                            ***-**-{selectedApplication.personalInfo.ssn.slice(-4)}
+                          </p>
+                        </div>
+                      )}
                     </div>
                   </motion.div>
                 )}
@@ -1394,8 +2007,38 @@ export function MyApplications() {
                                 ${employer.income}/month
                               </p>
                             </div>
+                            {employer.employmentStatus && (
+                              <div>
+                                <span className="text-sm text-gray-600">
+                                  Employment Status:
+                                </span>
+                                <p className="font-medium capitalize">
+                                  {employer.employmentStatus}
+                                </p>
+                              </div>
+                            )}
+                            {employer.industry && (
+                              <div>
+                                <span className="text-sm text-gray-600">
+                                  Industry:
+                                </span>
+                                <p className="font-medium capitalize">
+                                  {employer.industry}
+                                </p>
+                              </div>
+                            )}
                           </div>
                         )
+                      )}
+                      {selectedApplication.financialInfo.hasOtherIncome && (
+                        <div>
+                          <span className="text-sm text-gray-600">
+                            Other Income:
+                          </span>
+                          <p className="font-medium">
+                            {selectedApplication.financialInfo.otherIncomeDetails || "Yes"}
+                          </p>
+                        </div>
                       )}
                     </div>
                   </motion.div>
@@ -1542,7 +2185,22 @@ export function MyApplications() {
                               .relation
                           }
                         </p>
+                        {selectedApplication.additionalInfo.emergencyContact.email && (
+                          <p className="text-sm text-gray-500">
+                            {selectedApplication.additionalInfo.emergencyContact.email}
+                          </p>
+                        )}
                       </div>
+                      {selectedApplication.additionalInfo.additionalInfo && (
+                        <div>
+                          <span className="text-sm text-gray-600">
+                            Additional Notes:
+                          </span>
+                          <p className="font-medium">
+                            {selectedApplication.additionalInfo.additionalInfo}
+                          </p>
+                        </div>
+                      )}
                     </div>
                   </motion.div>
                 )}
@@ -1613,6 +2271,51 @@ export function MyApplications() {
                                     {holder.position}
                                   </p>
                                 </div>
+                                {holder.dateOfBirth && (
+                                  <div>
+                                    <span className="text-sm text-gray-600">
+                                      Date of Birth:
+                                    </span>
+                                    <p className="font-medium">
+                                      {holder.dateOfBirth}
+                                    </p>
+                                  </div>
+                                )}
+                                {holder.ssn && (
+                                  <div>
+                                    <span className="text-sm text-gray-600">
+                                      SSN (Last 4):
+                                    </span>
+                                    <p className="font-medium">
+                                      ***-**-{holder.ssn.slice(-4)}
+                                    </p>
+                                  </div>
+                                )}
+                                {holder.isCitizen !== undefined && (
+                                  <div>
+                                    <span className="text-sm text-gray-600">
+                                      Citizenship:
+                                    </span>
+                                    <p className="font-medium">
+                                      {holder.isCitizen ? "US Citizen" : "Non-Citizen"}
+                                    </p>
+                                  </div>
+                                )}
+                                {holder.currentStreet && (
+                                  <div>
+                                    <span className="text-sm text-gray-600">
+                                      Current Address:
+                                    </span>
+                                    <p className="font-medium">
+                                      {holder.currentStreet}, {holder.currentCity}, {holder.currentState} {holder.currentZip}
+                                    </p>
+                                    {holder.currentDuration && (
+                                      <p className="text-sm text-gray-500">
+                                        Duration: {holder.currentDuration}
+                                      </p>
+                                    )}
+                                  </div>
+                                )}
                               </div>
                             </div>
                           )
@@ -1728,6 +2431,16 @@ export function MyApplications() {
                                     {occupant.age} years old
                                   </p>
                                 </div>
+                                {(occupant as Record<string, unknown>).isServiceAnimal !== undefined && (
+                                  <div>
+                                    <span className="text-sm text-gray-600">
+                                      Service Animal:
+                                    </span>
+                                    <p className="font-medium">
+                                      {(occupant as Record<string, unknown>).isServiceAnimal ? "Yes" : "No"}
+                                    </p>
+                                  </div>
+                                )}
                               </div>
                             </div>
                           )
@@ -1736,8 +2449,53 @@ export function MyApplications() {
                     </motion.div>
                   )}
 
-                {/* Documents */}
-                {selectedApplication.documents && (
+                {/* Application Metadata */}
+                {/* {selectedApplication.applicationMetadata && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 1.0 }}
+                    className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow duration-200"
+                  >
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                      <FileText className="h-5 w-5 mr-2 text-green-600" />
+                      Application Metadata
+                    </h3>
+                    <div className="space-y-3">
+                      <div>
+                        <span className="text-sm text-gray-600">Application Type:</span>
+                        <p className="font-medium capitalize">
+                          {selectedApplication.applicationMetadata.applicationType || "Standard"}
+                        </p>
+                      </div>
+                      <div>
+                        <span className="text-sm text-gray-600">Source:</span>
+                        <p className="font-medium capitalize">
+                          {selectedApplication.applicationMetadata.source || "Unknown"}
+                        </p>
+                      </div>
+                      {selectedApplication.applicationMetadata.submittedAt && (
+                        <div>
+                          <span className="text-sm text-gray-600">Submitted At:</span>
+                          <p className="font-medium">
+                            {new Date(selectedApplication.applicationMetadata.submittedAt).toLocaleString()}
+                          </p>
+                        </div>
+                      )}
+                      {selectedApplication.applicationMetadata.submittedBy && (
+                        <div>
+                          <span className="text-sm text-gray-600">Submitted By:</span>
+                          <p className="font-medium">
+                            {selectedApplication.applicationMetadata.submittedBy}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </motion.div>
+                )} */}
+
+                {/* Review and Submit Permissions */}
+                {selectedApplication.reviewAndSubmit && (
                   <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -1745,221 +2503,67 @@ export function MyApplications() {
                     className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow duration-200"
                   >
                     <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                      <FileCheck className="h-5 w-5 mr-2 text-green-600" />
-                      Documents
+                      <Shield className="h-5 w-5 mr-2 text-green-600" />
+                      Permissions & Agreements
                     </h3>
                     <div className="space-y-3">
-                      {selectedApplication.documents.id &&
-                        selectedApplication.documents.id.length > 0 && (
-                          <div>
-                            <span className="text-sm text-gray-600">
-                              ID Documents:
-                            </span>
-                            {selectedApplication.documents.id.map(
-                              (doc, index) => (
-                                <div
-                                  key={index}
-                                  className="flex items-center justify-between p-2 bg-white rounded-lg mt-1"
-                                >
-                                  <span className="text-sm">{doc.name}</span>
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    className="h-6 px-2 text-xs"
-                                    onClick={() =>
-                                      handleDownloadDocument(doc.url, doc.name)
-                                    }
-                                  >
-                                    <Download className="h-3 w-3 mr-1" />
-                                    View
-                                  </Button>
-                                </div>
-                              )
-                            )}
-                          </div>
-                        )}
-                      {selectedApplication.documents.payStubs &&
-                        selectedApplication.documents.payStubs.length > 0 && (
-                          <div>
-                            <span className="text-sm text-gray-600">
-                              Pay Stubs:
-                            </span>
-                            {selectedApplication.documents.payStubs.map(
-                              (doc, index) => (
-                                <div
-                                  key={index}
-                                  className="flex items-center justify-between p-2 bg-white rounded-lg mt-1"
-                                >
-                                  <span className="text-sm">{doc.name}</span>
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    className="h-6 px-2 text-xs"
-                                    onClick={() =>
-                                      handleDownloadDocument(doc.url, doc.name)
-                                    }
-                                  >
-                                    <Download className="h-3 w-3 mr-1" />
-                                    View
-                                  </Button>
-                                </div>
-                              )
-                            )}
-                          </div>
-                        )}
-                      {selectedApplication.documents.bankStatements &&
-                        selectedApplication.documents.bankStatements.length >
-                          0 && (
-                          <div>
-                            <span className="text-sm text-gray-600">
-                              Bank Statements:
-                            </span>
-                            {selectedApplication.documents.bankStatements.map(
-                              (doc, index) => (
-                                <div
-                                  key={index}
-                                  className="flex items-center justify-between p-2 bg-white rounded-lg mt-1"
-                                >
-                                  <span className="text-sm">{doc.name}</span>
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    className="h-6 px-2 text-xs"
-                                    onClick={() =>
-                                      handleDownloadDocument(doc.url, doc.name)
-                                    }
-                                  >
-                                    <Download className="h-3 w-3 mr-1" />
-                                    View
-                                  </Button>
-                                </div>
-                              )
-                            )}
-                          </div>
-                        )}
-                      {selectedApplication.documents.taxReturns &&
-                        selectedApplication.documents.taxReturns.length > 0 && (
-                          <div>
-                            <span className="text-sm text-gray-600">
-                              Tax Returns:
-                            </span>
-                            {selectedApplication.documents.taxReturns.map(
-                              (doc, index) => (
-                                <div
-                                  key={index}
-                                  className="flex items-center justify-between p-2 bg-white rounded-lg mt-1"
-                                >
-                                  <span className="text-sm">{doc.name}</span>
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    className="h-6 px-2 text-xs"
-                                    onClick={() =>
-                                      handleDownloadDocument(doc.url, doc.name)
-                                    }
-                                  >
-                                    <Download className="h-3 w-3 mr-1" />
-                                    View
-                                  </Button>
-                                </div>
-                              )
-                            )}
-                          </div>
-                        )}
-                      {selectedApplication.documents.references &&
-                        selectedApplication.documents.references.length > 0 && (
-                          <div>
-                            <span className="text-sm text-gray-600">
-                              References:
-                            </span>
-                            {selectedApplication.documents.references.map(
-                              (doc, index) => (
-                                <div
-                                  key={index}
-                                  className="flex items-center justify-between p-2 bg-white rounded-lg mt-1"
-                                >
-                                  <span className="text-sm">{doc.name}</span>
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    className="h-6 px-2 text-xs"
-                                    onClick={() =>
-                                      handleDownloadDocument(doc.url, doc.name)
-                                    }
-                                  >
-                                    <Download className="h-3 w-3 mr-1" />
-                                    View
-                                  </Button>
-                                </div>
-                              )
-                            )}
-                          </div>
-                        )}
-                      {selectedApplication.documents.other &&
-                        selectedApplication.documents.other.length > 0 && (
-                          <div>
-                            <span className="text-sm text-gray-600">
-                              Other Documents:
-                            </span>
-                            {selectedApplication.documents.other.map(
-                              (doc, index) => (
-                                <div
-                                  key={index}
-                                  className="flex items-center justify-between p-2 bg-white rounded-lg mt-1"
-                                >
-                                  <span className="text-sm">{doc.name}</span>
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    className="h-6 px-2 text-xs"
-                                    onClick={() =>
-                                      handleDownloadDocument(doc.url, doc.name)
-                                    }
-                                  >
-                                    <Download className="h-3 w-3 mr-1" />
-                                    View
-                                  </Button>
-                                </div>
-                              )
-                            )}
-                          </div>
-                        )}
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-gray-600">Background Check Permission:</span>
+                        <Badge className={selectedApplication.reviewAndSubmit.backgroundCheckPermission ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}>
+                          {selectedApplication.reviewAndSubmit.backgroundCheckPermission ? "Granted" : "Not Granted"}
+                        </Badge>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-gray-600">Text Message Permission:</span>
+                        <Badge className={selectedApplication.reviewAndSubmit.textMessagePermission ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}>
+                          {selectedApplication.reviewAndSubmit.textMessagePermission ? "Granted" : "Not Granted"}
+                        </Badge>
+                      </div>
                     </div>
                   </motion.div>
                 )}
 
-                {/* Communication */}
-                {/* <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 1.2 }}
-                  className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow duration-200"
-                >
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                    <MessageSquare className="h-5 w-5 mr-2 text-green-600" />
-                    Communication
-                  </h3>
-                  <div className="space-y-3">
-                    <div>
-                      <span className="text-sm text-gray-600">Messages:</span>
-                      <p className="font-medium">
-                        {selectedApplication.communication_count || 0}
-                      </p>
-                    </div>
-                    {selectedApplication.last_communication && (
-                      <div>
-                        <span className="text-sm text-gray-600">
-                          Last Message:
-                        </span>
-                        <p className="font-medium">
-                          {new Date(
-                            selectedApplication.last_communication
-                          ).toLocaleDateString()}
-                        </p>
+                {/* Documents */}
+                {selectedApplication.documents &&
+                  selectedApplication.documents.length > 0 && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 1.1 }}
+                      className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow duration-200"
+                    >
+                      <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                        <FileCheck className="h-5 w-5 mr-2 text-green-600" />
+                        Documents
+                      </h3>
+                      <div className="space-y-3">
+                        {selectedApplication.documents.map((docUrl, index) => (
+                          <div
+                            key={index}
+                            className="flex items-center justify-between p-2 bg-white rounded-lg mt-1"
+                          >
+                            <span className="text-sm">
+                              Document {index + 1}
+                            </span>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-6 px-2 text-xs"
+                              onClick={() =>
+                                handleDownloadDocument(
+                                  docUrl,
+                                  `Document ${index + 1}`
+                                )
+                              }
+                            >
+                              <Download className="h-3 w-3 mr-1" />
+                              View
+                            </Button>
+                          </div>
+                        ))}
                       </div>
-                    )}
-                  </div>
-                </motion.div> */}
+                    </motion.div>
+                  )}
               </div>
 
               {/* Notes */}
@@ -2036,4 +2640,3 @@ export function MyApplications() {
     </div>
   );
 }
-

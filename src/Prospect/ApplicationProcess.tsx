@@ -56,6 +56,12 @@ import {
   Trash2,
   ShieldAlert,
   AlertCircle,
+  Bed,
+  Bath,
+  Square,
+  Heart,
+  Star,
+  MapPin,
 } from "lucide-react";
 import ProductSelection from "../components/ProductSelection";
 import LeaseTermSelection from "../components/rentar/LeaseTermSelection";
@@ -66,16 +72,76 @@ import PaymentProcess from "../components/payment/PaymentProcess";
 interface ApplicationProcessProps {
   isOpen: boolean;
   onClose: () => void;
-  property?: any;
+  property?: any; // Property object when opened from specific property
+  selectedUnit?: any; // Unit object when applying for specific unit
   type: "prequalify" | "apply";
   initialStep?: number | null;
   onNavigateToUnitSelection?: () => void;
 }
 
+/**
+ * ApplicationProcess Component Usage Examples:
+ * 
+ * 1. From QualifiedProperties (with specific property and unit context):
+ *    <ApplicationProcess
+ *      isOpen={true}
+ *      onClose={() => setShowApplication(false)}
+ *      property={{
+ *        id: "prop-123",
+ *        name: "Luxury Apartments",
+ *        address: "123 Main St, Austin, TX",
+ *        rent: 2800,
+ *        bedrooms: 2,
+ *        bathrooms: 2
+ *      }}
+ *      selectedUnit={{
+ *        id: "unit-456",
+ *        unitNumber: "A-101",
+ *        rent: 2800,
+ *        bedrooms: 2,
+ *        bathrooms: 2,
+ *        sqft: 1200,
+ *        type: "Apartment",
+ *        floorLevel: "1st Floor",
+ *        selectedLeaseTerm: {
+ *          months: 12,
+ *          rent: 2800,
+ *          popular: true,
+ *          savings: null,
+ *          concession: null
+ *        }
+ *      }}
+ *      type="apply"
+ *    />
+ * 
+ * 2. From Property Details (with property context only):
+ *    <ApplicationProcess
+ *      isOpen={true}
+ *      onClose={() => setShowApplication(false)}
+ *      property={{
+ *        id: "prop-123",
+ *        name: "Luxury Apartments",
+ *        address: "123 Main St, Austin, TX",
+ *        rent: 2800,
+ *        bedrooms: 2,
+ *        bathrooms: 2
+ *      }}
+ *      type="apply"
+ *    />
+ * 
+ * 3. General Application (no specific property or unit):
+ *    <ApplicationProcess
+ *      isOpen={true}
+ *      onClose={() => setShowApplication(false)}
+ *      type="prequalify"
+ *    />
+ */
+
 const ApplicationProcess = ({
   isOpen,
   onClose,
   property,
+  selectedUnit: propSelectedUnit,
   type,
   initialStep,
   onNavigateToUnitSelection,
@@ -198,7 +264,40 @@ const ApplicationProcess = ({
     }
   }, [user]);
 
+  // Update selected property when property prop changes
+  useEffect(() => {
+    if (property) {
+      setSelectedProperty(property);
+      console.log("ApplicationProcess: Property context updated:", property);
+    }
+  }, [property]);
+
+  // Update selected unit when selectedUnit prop changes
+  useEffect(() => {
+    if (propSelectedUnit) {
+      setSelectedUnit(propSelectedUnit);
+      console.log("propSelectedUnit", propSelectedUnit);
+      console.log("ApplicationProcess: Unit selectedLeaseTerm:", propSelectedUnit.selectedLeaseTerm);
+      
+      // Auto-populate desired lease term if unit has a selected lease term
+      if (propSelectedUnit.selectedLeaseTerm) {
+        const selectedTerm = propSelectedUnit.selectedLeaseTerm;
+        const leaseTermValue = selectedTerm.months.toString();
+        setFormData((prev) => ({
+          ...prev,
+          desiredLeaseTerm: leaseTermValue,
+        }));
+        console.log("ApplicationProcess: Auto-populated desired lease term:", leaseTermValue, "months");
+        console.log("ApplicationProcess: Form data updated with desiredLeaseTerm:", leaseTermValue);
+      } else {
+        console.log("ApplicationProcess: No selectedLeaseTerm found in unit");
+      }
+    }
+  }, [propSelectedUnit]);
+
   // Validate DOB on component mount or when dateOfBirth changes
+  console.log("formData", formData);
+  
   useEffect(() => {
     if (formData.dateOfBirth) {
       const error = validateDOB(formData.dateOfBirth);
@@ -336,6 +435,7 @@ const ApplicationProcess = ({
       }
     }
   }, []);
+console.log("selectedUnit111", selectedUnit?.selectedLeaseTerm);
 
   // Validation functions
   const formatPhoneNumber = (value: string) => {
@@ -470,6 +570,8 @@ const ApplicationProcess = ({
           : "";
       case "moveInDate":
         return !value ? "Move-in date is required" : "";
+      case "desiredLeaseTerm":
+        return !value ? "Please select a lease term" : "";
       case "currentStreet":
       case "currentCity":
       case "currentState":
@@ -535,6 +637,7 @@ const ApplicationProcess = ({
           "dateOfBirth",
           "ssn",
           "moveInDate",
+          "desiredLeaseTerm",
         ];
         personalFields.forEach((field) => {
           const error = validateField(
@@ -958,12 +1061,12 @@ const ApplicationProcess = ({
         }
         break;
 
-      case 6: // Documents
-        if (formData.documents.id.length === 0) {
-          errors["documents"] = "At least one ID document is required";
-          missingFields.push("documents");
-        }
-        break;
+      // case 6: // Documents
+      //   if (formData.documents.id.length === 0) {
+      //     errors["documents"] = "At least one ID document is required";
+      //     missingFields.push("documents");
+      //   }
+      //   break;
 
       case 7: // Review & Submit
         if (!formData.backgroundCheckPermission) {
@@ -1790,64 +1893,149 @@ const ApplicationProcess = ({
     // Submit to Firebase
     try {
       const applicationData = {
-        // Personal Information
-        firstName: formData.firstName,
-        lastName: formData.lastName,
-        email: formData.email,
-        phone: formData.phone,
-        dateOfBirth: formData.dateOfBirth,
-        ssn: formData.ssn,
-        currentAddress: `${formData.currentStreet}, ${formData.currentCity}, ${formData.currentState} ${formData.currentZip}`,
-        city: formData.currentCity,
-        state: formData.currentState,
-        zipCode: formData.currentZip,
+        // ===== STEP 1: PERSONAL INFO =====
+        personalInfo: {
+          firstName: formData.firstName,
+          middleInitial: formData.middleInitial || "",
+          lastName: formData.lastName,
+          email: formData.email,
+          phone: formData.phone,
+          dateOfBirth: formData.dateOfBirth,
+          ssn: formData.ssn,
+          isCitizen: formData.isCitizen,
+          moveInDate: formData.moveInDate,
+          desiredLeaseTerm: formData.desiredLeaseTerm,
+        },
 
-        // Employment Information
-        employer: formData.employers[0]?.name || "",
-        jobTitle: formData.employers[0]?.position || "",
-        employmentStatus: formData.employers[0]?.employmentStatus || "",
-        annualIncome: parseFloat(
-          formData.employers[0]?.income?.replace(/[^0-9.]/g, "") || "0"
-        ),
-        employmentStartDate: formData.employers[0]?.startDate || "",
+        // ===== STEP 2: FINANCIAL INFO =====
+        financialInfo: {
+          employment: formData.employment || "",
+          employerName: formData.employerName || "",
+          employers: formData.employers || [],
+          hasOtherIncome: formData.hasOtherIncome || false,
+          otherIncomeDetails: formData.otherIncomeDetails || "",
+        },
 
-        // Rental History
-        previousLandlordName: formData.previousLandlordName || "",
-        previousLandlordPhone: formData.previousLandlordPhone || "",
-        previousRentAmount: parseFloat(
-          formData.previousRentAmount?.replace(/[^0-9.]/g, "") || "0"
-        ),
-        rentalHistory: formData.rentalHistory || "",
+        // ===== STEP 3: HOUSING HISTORY =====
+        housingHistory: {
+          currentAddress: {
+            street: formData.currentStreet,
+            city: formData.currentCity,
+            state: formData.currentState,
+            zip: formData.currentZip,
+            duration: formData.currentDuration,
+            fullAddress: `${formData.currentStreet}, ${formData.currentCity}, ${formData.currentState} ${formData.currentZip}`,
+          },
+          previousAddress: {
+            street: formData.previousStreet || "",
+            city: formData.previousCity || "",
+            state: formData.previousState || "",
+            zip: formData.previousZip || "",
+            fullAddress: formData.previousStreet 
+              ? `${formData.previousStreet}, ${formData.previousCity}, ${formData.previousState} ${formData.previousZip}`
+              : "",
+          },
+        },
 
-        // References
-        reference1Name: formData.references?.[0]?.name || "",
-        reference1Phone: formData.references?.[0]?.phone || "",
-        reference1Relationship: formData.references?.[0]?.relationship || "",
-        reference2Name: formData.references?.[1]?.name || "",
-        reference2Phone: formData.references?.[1]?.phone || "",
-        reference2Relationship: formData.references?.[1]?.relationship || "",
+        // ===== STEP 4: LEASE HOLDERS & GUARANTORS =====
+        leaseHoldersAndGuarantors: {
+          leaseHolders: formData.leaseHolders || [],
+          guarantors: formData.guarantors || [],
+        },
 
-        // Property Information
-        propertyId: property?.id || "general-application",
-        propertyName: property?.name || "General Application",
-        unitId: selectedUnit?.id || null,
-        unitNumber: selectedUnit?.unitNumber || null,
+        // ===== STEP 5: ADDITIONAL OCCUPANTS =====
+        additionalOccupants: {
+          occupants: formData.additionalOccupants || [],
+        },
 
-        // Additional fields
-        notes: formData.notes || "",
-        creditScore: formData.creditScore || 0,
-        hasPets: formData.hasPets || false,
-        petDetails:
-          formData.pets
+        // ===== STEP 6: ADDITIONAL INFO =====
+        additionalInfo: {
+          pets: {
+            hasPets: formData.hasPets || false,
+            pets: formData.pets || [],
+          },
+          vehicles: {
+            hasVehicles: formData.hasVehicles || false,
+            vehicles: formData.vehicles || [],
+          },
+          emergencyContact: formData.emergencyContact || {},
+          notes: formData.additionalInfo || "",
+        },
+
+        // ===== STEP 7: DOCUMENTS =====
+        documents: {
+          id: formData.documents?.id || [],
+        },
+
+        // ===== STEP 8: REVIEW & SUBMIT =====
+        reviewAndSubmit: {
+          backgroundCheckPermission: formData.backgroundCheckPermission || false,
+          textMessagePermission: formData.textMessagePermission || true,
+        },
+
+        // ===== APPLICATION METADATA =====
+        applicationMetadata: (() => {
+          const metadata = {
+            applicationType: type, // "prequalify" or "apply"
+            propertyId: property?.id || selectedProperty?.id || "general-application",
+            propertyName: property?.name || selectedProperty?.name || selectedProperty?.title || "General Application",
+            unitId: selectedUnit?.id || null,
+            unitNumber: selectedUnit?.unitNumber || null,
+            // Unit-specific information
+            unitRent: selectedUnit?.selectedLeaseTerm?.rent || null,
+            unitBedrooms: selectedUnit?.bedrooms || null,
+            unitBathrooms: selectedUnit?.bathrooms || null,
+            unitSqft: selectedUnit?.sqft || null,
+            unitType: selectedUnit?.type || null,
+            unitFloorLevel: selectedUnit?.floorLevel || null,
+            unitAvailableDate: selectedUnit?.availableDate || null,
+            unitDeposit: selectedUnit?.deposit || null,
+            unitLeaseTerms: selectedUnit?.leaseTerms || null,
+            // Selected lease term information
+            selectedLeaseTerm: selectedUnit?.selectedLeaseTerm || null,
+            selectedLeaseTermMonths: selectedUnit?.selectedLeaseTerm?.months || null,
+            selectedLeaseTermRent: selectedUnit?.selectedLeaseTerm?.rent || null,
+            // Additional context information
+            source: property ? "property-specific" : selectedProperty ? "qualified-properties" : "general",
+            propertyAddress: property?.address || selectedProperty?.address || "",
+            // propertyRent: property?.rent || selectedProperty?.rent || null,
+            // propertyBedrooms: property?.bedrooms || selectedProperty?.bedrooms || null,
+            // propertyBathrooms: property?.bathrooms || selectedProperty?.bathrooms || null,
+            submittedBy: user?.uid || "",
+            submittedAt: new Date().toISOString(),
+          };
+          
+          console.log("📋 Application Metadata Captured:", metadata);
+          return metadata;
+        })(),
+
+        // ===== PROCESSING DATA =====
+        processingData: {
+          saferentData: saferentData, // Formatted for external processing
+        },
+
+        // ===== LEGACY FIELDS (for backward compatibility) =====
+        legacy: {
+          city: formData.currentCity,
+          state: formData.currentState,
+          zipCode: formData.currentZip,
+          employer: formData.employers[0]?.name || "",
+          jobTitle: formData.employers[0]?.position || "",
+          employmentStatus: formData.employers[0]?.employmentStatus || "",
+          annualIncome: parseFloat(
+            formData.employers[0]?.income?.replace(/[^0-9.]/g, "") || "0"
+          ),
+          employmentStartDate: formData.employers[0]?.startDate || "",
+          petDetails: formData.pets
             ?.map(
               (pet) =>
-                `${pet.type}: ${pet.name} (${pet.age} years, ${pet.weight} lbs)`
+                `${pet.type}: ${pet.breed} (${pet.age} years, ${pet.weight} lbs)`
             )
             .join(", ") || "",
-        emergencyContactName: formData.emergencyContact?.name || "",
-        emergencyContactPhone: formData.emergencyContact?.phone || "",
-        emergencyContactRelationship: formData.emergencyContact?.relation || "",
-        submittedBy: user?.uid || "",
+          emergencyContactName: formData.emergencyContact?.name || "",
+          emergencyContactPhone: formData.emergencyContact?.phone || "",
+          emergencyContactRelationship: formData.emergencyContact?.relation || "",
+        },
       };
 
       const result = await submitApplicationWithDocuments(
@@ -3212,7 +3400,7 @@ const ApplicationProcess = ({
                           Same as primary applicant address
                         </Label>
                       </div>
-                      {!holder.sameAsPrimary && (
+                      
                         <>
                           <div>
                             <Label htmlFor={`holder-currentStreet-${index}`}>
@@ -3341,7 +3529,7 @@ const ApplicationProcess = ({
                             </Select>
                           </div>
                         </>
-                      )}
+                 
                     </div>
 
                     {/* Employment Section */}
@@ -3818,7 +4006,7 @@ const ApplicationProcess = ({
                           Same as primary applicant address
                         </Label>
                       </div>
-                      {!guarantor.sameAsPrimary && (
+                     
                         <>
                           <div>
                             <Label htmlFor={`guarantor-currentStreet-${index}`}>
@@ -3953,7 +4141,7 @@ const ApplicationProcess = ({
                             </Select>
                           </div>
                         </>
-                      )}
+                    
                     </div>
                     <div className="flex items-center space-x-2">
                       <Switch
@@ -5769,138 +5957,363 @@ const ApplicationProcess = ({
   const renderResultsScreen = () => {
     if (qualifiedProperties.length > 0) {
       return (
-        <div className="text-center space-y-6">
-          <div className="space-y-4">
-            <CheckCircle className="h-20 w-20 text-green-500 mx-auto" />
-            <h2 className="text-3xl font-bold text-green-600">
-              Congratulations, You are Pre-qualified!
-            </h2>
-            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              Based on your application, you qualify for the following
-              properties. You can schedule a tour or secure a unit below.
-            </p>
+        <div className="min-h-full bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50">
+          {/* Success Header */}
+          <div className="relative overflow-hidden bg-gradient-to-r from-green-600 via-emerald-600 to-teal-600 px-8 py-12">
+            <div className="absolute inset-0 bg-black/10"></div>
+            <div className="relative text-center space-y-6">
+              <div className="inline-flex items-center justify-center w-24 h-24 bg-white/20 backdrop-blur-sm rounded-full mb-4">
+                <CheckCircle className="h-12 w-12 text-white" />
+              </div>
+              <div className="space-y-3">
+                <h1 className="text-4xl md:text-5xl font-bold text-white">
+                  🎉 Congratulations!
+                </h1>
+                <h2 className="text-2xl md:text-3xl font-semibold text-white/90">
+                  You're Pre-qualified!
+                </h2>
+                <p className="text-lg text-white/80 max-w-3xl mx-auto leading-relaxed">
+                  Great news! Based on your application, you qualify for these amazing properties. 
+                  Take your time to explore and choose your perfect home.
+                </p>
+              </div>
+              
+              {/* Stats */}
+              <div className="flex justify-center items-center gap-8 mt-8">
+                <div className="text-center">
+                  <div className="text-3xl font-bold text-white">{qualifiedProperties.length}</div>
+                  <div className="text-white/80 text-sm">Properties Found</div>
+                </div>
+                <div className="w-px h-12 bg-white/30"></div>
+                <div className="text-center">
+                  <div className="text-3xl font-bold text-white">100%</div>
+                  <div className="text-white/80 text-sm">Pre-approved</div>
+                </div>
+                <div className="w-px h-12 bg-white/30"></div>
+                <div className="text-center">
+                  <div className="text-3xl font-bold text-white">24h</div>
+                  <div className="text-white/80 text-sm">Response Time</div>
+                </div>
+              </div>
+            </div>
           </div>
 
-          <div className="grid gap-6 max-w-4xl mx-auto">
-            {qualifiedProperties.map((property) => (
-              <Card key={property.id} className="overflow-hidden">
-                <div className="flex flex-col md:flex-row">
-                  <div className="w-full md:w-1/3">
-                    <img
-                      src={property.image}
-                      alt={property.title}
-                      className="w-full h-48 md:h-full object-cover"
-                    />
-                  </div>
-                  <div className="flex-1 p-6">
-                    <div className="flex justify-between items-start mb-4">
-                      <div>
-                        <h3 className="text-xl font-semibold">
-                          {property.title}
-                        </h3>
-                        <p className="text-muted-foreground">
-                          {property.address}
-                        </p>
-                        <div className="flex items-center gap-4 mt-2">
-                          <span className="text-sm">
-                            {property.bedrooms} bed
+          {/* Properties Grid */}
+          <div className="px-8 py-12">
+            <div className="max-w-7xl mx-auto">
+              <div className="text-center mb-8">
+                <h3 className="text-2xl font-bold text-gray-900 mb-2">
+                  Your Qualified Properties
+                </h3>
+                <p className="text-gray-600">
+                  Select a property to schedule a tour or secure your unit
+                </p>
+              </div>
+
+              <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-1">
+                {qualifiedProperties.map((property, index) => (
+                  <motion.div
+                    key={property.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5, delay: index * 0.1 }}
+                    whileHover={{ y: -5, transition: { duration: 0.2 } }}
+                    className="bg-white rounded-2xl shadow-xl overflow-hidden hover:shadow-2xl transition-all duration-300 border border-gray-100"
+                  >
+                    <div className="flex flex-col sm:flex-row">
+                      {/* Image & Availability */}
+                      <div className="w-full sm:w-1/3 relative overflow-hidden group">
+                        <img
+                          src={
+                            property.image ||
+                            "https://images.pexels.com/photos/106399/pexels-photo-106399.jpeg?auto=compress&cs=tinysrgb&w=800"
+                          }
+                          alt={property.title}
+                          className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                        />
+
+                        {/* Pre-qualified Badge */}
+                        <div className="absolute top-4 left-4">
+                          <motion.span
+                            initial={{ scale: 0 }}
+                            animate={{ scale: 1 }}
+                            transition={{ delay: index * 0.1 + 0.3 }}
+                            className="px-3 py-1 rounded-full text-sm font-semibold shadow-lg backdrop-blur-sm bg-gradient-to-r from-green-500 to-green-600 text-white"
+                          >
+                            Pre-qualified
+                          </motion.span>
+                        </div>
+
+                        {/* Action Buttons */}
+                        <div className="absolute top-4 right-4 flex gap-2 z-10">
+                          {/* Heart Icon - Save Property */}
+                          <motion.div
+                            className="w-7 h-7 rounded-full flex items-center justify-center cursor-pointer transition-all duration-300 bg-white bg-opacity-90 hover:bg-opacity-100 hover:shadow-md"
+                            whileHover={{ scale: 1.1 }}
+                            whileTap={{ scale: 0.9 }}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              // Handle save property functionality
+                            }}
+                            style={{ pointerEvents: "auto" }}
+                          >
+                            <Heart
+                              size={17}
+                              color="#ef4444"
+                              fill="none"
+                              className="transition-all duration-300"
+                            />
+                          </motion.div>
+                        </div>
+
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                      </div>
+
+                      {/* Details */}
+                      <div className="w-full sm:w-2/3 p-4 sm:p-6">
+                        <div className="flex items-start justify-between mb-3">
+                          <div className="flex-1">
+                            <h3 className="text-lg sm:text-xl font-bold text-gray-900 line-clamp-2 mb-1">
+                              {property.title}
+                            </h3>
+                            <div className="flex items-center text-gray-600 mb-2">
+                              <div className="bg-blue-50 p-1 rounded-lg mr-2">
+                                <MapPin className="h-4 w-4 text-blue-600" />
+                              </div>
+                              <span className="text-sm">
+                                {property.address}
+                              </span>
+                            </div>
+                            <div className="flex items-center">
+                              <Star className="h-4 w-4 text-yellow-400 fill-current mr-1" />
+                              <span className="text-sm font-semibold text-gray-900">
+                                4.8
+                              </span>
+                            </div>
+                          </div>
+                          <div className="text-right ml-4">
+                            <span className="text-2xl font-bold text-green-600">${property.rent.toLocaleString()}</span>
+                            <div className="text-sm text-gray-500">per month</div>
+                          </div>
+                        </div>
+
+                        {/* Beds, Baths, Sqft */}
+                        <div className="flex items-center justify-between text-gray-600 mb-4 bg-gray-50 rounded-lg p-3">
+                          <div className="flex items-center">
+                            <Bed className="h-4 w-4 mr-1 text-blue-600" />
+                            <span className="text-sm">
+                              {property.bedrooms} bed{property.bedrooms !== 1 ? "s" : ""}
+                            </span>
+                          </div>
+                          <div className="flex items-center">
+                            <Bath className="h-4 w-4 mr-1 text-green-600" />
+                            <span className="text-sm">
+                              {property.bathrooms} bath{property.bathrooms !== 1 ? "s" : ""}
+                            </span>
+                          </div>
+                          <div className="flex items-center">
+                            <Square className="h-4 w-4 mr-1 text-purple-600" />
+                            <span className="text-sm">
+                              1,200 sqft
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Property Features */}
+                        <div className="flex flex-wrap gap-2 mb-4">
+                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 border border-green-200">
+                            🐾 Pet Friendly
                           </span>
-                          <span className="text-sm">
-                            {property.bathrooms} bath
+                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 border border-blue-200">
+                            🚗 Parking
                           </span>
-                          <span className="text-sm">
-                            Available: {property.availableDate}
+                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800 border border-purple-200">
+                            🏊 Pool
                           </span>
                         </div>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-2xl font-bold">
-                          ${property.rent}/mo
-                        </p>
-                      </div>
-                    </div>
 
-                    <div className="flex gap-3">
-                      <Button
-                        variant="outline"
-                        className="flex-1"
-                        onClick={handleScheduleTour}
-                      >
-                        Schedule Tour
-                      </Button>
-                      <Button
-                        className="flex-1"
-                        onClick={() => {
-                          // Set the selected property and unit from the first qualified property
-                          if (
-                            qualifiedProperties &&
-                            qualifiedProperties.length > 0
-                          ) {
-                            setSelectedProperty(qualifiedProperties[0]);
-                            // Create a mock unit object with the necessary data
-                            setSelectedUnit({
-                              id: "1",
-                              unitNumber: "A1",
-                              type: "2 Bedroom",
-                              bedrooms: qualifiedProperties[0].bedrooms,
-                              bathrooms: qualifiedProperties[0].bathrooms,
-                              sqft: 1100,
-                              rent: qualifiedProperties[0].rent,
-                              available: true,
-                              qualified: true,
-                            });
-                          }
-                          // Navigate to product selection step
-                          setCurrentProspectStep("products");
-                        }}
-                      >
-                        Secure Unit
-                      </Button>
+                        {/* Amenities */}
+                        <div className="flex flex-wrap gap-2 mb-4">
+                          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-blue-100 to-purple-100 text-blue-800 border border-blue-200">
+                            Gym
+                          </span>
+                          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-blue-100 to-purple-100 text-blue-800 border border-blue-200">
+                            Laundry
+                          </span>
+                          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-blue-100 to-purple-100 text-blue-800 border border-blue-200">
+                            Balcony
+                          </span>
+                        </div>
+
+                        {/* Enhanced Action Buttons */}
+                        <div className="flex items-center justify-between gap-3">
+                          <motion.button
+                            whileTap={{ scale: 0.95 }}
+                            whileHover={{ scale: 1.02 }}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleScheduleTour();
+                            }}
+                            className="relative px-4 py-3 rounded-lg font-semibold transition-all duration-300 flex items-center
+                           justify-center overflow-hidden group bg-gray-50 border-2 border-gray-300 text-gray-700 
+                          hover:bg-gradient-to-r hover:text-white hover:from-green-600 hover:to-emerald-600 hover:border-green-500 flex-1 shadow-sm hover:shadow-md"
+                          >
+                            <CalendarIcon className="h-4 w-4 mr-2" />
+                            <span className="relative transition-all duration-300 group-hover:text-white">
+                              Schedule Tour
+                            </span>
+                          </motion.button>
+
+                          <motion.button
+                            whileTap={{ scale: 0.95 }}
+                            whileHover={{ scale: 1.02 }}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              // Set the selected property and unit from the first qualified property
+                              if (
+                                qualifiedProperties &&
+                                qualifiedProperties.length > 0
+                              ) {
+                                setSelectedProperty(qualifiedProperties[0]);
+                                // Create a mock unit object with the necessary data
+                          
+                              }
+                              // Navigate to product selection step
+                              setCurrentProspectStep("products");
+                            }}
+                            className="relative px-3 py-3 rounded-lg font-semibold transition-all duration-300 flex items-center justify-center overflow-hidden group bg-gradient-to-r from-blue-600 to-blue-600 text-white flex-1 shadow-md hover:shadow-lg border-2 border-blue-600 hover:border-blue-700"
+                          >
+                            <CheckCircle className="h-4 w-4 mr-2" />
+                            <div className="absolute inset-0 rounded-lg bg-gradient-to-r from-blue-700 to-blue-700 opacity-0 group-hover:opacity-100 transition-all duration-300" />
+                            <span className="relative transition-all duration-300">
+                              Secure Unit
+                            </span>
+                          </motion.button>
+                        </div>
+                      </div>
                     </div>
-                  </div>
+                  </motion.div>
+                ))}
+              </div>
+
+              {/* Bottom Actions */}
+              <div className="text-center mt-12 space-y-4">
+                <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+                  <Button
+                    variant="outline"
+                    size="lg"
+                    onClick={() => {
+                      setShowResults(false);
+                      setCurrentStep(0);
+                      onClose();
+                    }}
+                    className="px-8 py-3 border-2 border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400 font-semibold"
+                  >
+                    <ArrowLeft className="h-5 w-5 mr-2" />
+                    Apply to More Properties
+                  </Button>
+                  <Button
+                    size="lg"
+                    onClick={() => {
+                      setShowResults(false);
+                      setCurrentStep(0);
+                      onClose();
+                    }}
+                    className="px-8 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold"
+                  >
+                    <Home className="h-5 w-5 mr-2" />
+                    Browse All Properties
+                  </Button>
                 </div>
-              </Card>
-            ))}
+                
+                <p className="text-sm text-gray-500 max-w-2xl mx-auto">
+                  Need help? Our team is here to assist you with your property search and application process.
+                </p>
+              </div>
+            </div>
           </div>
-
-          <Button
-            variant="outline"
-            onClick={() => {
-              setShowResults(false);
-              setCurrentStep(0);
-              onClose();
-            }}
-            className="mt-6"
-          >
-            Apply to More Properties
-          </Button>
         </div>
       );
     } else {
       return (
-        <div className="text-center space-y-6 max-w-2xl mx-auto">
-          <div className="space-y-4">
-            <Home className="h-20 w-20 text-muted-foreground mx-auto" />
-            <h2 className="text-2xl font-semibold">
-              No Qualifying Properties Found
-            </h2>
-            <p className="text-lg text-muted-foreground">
-              Unfortunately, we do not have any properties in your search
-              criteria where you qualify to live. We are always adding
-              properties to our platform. Please check back with us. Thank you.
-            </p>
-          </div>
+        <div className="min-h-full bg-gradient-to-br from-gray-50 to-blue-50 flex items-center justify-center px-8">
+          <div className="max-w-2xl mx-auto text-center space-y-8">
+            {/* No Results Illustration */}
+            <div className="relative">
+              <div className="inline-flex items-center justify-center w-32 h-32 bg-gradient-to-br from-gray-100 to-gray-200 rounded-full mb-6">
+                <Home className="h-16 w-16 text-gray-400" />
+              </div>
+              <div className="absolute -top-2 -right-2 w-8 h-8 bg-yellow-400 rounded-full flex items-center justify-center">
+                <span className="text-yellow-800 text-sm">!</span>
+              </div>
+            </div>
 
-          <Button
-            onClick={() => {
-              setShowResults(false);
-              setCurrentStep(0);
-              onClose();
-            }}
-            className="mt-6"
-          >
-            Search Again
-          </Button>
+            <div className="space-y-4">
+              <h2 className="text-3xl font-bold text-gray-900">
+                No Qualifying Properties Found
+              </h2>
+              <p className="text-lg text-gray-600 leading-relaxed">
+                We couldn't find any properties that match your current criteria and qualification level. 
+                Don't worry - we're constantly adding new properties to our platform!
+              </p>
+            </div>
+
+            {/* Suggestions */}
+            <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                What you can do next:
+              </h3>
+              <div className="space-y-3 text-left">
+                <div className="flex items-start gap-3">
+                  <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <span className="text-blue-600 text-sm font-semibold">1</span>
+                  </div>
+                  <p className="text-gray-700">Try adjusting your search criteria (location, price range, etc.)</p>
+                </div>
+                <div className="flex items-start gap-3">
+                  <div className="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <span className="text-green-600 text-sm font-semibold">2</span>
+                  </div>
+                  <p className="text-gray-700">Check back in a few days as we add new properties regularly</p>
+                </div>
+                <div className="flex items-start gap-3">
+                  <div className="w-6 h-6 bg-purple-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <span className="text-purple-600 text-sm font-semibold">3</span>
+                  </div>
+                  <p className="text-gray-700">Contact our support team for personalized assistance</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Button
+                size="lg"
+                onClick={() => {
+                  setShowResults(false);
+                  setCurrentStep(0);
+                  onClose();
+                }}
+                className="px-8 py-3 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-semibold"
+              >
+                <Search className="h-5 w-5 mr-2" />
+                Search Again
+              </Button>
+              <Button
+                variant="outline"
+                size="lg"
+                onClick={() => {
+                  setShowResults(false);
+                  setCurrentStep(0);
+                  onClose();
+                }}
+                className="px-8 py-3 border-2 border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400 font-semibold"
+              >
+                <Home className="h-5 w-5 mr-2" />
+                Browse All Properties
+              </Button>
+            </div>
+          </div>
         </div>
       );
     }
@@ -5908,7 +6321,7 @@ const ApplicationProcess = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-5xl max-h-[90vh] flex flex-col p-0 bg-gradient-to-br from-green-50 to-blue-50">
+      <DialogContent className="max-w-6xl max-h-[95vh] flex flex-col p-0 bg-gradient-to-br from-green-50 to-blue-50">
         <DialogHeader className="flex-shrink-0 bg-gradient-to-r from-green-600 via-emerald-600 to-green-600 px-6 py-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center">
@@ -5978,28 +6391,255 @@ const ApplicationProcess = ({
         )}
 
         {showCalendarPlaceholder ? (
-          <div className="flex-1 flex items-center justify-center p-6">
-            <div className="text-center max-w-md">
-              <div className="inline-flex items-center justify-center w-16 h-16 bg-green-100 rounded-full mb-4">
-                <Calendar className="h-8 w-8 text-green-600" />
-              </div>
-              <h3 className="text-2xl font-bold text-gray-800 mb-4">
-                Schedule Tour
-              </h3>
-              <p className="text-gray-600 mb-6">
-                This is a placeholder to connect to the landlord's calendar. In
-                production, this will integrate with the property owner's
-                scheduling system to allow tenants to book tour appointments.
-              </p>
-              <div className="space-y-3">
-                <Button
-                  onClick={() => setShowCalendarPlaceholder(false)}
-                  className="w-full"
-                >
-                  Back to Properties
-                </Button>
-              </div>
+          <div className="flex-1 flex flex-col p-6 bg-gradient-to-br from-blue-50 via-white to-green-50">
+            {/* Header Section */}
+            <div className="text-center mb-8">
+              <motion.div
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ type: "spring", duration: 0.6 }}
+                className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-r from-blue-500 to-green-500 rounded-full mb-6 shadow-lg"
+              >
+                <Calendar className="h-10 w-10 text-white" />
+              </motion.div>
+              <motion.h2
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2 }}
+                className="text-3xl font-bold text-gray-900 mb-3"
+              >
+                Schedule Your Tour
+              </motion.h2>
+              <motion.p
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3 }}
+                className="text-lg text-gray-600 max-w-2xl mx-auto"
+              >
+                Book a personalized tour to see your potential new home in person
+              </motion.p>
             </div>
+
+            {/* Tour Options Grid */}
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+              {/* Virtual Tour Option */}
+              <motion.div
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.4 }}
+                className="bg-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 border border-gray-100"
+              >
+                <div className="text-center">
+                  <div className="w-16 h-16 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <div className="text-2xl">📱</div>
+                  </div>
+                  <h3 className="text-xl font-bold text-gray-900 mb-2">Virtual Tour</h3>
+                  <p className="text-gray-600 mb-4">
+                    Take a 360° virtual tour from the comfort of your home
+                  </p>
+                  <div className="space-y-2 text-sm text-gray-500">
+                    <div className="flex items-center justify-center">
+                      <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
+                      Available 24/7
+                    </div>
+                    <div className="flex items-center justify-center">
+                      <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
+                      HD Quality
+                    </div>
+                    <div className="flex items-center justify-center">
+                      <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
+                      Interactive
+                    </div>
+                  </div>
+                  <Button className="w-full mt-4 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white">
+                    Start Virtual Tour
+                  </Button>
+                </div>
+              </motion.div>
+
+              {/* In-Person Tour Option */}
+              <motion.div
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.5 }}
+                className="bg-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 border border-gray-100"
+              >
+                <div className="text-center">
+                  <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Home className="h-8 w-8 text-white" />
+                  </div>
+                  <h3 className="text-xl font-bold text-gray-900 mb-2">In-Person Tour</h3>
+                  <p className="text-gray-600 mb-4">
+                    Schedule a guided tour with our property specialist
+                  </p>
+                  <div className="space-y-2 text-sm text-gray-500">
+                    <div className="flex items-center justify-center">
+                      <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
+                      Personal Guide
+                    </div>
+                    <div className="flex items-center justify-center">
+                      <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
+                      Ask Questions
+                    </div>
+                    <div className="flex items-center justify-center">
+                      <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
+                      See Amenities
+                    </div>
+                  </div>
+                  <Button className="w-full mt-4 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white">
+                    Schedule Tour
+                  </Button>
+                </div>
+              </motion.div>
+
+              {/* Video Call Option */}
+              <motion.div
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.6 }}
+                className="bg-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 border border-gray-100 md:col-span-2 lg:col-span-1"
+              >
+                <div className="text-center">
+                  <div className="w-16 h-16 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <div className="text-2xl">📹</div>
+                  </div>
+                  <h3 className="text-xl font-bold text-gray-900 mb-2">Video Call</h3>
+                  <p className="text-gray-600 mb-4">
+                    Live video tour with a property specialist
+                  </p>
+                  <div className="space-y-2 text-sm text-gray-500">
+                    <div className="flex items-center justify-center">
+                      <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
+                      Real-time Q&A
+                    </div>
+                    <div className="flex items-center justify-center">
+                      <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
+                      Flexible Timing
+                    </div>
+                    <div className="flex items-center justify-center">
+                      <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
+                      Recorded Session
+                    </div>
+                  </div>
+                  <Button className="w-full mt-4 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white">
+                    Book Video Call
+                  </Button>
+                </div>
+              </motion.div>
+            </div>
+
+            {/* Calendar Integration Section */}
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.7 }}
+              className="bg-white rounded-2xl p-8 shadow-lg border border-gray-100 mb-8"
+            >
+              <div className="text-center mb-6">
+                <h3 className="text-2xl font-bold text-gray-900 mb-2">
+                  Available Time Slots
+                </h3>
+                <p className="text-gray-600">
+                  Select your preferred date and time for the tour
+                </p>
+              </div>
+
+              {/* Mock Calendar */}
+              <div className="grid grid-cols-7 gap-2 mb-6">
+                {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day, index) => (
+                  <div key={day} className="text-center text-sm font-semibold text-gray-600 py-2">
+                    {day}
+                  </div>
+                ))}
+                {Array.from({ length: 35 }, (_, i) => {
+                  const day = i - 6; // Start from -6 to show previous month days
+                  const isCurrentMonth = day > 0 && day <= 30;
+                  const isAvailable = isCurrentMonth && day % 3 === 0; // Mock availability
+                  const isToday = day === new Date().getDate();
+                  
+                  return (
+                    <motion.div
+                      key={i}
+                      whileHover={{ scale: 1.05 }}
+                      className={`
+                        text-center py-2 rounded-lg cursor-pointer transition-all duration-200
+                        ${isCurrentMonth 
+                          ? isAvailable 
+                            ? 'bg-green-100 text-green-700 hover:bg-green-200' 
+                            : 'text-gray-400 hover:bg-gray-50'
+                          : 'text-gray-200'
+                        }
+                        ${isToday ? 'ring-2 ring-blue-500 bg-blue-50' : ''}
+                      `}
+                    >
+                      {isCurrentMonth ? day : ''}
+                    </motion.div>
+                  );
+                })}
+              </div>
+
+              {/* Time Slots */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {['9:00 AM', '11:00 AM', '2:00 PM', '4:00 PM'].map((time, index) => (
+                  <motion.button
+                    key={time}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    className="p-3 border-2 border-gray-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-all duration-200 text-sm font-medium"
+                  >
+                    {time}
+                  </motion.button>
+                ))}
+              </div>
+            </motion.div>
+
+            {/* Contact Information */}
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.8 }}
+              className="bg-gradient-to-r from-blue-500 to-green-500 rounded-2xl p-6 text-white"
+            >
+              <div className="text-center">
+                <h3 className="text-xl font-bold mb-2">Need Help Scheduling?</h3>
+                <p className="mb-4 opacity-90">
+                  Our team is here to help you find the perfect time for your tour
+                </p>
+                <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                  <Button
+                    variant="outline"
+                    className="bg-white text-blue-600 border-white hover:bg-gray-50"
+                  >
+                    <Phone className="h-4 w-4 mr-2" />
+                    Call (555) 123-4567
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="bg-white text-green-600 border-white hover:bg-gray-50"
+                  >
+                    <User className="h-4 w-4 mr-2" />
+                    Chat with Agent
+                  </Button>
+                </div>
+              </div>
+            </motion.div>
+
+            {/* Back Button */}
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.9 }}
+              className="text-center mt-8"
+            >
+              <Button
+                onClick={() => setShowCalendarPlaceholder(false)}
+                variant="outline"
+                className="px-8 py-3 border-2 border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400"
+              >
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Back to Properties
+              </Button>
+            </motion.div>
           </div>
         ) : showMatchingProcess ? (
           <div className="flex-1 flex items-center justify-center p-6">

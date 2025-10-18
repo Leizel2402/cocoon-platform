@@ -23,6 +23,7 @@ interface Unit {
   unitNumber: string;
   type: string;
   bedrooms: number;
+  bathrooms: number;
   sqft: number;
   available: boolean;
   qualified: boolean;
@@ -30,6 +31,29 @@ interface Unit {
   floorLevel: string;
   unitAmenities: string[];
   floorPlan: string;
+  propertyId: string;
+  description: string;
+  deposit: number;
+  images: string[];
+  availableDate: string;
+  lease_term_options?: string[];
+  // Additional Firebase fields
+  pet_deposit?: number;
+  application_fee?: number;
+  security_deposit_months?: number;
+  first_month_rent_required?: boolean;
+  last_month_rent_required?: boolean;
+  landlordId?: string;
+  userDetails?: {
+    email: string;
+    phone: string;
+    name: string;
+  };
+  // Missing Firebase fields
+  updatedAt?: string;
+  createdAt?: string;
+  lease_term_months?: number;
+  floorImage?: string;
 }
 
 interface ScheduleTourModalProps {

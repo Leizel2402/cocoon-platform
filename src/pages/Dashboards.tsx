@@ -2531,7 +2531,9 @@ const Dashboards = () => {
             <ApplicationProcess
               isOpen={true}
               onClose={() => setCurrentView("unit-selection")}
-              type="prequalify"
+              property={selectedProperty}
+              selectedUnit={selectedUnit}
+              type="apply"
               initialStep={applicationStep}
               onNavigateToUnitSelection={() => setCurrentView("unit-selection")}
             />

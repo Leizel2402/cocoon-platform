@@ -93,6 +93,7 @@ interface Product {
 }
 
 const ProductSelection = ({ 
+  currentView,
   property, 
   unit, 
   selectedLeaseTerm,
@@ -102,6 +103,7 @@ const ProductSelection = ({
   applicantData: _applicantData // eslint-disable-line @typescript-eslint/no-unused-vars
 }: ProductSelectionProps) => {
   const { toast } = useToast();
+  console.log("currentView",currentView);
   
   const [selectedProducts, setSelectedProducts] = useState<Record<string, { selected: boolean; option?: string }>>({
     // Default personal contents coverage to $7,500

@@ -40,6 +40,7 @@ import {
 } from "lucide-react";
 import ProductSelection from "../../ProductSelection";
 import PaymentProcess from "../../payment/PaymentProcess";
+import { ImageModal } from "../../ImageModal";
 // import PaymentProcess from '../payment/PaymentProcess';
 
 interface LeaseTerm {
@@ -64,6 +65,7 @@ interface Unit {
   leaseTerms: LeaseTerm[];
   lease_term_options?: string[];
   amenities: string[];
+  unitAmenities: string[]; // Add this field to match QualifiedProperties data structure
   images: string[];
   qualified: boolean;
   qualifiedStatus?: "qualified" | "pending" | "denied";
@@ -71,6 +73,7 @@ interface Unit {
   petFriendly: boolean;
   furnished: boolean;
   floor: number;
+  floorLevel: string; // Add this field to match QualifiedProperties data structure
   view: string;
 }
 
@@ -170,6 +173,10 @@ const UnitsComparison: React.FC<UnitsComparisonProps> = ({
   const [openDropdowns, setOpenDropdowns] = useState<Record<string, boolean>>(
     {}
   );
+  const [imageModalOpen, setImageModalOpen] = useState(false);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [currentUnitImages, setCurrentUnitImages] = useState<string[]>([]);
+  const [currentUnitNumber, setCurrentUnitNumber] = useState("");
   const dropdownRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   // Transform Property to QualifiedProperty format
@@ -196,15 +203,15 @@ const UnitsComparison: React.FC<UnitsComparisonProps> = ({
     };
   };
   const [showDetailsModal, setShowDetailsModal] = useState(false);
-  const [showFloorPlanModal, setShowFloorPlanModal] = useState(false);
+  // const [showFloorPlanModal, setShowFloorPlanModal] = useState(false);
   const [detailsUnit, setDetailsUnit] = useState<{
     property: QualifiedProperty;
     unit: Unit;
   } | null>(null);
-  const [floorPlanUnit, setFloorPlanUnit] = useState<{
-    property: QualifiedProperty;
-    unit: Unit;
-  } | null>(null);
+  // const [floorPlanUnit, setFloorPlanUnit] = useState<{
+  //   property: QualifiedProperty;
+  //   unit: Unit;
+  // } | null>(null);
   const [showProductsModal, setShowProductsModal] = useState(false);
   const [selectedForProducts, setSelectedForProducts] = useState<{
     property: QualifiedProperty;
@@ -215,40 +222,65 @@ const UnitsComparison: React.FC<UnitsComparisonProps> = ({
   const [inPaymentStep, setInPaymentStep] = useState(false);
   const [modalSelectedLeaseTerm, setModalSelectedLeaseTerm] =
     useState<LeaseTerm | null>(null);
+  const [expandedAmenities, setExpandedAmenities] = useState<Record<string, boolean>>({});
 
-  // Generate available lease terms (same logic as dropdown)
-  const getAvailableLeaseTerms = (unit: Unit): LeaseTerm[] => {
+  // Generate available lease terms (same logic as QualifiedProperties)
+  const getAvailableLeaseTerms = (unit: Unit, property?: IncomingProperty): LeaseTerm[] => {
+    // If unit already has generated lease terms, use them
+    if (unit.leaseTerms && unit.leaseTerms.length > 0) {
+      return unit.leaseTerms;
+    }
+    
     const terms: LeaseTerm[] = [];
-
-    // Specific lease terms: 4, 6, 12, 16, 24 months
-    const leaseTermMonths = [4, 6, 12, 16, 24];
-
-    leaseTermMonths.forEach((months) => {
-      const baseTerm =
-        unit.leaseTerms.find((term) => term.months === 12) ||
-        unit.leaseTerms[0];
-      const baseRent = baseTerm?.rent || 1200;
-
+    
+    // Use property lease term options, fallback to unit data, then default
+    const leaseTermOptions = property?.lease_term_options || unit.lease_term_options || ['12 Months'];
+    
+    // Remove duplicates from lease term options
+    const uniqueLeaseTermOptions = [...new Set(leaseTermOptions)];
+    
+    // Get base rent from the first available term or use a default
+    const baseRent = unit.leaseTerms?.[0]?.rent || unit.rent || 1200;
+    
+    uniqueLeaseTermOptions.forEach(termOption => {
+      // Parse the term option to extract months (e.g., "12 Months" -> 12)
+      const months = parseInt(termOption.replace(/\D/g, '')) || 12;
+      
+      // Use existing lease terms if available, otherwise calculate based on base rent
+      const existingTerm = unit.leaseTerms?.find(term => term.months === months);
+      
       let calculatedRent = baseRent;
-      if (months < 12) {
-        calculatedRent = Math.round(baseRent * (1 + (12 - months) * 0.05));
-      } else if (months > 12) {
-        calculatedRent = Math.round(baseRent * (1 - (months - 12) * 0.02));
+      let savings = null;
+      let isPopular = months === 12;
+      
+      if (existingTerm) {
+        // Use existing term data if available
+        calculatedRent = existingTerm.rent;
+        savings = existingTerm.savings;
+        isPopular = existingTerm.popular || months === 12;
+      } else {
+        // Calculate rent based on term length if no existing data
+        if (months < 12) {
+          calculatedRent = Math.round(baseRent * (1 + (12 - months) * 0.05));
+        } else if (months > 12) {
+          calculatedRent = Math.round(baseRent * (1 - (months - 12) * 0.02));
+          savings = Math.round(baseRent - calculatedRent);
+        }
       }
-
-      const isPopular = months === 12;
-      const savings =
-        months > 12 ? Math.round(baseRent - calculatedRent) : null;
-
-      terms.push({
-        months,
-        rent: calculatedRent,
-        popular: isPopular,
-        savings,
-        concession: null,
-      });
+      
+      // Check if we already have a term with this number of months
+      const existingTermWithSameMonths = terms.find(term => term.months === months);
+      if (!existingTermWithSameMonths) {
+        terms.push({
+          months,
+          rent: calculatedRent,
+          popular: isPopular,
+          savings,
+          concession: existingTerm?.concession || null
+        });
+      }
     });
-
+    
     return terms;
   };
 
@@ -283,7 +315,7 @@ const UnitsComparison: React.FC<UnitsComparisonProps> = ({
         setModalSelectedLeaseTerm(currentSelection);
       } else {
         // Set default to popular term or 12 months or first available
-        const availableTerms = getAvailableLeaseTerms(detailsUnit.unit);
+        const availableTerms = getAvailableLeaseTerms(detailsUnit.unit, detailsUnit.property);
         const defaultTerm =
           availableTerms.find((term) => term.popular) ||
           availableTerms.find((term) => term.months === 12) ||
@@ -406,15 +438,54 @@ const UnitsComparison: React.FC<UnitsComparisonProps> = ({
     setShowDetailsModal(true);
   };
 
-  const handleShowFloorPlan = (property: IncomingProperty, unit: Unit) => {
-    const qualifiedProperty = transformPropertyToQualified(property);
-    setFloorPlanUnit({ property: qualifiedProperty, unit });
-    setShowFloorPlanModal(true);
-  };
+  // const handleShowFloorPlan = (property: IncomingProperty, unit: Unit) => {
+  //   const qualifiedProperty = transformPropertyToQualified(property);
+  //   setFloorPlanUnit({ property: qualifiedProperty, unit });
+  //   setShowFloorPlanModal(true);
+  // };
 
   const getCanProceed = () => {
     return selectedUnit && selectedLeaseTerms[selectedUnit];
   };
+  const openImageModal = (unit: Unit, imageIndex: number) => {
+   
+
+    setCurrentUnitImages(unit.images);
+    setCurrentImageIndex(imageIndex);
+    setCurrentUnitNumber(unit.unitNumber);
+    setImageModalOpen(true);
+
+  };
+
+  const closeImageModal = () => {
+    setImageModalOpen(false);
+    setCurrentUnitImages([]);
+    setCurrentImageIndex(0);
+    setCurrentUnitNumber("");
+  };
+  const goToPreviousImage = () => {
+    if (currentImageIndex > 0) {
+      setCurrentImageIndex(currentImageIndex - 1);
+    }
+  };
+
+  const goToNextImage = () => {
+    if (currentImageIndex < currentUnitImages.length - 1) {
+      setCurrentImageIndex(currentImageIndex + 1);
+    }
+  };
+
+  const selectImage = (index: number) => {
+    setCurrentImageIndex(index);
+  };
+
+  const toggleAmenitiesExpansion = (unitKey: string) => {
+    setExpandedAmenities(prev => ({
+      ...prev,
+      [unitKey]: !prev[unitKey]
+    }));
+  };
+
 
   return (
     <div className="min-h-screen bg-white">
@@ -429,7 +500,9 @@ const UnitsComparison: React.FC<UnitsComparisonProps> = ({
               <div>
                 <h1 className="text-2xl font-bold">Unit Comparison</h1>
                 <p className="text-sm text-green-50">
-                  Comparing {comparisonUnits.length} unit{comparisonUnits.length > 1 ? "s" : ""} • Select one to proceed
+                  Comparing {comparisonUnits.length} unit
+                  {comparisonUnits.length > 1 ? "s" : ""} • Select one to
+                  proceed
                 </p>
               </div>
             </div>
@@ -530,9 +603,6 @@ const UnitsComparison: React.FC<UnitsComparisonProps> = ({
           {comparisonUnits.map(({ property, unit }) => {
             const unitKey = `${property.id}-${unit.id}`;
             const isSelected = selectedUnit === unitKey;
-            const leaseTerms = Array.isArray(unit.leaseTerms)
-              ? unit.leaseTerms
-              : [];
 
             return (
               <motion.div
@@ -562,7 +632,7 @@ const UnitsComparison: React.FC<UnitsComparisonProps> = ({
                           Unit {unit.unitNumber}
                         </Badge>
                         <Badge className="bg-emerald-100 text-emerald-700 text-xs px-2 py-1">
-                          Floor {unit.floor}
+                          {unit.floorLevel || `Floor ${unit.floor || 'N/A'}`}
                         </Badge>
                         <Badge
                           className={`text-xs px-2 py-1 ${
@@ -589,24 +659,59 @@ const UnitsComparison: React.FC<UnitsComparisonProps> = ({
                       </Button>
                     </div>
                   </div>
-
-                  {/* Floor Plan */}
-                  <div className="mt-4">
-                    <div
-                      className="bg-gray-50 rounded-lg p-3 flex justify-center cursor-pointer hover:bg-gray-100 transition-colors border border-gray-200"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleShowFloorPlan(property, unit);
-                      }}
-                    >
-                      <img
-                        src={unit.floorPlan || "/placeholder.svg"}
-                        alt={`${unit.bedrooms} bedroom floor plan`}
-                        className="max-w-full max-h-20 object-contain"
-                      />
-                    </div>
-                  </div>
                 </div>
+                {unit.images && unit.images.length > 0 && (
+                            <div className="px-6 pb-6 border-b border-gray-100">
+                              
+                              <div className="grid grid-cols-1 ">
+                                {unit.images.slice(0, 4).map((image, index) => (
+                                  <div key={index} className="relative group">
+                                    <img
+                                      src={image}
+                                      alt={`Unit ${unit.unitNumber} - Image ${index + 1}`}
+                                      className="w-full h-52 object-cover rounded-lg border border-gray-200 hover:border-blue-300 transition-all duration-200 cursor-pointer"
+                                      onError={(e) => {
+                                        const target = e.target as HTMLImageElement;
+                                        target.style.display = 'none';
+                                      }}
+                                      onClick={(e) => {
+                                        // e.preventDefault();
+                                        e.stopPropagation();
+                                        openImageModal(unit, index);
+                                      }}
+                                    />
+                                    <div 
+                                      className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-200 rounded-lg flex items-center justify-center cursor-pointer"
+                                      onClick={(e) => {
+                                        // e.preventDefault();
+                                        e.stopPropagation();
+                                        openImageModal(unit, index);
+                                      }}
+                                    >
+                                      <Eye className="h-6 w-6 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
+                                    </div>
+                                  </div>
+                                ))}
+                                {unit.images.length > 4 && (
+                                  <div className="relative group">
+                                    <div className="w-full h-28 bg-gray-100 rounded-lg border border-gray-200 flex items-center justify-center">
+                                      <span className="text-sm font-medium text-gray-600">
+                                        +{unit.images.length - 4} more
+                                      </span>
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                              {unit.images.length > 1 && (
+                                <div className="text-center mt-2">
+                                  <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
+                                    {unit.images.length} images available
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                {/* Floor Plan */}
 
                 {/* Card Content */}
                 <div className="px-6 pb-6 space-y-4">
@@ -660,13 +765,20 @@ const UnitsComparison: React.FC<UnitsComparisonProps> = ({
                             {(() => {
                               const selectedTerm = selectedLeaseTerms[unitKey];
                               if (!selectedTerm) return "12 Months - $1,200/mo";
-                              
-                              const termOption = property.lease_term_options?.find(option => 
-                                parseInt(option.replace(/\D/g, '')) === selectedTerm.months
-                              ) || unit.lease_term_options?.find(option => 
-                                parseInt(option.replace(/\D/g, '')) === selectedTerm.months
-                              ) || `${selectedTerm.months} Months`;
-                              
+
+                              const termOption =
+                                property.lease_term_options?.find(
+                                  (option) =>
+                                    parseInt(option.replace(/\D/g, "")) ===
+                                    selectedTerm.months
+                                ) ||
+                                unit.lease_term_options?.find(
+                                  (option) =>
+                                    parseInt(option.replace(/\D/g, "")) ===
+                                    selectedTerm.months
+                                ) ||
+                                `${selectedTerm.months} Months`;
+
                               return `${termOption} - $${selectedTerm.rent.toLocaleString()}/mo`;
                             })()}
                           </span>
@@ -695,77 +807,41 @@ const UnitsComparison: React.FC<UnitsComparisonProps> = ({
                             transition={{ duration: 0.2 }}
                             className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-10 overflow-hidden max-h-52 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100"
                           >
-                            {(() => {
-                              const leaseTermOptions = property.lease_term_options || unit.lease_term_options || ['12 Months'];
-                              const uniqueLeaseTermOptions = [...new Set(leaseTermOptions)];
-                              return uniqueLeaseTermOptions;
-                            })().map((termOption) => {
-                              // Parse the term option to extract months (e.g., "12 Months" -> 12)
-                              const months = parseInt(termOption.replace(/\D/g, '')) || 12;
-                              
-                              // Use existing lease terms if available, otherwise calculate based on base rent
-                              const existingTerm = leaseTerms.find((term) => term.months === months);
-                              const baseTerm = leaseTerms.find((term) => term.months === 12) || leaseTerms[0];
-                              const baseRent = baseTerm?.rent || unit.rent || 1200;
-
-                              let calculatedRent = baseRent;
-                              let savings = null;
-                              let isPopular = months === 12;
-
-                              if (existingTerm) {
-                                // Use existing term data if available
-                                calculatedRent = existingTerm.rent;
-                                savings = existingTerm.savings;
-                                isPopular = existingTerm.popular || months === 12;
-                              } else {
-                                // Calculate rent based on term length if no existing data
-                                if (months < 12) {
-                                  calculatedRent = Math.round(
-                                    baseRent * (1 + (12 - months) * 0.05)
-                                  );
-                                } else if (months > 12) {
-                                  calculatedRent = Math.round(
-                                    baseRent * (1 - (months - 12) * 0.02)
-                                  );
-                                  savings = Math.round(baseRent - calculatedRent);
-                                }
-                              }
-
-                              const term = {
-                                months,
-                                rent: calculatedRent,
-                                popular: isPopular,
-                                savings,
-                                concession: existingTerm?.concession || null,
-                              };
+                            {getAvailableLeaseTerms(unit, property).map((term) => {
+                              // Get the term option text from property or unit lease_term_options
+                              const termOption = property.lease_term_options?.find(option => 
+                                parseInt(option.replace(/\D/g, '')) === term.months
+                              ) || unit.lease_term_options?.find(option => 
+                                parseInt(option.replace(/\D/g, '')) === term.months
+                              ) || `${term.months} Months`;
 
                               return (
                                 <div
-                                  key={months}
+                                  key={term.months}
                                   onClick={() =>
                                     handleLeaseTermSelect(unitKey, term)
                                   }
                                   className={`px-4 py-3 cursor-pointer transition-colors duration-150 flex items-center justify-between ${
                                     selectedLeaseTerms[unitKey]?.months ===
-                                    months
+                                    term.months
                                       ? "bg-gradient-to-r from-green-500 to-emerald-500 text-white"
                                       : "hover:bg-gray-50 text-gray-900"
                                   }`}
                                 >
                                   <div className="flex items-center">
                                     {selectedLeaseTerms[unitKey]?.months ===
-                                      months && (
+                                      term.months && (
                                       <CheckCircle className="h-4 w-4 text-white mr-2" />
                                     )}
                                     <span className="font-medium">
                                       {termOption} - $
-                                      {calculatedRent.toLocaleString()}/mo
+                                      {term.rent.toLocaleString()}/mo
                                     </span>
-                                    {isPopular && (
+                                    {term.popular && (
                                       <span
                                         className={`ml-2 px-2 py-1 text-xs rounded-full ${
                                           selectedLeaseTerms[unitKey]
-                                            ?.months === months
+                                            ?.months === term.months
                                             ? "bg-white/20 text-white"
                                             : "bg-gray-100 text-gray-600"
                                         }`}
@@ -774,16 +850,16 @@ const UnitsComparison: React.FC<UnitsComparisonProps> = ({
                                       </span>
                                     )}
                                   </div>
-                                  {savings && (
+                                  {term.savings && (
                                     <span
                                       className={`text-xs ${
                                         selectedLeaseTerms[unitKey]?.months ===
-                                        months
+                                        term.months
                                           ? "text-white/80"
                                           : "text-green-600"
                                       }`}
                                     >
-                                      Save ${savings}
+                                      Save ${term.savings}
                                     </span>
                                   )}
                                 </div>
@@ -802,11 +878,18 @@ const UnitsComparison: React.FC<UnitsComparisonProps> = ({
                             <CheckCircle className="h-4 w-4 text-green-600 mr-2" />
                             <span className="text-sm font-semibold text-green-800">
                               {(() => {
-                                const termOption = property.lease_term_options?.find(option => 
-                                  parseInt(option.replace(/\D/g, '')) === selectedLeaseTerms[unitKey].months
-                                ) || unit.lease_term_options?.find(option => 
-                                  parseInt(option.replace(/\D/g, '')) === selectedLeaseTerms[unitKey].months
-                                ) || `${selectedLeaseTerms[unitKey].months} Months`;
+                                const termOption =
+                                  property.lease_term_options?.find(
+                                    (option) =>
+                                      parseInt(option.replace(/\D/g, "")) ===
+                                      selectedLeaseTerms[unitKey].months
+                                  ) ||
+                                  unit.lease_term_options?.find(
+                                    (option) =>
+                                      parseInt(option.replace(/\D/g, "")) ===
+                                      selectedLeaseTerms[unitKey].months
+                                  ) ||
+                                  `${selectedLeaseTerms[unitKey].months} Months`;
                                 return termOption;
                               })()}
                             </span>
@@ -845,9 +928,11 @@ const UnitsComparison: React.FC<UnitsComparisonProps> = ({
                       Unit Features
                     </h4>
                     <div className="flex flex-wrap gap-2">
-                      {(Array.isArray(unit.amenities) ? unit.amenities : [])
-                        .slice(0, 4)
-                        .map((amenity) => {
+                      {(() => {
+                        const amenities = Array.isArray(unit.unitAmenities) ? unit.unitAmenities : Array.isArray(unit.amenities) ? unit.amenities : [];
+                        const displayAmenities = expandedAmenities[unitKey] ? amenities : amenities.slice(0, 4);
+                        
+                        return displayAmenities.map((amenity) => {
                           const IconComponent =
                             amenityIconMap[amenity.toLowerCase()] || Building;
                           return (
@@ -859,13 +944,27 @@ const UnitsComparison: React.FC<UnitsComparisonProps> = ({
                               {amenity}
                             </Badge>
                           );
-                        })}
-                      {Array.isArray(unit.amenities) &&
-                        unit.amenities.length > 4 && (
-                          <Badge className="bg-green-100 text-green-700 text-xs px-2 py-1 border border-green-200">
-                            +{unit.amenities.length - 4} more
-                          </Badge>
-                        )}
+                        });
+                      })()}
+                      {(() => {
+                        const amenities = Array.isArray(unit.unitAmenities) ? unit.unitAmenities : Array.isArray(unit.amenities) ? unit.amenities : [];
+                        if (amenities.length > 4) {
+                          return (
+                            <motion.button
+                              whileHover={{ scale: 1.05 }}
+                              whileTap={{ scale: 0.95 }}
+                              onClick={() => toggleAmenitiesExpansion(unitKey)}
+                              className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700 hover:bg-blue-200 transition-colors cursor-pointer border border-blue-200"
+                            >
+                              {expandedAmenities[unitKey] 
+                                ? "Show Less" 
+                                : `+${amenities.length - 4} more`
+                              }
+                            </motion.button>
+                          );
+                        }
+                        return null;
+                      })()}
                     </div>
                   </div>
 
@@ -986,6 +1085,9 @@ const UnitsComparison: React.FC<UnitsComparisonProps> = ({
                     <p className="text-emerald-600 text-sm">
                       {detailsUnit.unit.sqft} sqft
                     </p>
+                    <p className="text-emerald-600 text-sm">
+                      {detailsUnit.unit.floorLevel || `Floor ${detailsUnit.unit.floor || 'N/A'}`}
+                    </p>
                   </div>
                 </div>
               </div>
@@ -1026,7 +1128,7 @@ const UnitsComparison: React.FC<UnitsComparisonProps> = ({
                   Unit Amenities
                 </h4>
                 <div className="flex flex-wrap gap-2">
-                  {(detailsUnit.unit.amenities || []).map((amenity) => {
+                  {(detailsUnit.unit.unitAmenities || detailsUnit.unit.amenities || []).map((amenity) => {
                     const IconComponent =
                       amenityIconMap[amenity.toLowerCase()] || Building;
                     return (
@@ -1039,8 +1141,8 @@ const UnitsComparison: React.FC<UnitsComparisonProps> = ({
                       </Badge>
                     );
                   })}
-                  {(!detailsUnit.unit.amenities ||
-                    detailsUnit.unit.amenities.length === 0) && (
+                  {(!detailsUnit.unit.unitAmenities && !detailsUnit.unit.amenities ||
+                    (detailsUnit.unit.unitAmenities || detailsUnit.unit.amenities || []).length === 0) && (
                     <p className="text-sm text-gray-500 italic">
                       No unit amenities listed
                     </p>
@@ -1056,12 +1158,12 @@ const UnitsComparison: React.FC<UnitsComparisonProps> = ({
                 </h4>
                 <div
                   className={`space-y-3 ${
-                    getAvailableLeaseTerms(detailsUnit.unit).length > 5
+                    getAvailableLeaseTerms(detailsUnit.unit, detailsUnit.property).length > 5
                       ? "max-h-80 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 pr-2"
                       : ""
                   }`}
                 >
-                  {getAvailableLeaseTerms(detailsUnit.unit).map((term) => (
+                  {getAvailableLeaseTerms(detailsUnit.unit, detailsUnit.property).map((term) => (
                     <motion.div
                       key={term.months}
                       onClick={() => {
@@ -1137,10 +1239,9 @@ const UnitsComparison: React.FC<UnitsComparisonProps> = ({
         </DialogContent>
       </Dialog>
 
-      {/* Floor Plan Modal */}
-      <Dialog open={showFloorPlanModal} onOpenChange={setShowFloorPlanModal}>
+      {/* Floor Plan Modal - Commented out as not currently used */}
+      {/* <Dialog open={showFloorPlanModal} onOpenChange={setShowFloorPlanModal}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden p-0">
-          {/* Branded Header */}
           <div className="bg-gradient-to-r from-green-600 via-green-600 to-emerald-600 text-white p-6 rounded-t-lg">
             <div className="flex items-center space-x-3">
               <div className="w-10 h-10 bg-white/20 backdrop-blur-md rounded-lg flex items-center justify-center">
@@ -1172,16 +1273,12 @@ const UnitsComparison: React.FC<UnitsComparisonProps> = ({
             </div>
           )}
         </DialogContent>
-      </Dialog>
+      </Dialog> */}
       {selectedForProducts && (
         <Dialog
           open={showProductsModal}
           onOpenChange={(open) => {
-            console.log("[UnitsComparison] Dialog onOpenChange", {
-              open,
-              showProductsModal,
-              inPaymentStep,
-            });
+           
             setShowProductsModal(open);
             if (!open) {
               setInPaymentStep(false);
@@ -1265,7 +1362,19 @@ const UnitsComparison: React.FC<UnitsComparisonProps> = ({
           </div>
         </div>
       )}
+         <ImageModal
+        isOpen={imageModalOpen}
+        onClose={closeImageModal}
+        images={currentUnitImages}
+        currentIndex={currentImageIndex}
+        onPrevious={goToPreviousImage}
+        onNext={goToNextImage}
+        onImageSelect={selectImage}
+        unitNumber={currentUnitNumber}
+      />
     </div>
+
+    
   );
 };
 

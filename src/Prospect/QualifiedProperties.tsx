@@ -20,6 +20,7 @@ import {
   ChevronDown,
 } from "lucide-react";
 import { UnitDetailsModal } from "../components/UnitDetailsModal";
+import { ImageModal } from "../components/ImageModal";
 import ScheduleTourModal from "../components/rentar/unitSelecttion/ScheduleTourModal";
 
 // Helper function to convert Firebase Timestamp to string
@@ -75,6 +76,23 @@ interface Unit {
   deposit: number;
   images: string[];
   availableDate: string;
+  // Additional Firebase fields
+  pet_deposit?: number;
+  application_fee?: number;
+  security_deposit_months?: number;
+  first_month_rent_required?: boolean;
+  last_month_rent_required?: boolean;
+  landlordId?: string;
+  userDetails?: {
+    email: string;
+    phone: string;
+    name: string;
+  };
+  // Missing Firebase fields
+  updatedAt?: string;
+  createdAt?: string;
+  lease_term_months?: number;
+  floorImage?: string;
 }
 
 interface Property {
@@ -104,6 +122,7 @@ interface TourUnit {
   unitNumber: string;
   type: string;
   bedrooms: number;
+  bathrooms: number;
   sqft: number;
   available: boolean;
   qualified: boolean;
@@ -111,6 +130,29 @@ interface TourUnit {
   floorLevel: string;
   unitAmenities: string[];
   floorPlan: string;
+  propertyId: string;
+  description: string;
+  deposit: number;
+  images: string[];
+  availableDate: string;
+  lease_term_options?: string[];
+  // Additional Firebase fields
+  pet_deposit?: number;
+  application_fee?: number;
+  security_deposit_months?: number;
+  first_month_rent_required?: boolean;
+  last_month_rent_required?: boolean;
+  landlordId?: string;
+  userDetails?: {
+    email: string;
+    phone: string;
+    name: string;
+  };
+  // Missing Firebase fields
+  updatedAt?: string;
+  createdAt?: string;
+  lease_term_months?: number;
+  floorImage?: string;
 }
 
 interface QualifiedPropertiesProps {
@@ -126,7 +168,6 @@ const QualifiedProperties: React.FC<QualifiedPropertiesProps> = ({
   selectedProperty,
 }) => {
   // State management
-  console.log(selectedProperty);
   
   const [units, setUnits] = useState<Unit[]>([]);
   const [loading, setLoading] = useState(true);
@@ -141,6 +182,13 @@ const QualifiedProperties: React.FC<QualifiedPropertiesProps> = ({
   const [selectedLeaseTerms, setSelectedLeaseTerms] = useState<Record<string, LeaseTerm>>({});
   const [openDropdowns, setOpenDropdowns] = useState<Record<string, boolean>>({});
   const dropdownRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  
+  // Image modal state
+  const [imageModalOpen, setImageModalOpen] = useState(false);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [currentUnitImages, setCurrentUnitImages] = useState<string[]>([]);
+  const [currentUnitNumber, setCurrentUnitNumber] = useState("");
+  const [expandedAmenities, setExpandedAmenities] = useState<Record<string, boolean>>({});
 
   // Search filters
   const [searchFilters, setSearchFilters] = useState({
@@ -163,9 +211,8 @@ const QualifiedProperties: React.FC<QualifiedPropertiesProps> = ({
       );
       
       const querySnapshot = await getDocs(unitsQuery);
-
+      
       if (querySnapshot.empty) {
-        console.log("No units found for this property");
         setUnits([]);
         return;
       }
@@ -173,6 +220,39 @@ const QualifiedProperties: React.FC<QualifiedPropertiesProps> = ({
       // Transform Firebase data to Unit format
       const unitsData = querySnapshot.docs.map((doc) => {
         const unit = doc.data();
+        
+        // Generate lease terms from lease_term_options and base rent
+        const generateLeaseTerms = (leaseTermOptions: string[], baseRent: number): LeaseTerm[] => {
+          return leaseTermOptions.map(option => {
+            const months = parseInt(option.replace(/\D/g, '')) || 12;
+            let calculatedRent = baseRent;
+            let savings = null;
+            const isPopular = months === 12;
+            
+            // Calculate rent based on term length
+            if (months < 12) {
+              // Shorter terms cost more
+              calculatedRent = Math.round(baseRent * (1 + (12 - months) * 0.05));
+            } else if (months > 12) {
+              // Longer terms get discounts
+              calculatedRent = Math.round(baseRent * (1 - (months - 12) * 0.02));
+              savings = Math.round(baseRent - calculatedRent);
+            }
+            
+            return {
+              months,
+              rent: calculatedRent,
+              popular: isPopular,
+              savings,
+              concession: null,
+            };
+          });
+        };
+        
+        const baseRent = Number(unit.rent || 0);
+        const leaseTermOptions = Array.isArray(unit.lease_term_options) ? unit.lease_term_options : ['12 Months'];
+        const generatedLeaseTerms = generateLeaseTerms(leaseTermOptions, baseRent);
+        
         return {
           id: doc.id,
           unitNumber: unit.unitNumber || `Unit ${doc.id.slice(-4)}`,
@@ -184,27 +264,27 @@ const QualifiedProperties: React.FC<QualifiedPropertiesProps> = ({
           qualified: unit.qualified !== false,
           floorLevel: unit.floor ? `Floor ${unit.floor}` : "First Floor",
           unitAmenities: Array.isArray(unit.amenities) ? unit.amenities.map(String) : [],
-          floorPlan: unit.floorPlan || "",
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          leaseTerms: unit.leaseTerms ? unit.leaseTerms.map((term: any) => ({
-            months: Number(term.months) || 12,
-            rent: Number(term.rent) || 0,
-            popular: Boolean(term.popular),
-            savings: term.savings ? Number(term.savings) : null,
-            concession: term.concession ? String(term.concession) : null,
-          })) : [{
-              months: 12,
-            rent: Number(unit.rent || unit.rentAmount || 0),
-              popular: true,
-              savings: null,
-              concession: null,
-          }],
+          floorPlan: unit.floorPlan || unit.floorImage || "",
+          leaseTerms: generatedLeaseTerms,
           propertyId: unit.propertyId || "",
           description: unit.description || "",
-          deposit: unit.deposit || Math.round((unit.rent || unit.rentAmount || 2000) * 1.5),
-          images: Array.isArray(unit.images) ? unit.images.map(String) : [],
+          deposit: unit.deposit || Math.round(baseRent * 1.5),
+          images: Array.isArray(unit.images) ? unit.images.filter(img => img && img.trim() !== "").map(String) : [],
           availableDate: convertTimestampToString(unit.availableDate),
-          lease_term_options: unit.lease_term_options || ['12 Months'],
+          lease_term_options: leaseTermOptions,
+          // Additional Firebase fields
+          pet_deposit: unit.pet_deposit || 0,
+          application_fee: unit.application_fee || 0,
+          security_deposit_months: unit.security_deposit_months || 1,
+          first_month_rent_required: unit.first_month_rent_required || false,
+          last_month_rent_required: unit.last_month_rent_required || false,
+          landlordId: unit.landlordId || "",
+          userDetails: unit.userDetails || undefined,
+          // Missing Firebase fields
+          updatedAt: convertTimestampToString(unit.updatedAt),
+          createdAt: convertTimestampToString(unit.createdAt),
+          lease_term_months: unit.lease_term_months || 12,
+          floorImage: unit.floorImage || "",
         };
       });
 
@@ -331,11 +411,12 @@ const QualifiedProperties: React.FC<QualifiedPropertiesProps> = ({
   const handleTourClick = (unit: Unit) => {
     setSelectedPropertyForTour(selectedProperty);
     // Convert to the format expected by ScheduleTourModal
-    const tourUnit = {
+    const tourUnit: TourUnit = {
       id: unit.id,
       unitNumber: unit.unitNumber,
       type: unit.type,
       bedrooms: unit.bedrooms,
+      bathrooms: unit.bathrooms,
       sqft: unit.sqft,
       available: unit.available,
       qualified: unit.qualified,
@@ -343,6 +424,23 @@ const QualifiedProperties: React.FC<QualifiedPropertiesProps> = ({
       floorLevel: unit.floorLevel,
       unitAmenities: unit.unitAmenities,
       floorPlan: unit.floorPlan,
+      propertyId: unit.propertyId,
+      description: unit.description,
+      deposit: unit.deposit,
+      images: unit.images,
+      availableDate: unit.availableDate,
+      lease_term_options: unit.lease_term_options,
+      pet_deposit: unit.pet_deposit,
+      application_fee: unit.application_fee,
+      security_deposit_months: unit.security_deposit_months,
+      first_month_rent_required: unit.first_month_rent_required,
+      last_month_rent_required: unit.last_month_rent_required,
+      landlordId: unit.landlordId,
+      userDetails: unit.userDetails,
+      updatedAt: unit.updatedAt,
+      createdAt: unit.createdAt,
+      lease_term_months: unit.lease_term_months,
+      floorImage: unit.floorImage,
     };
     setSelectedUnitForTour(tourUnit);
     setScheduleTourModalOpen(true);
@@ -409,7 +507,52 @@ const QualifiedProperties: React.FC<QualifiedPropertiesProps> = ({
     }));
   };
 
+  // Image modal handlers
+  const openImageModal = (unit: Unit, imageIndex: number) => {
+
+    setCurrentUnitImages(unit.images);
+    setCurrentImageIndex(imageIndex);
+    setCurrentUnitNumber(unit.unitNumber);
+    setImageModalOpen(true);
+    
+  };
+
+  const closeImageModal = () => {
+    setImageModalOpen(false);
+    setCurrentUnitImages([]);
+    setCurrentImageIndex(0);
+    setCurrentUnitNumber("");
+  };
+
+  const goToPreviousImage = () => {
+    if (currentImageIndex > 0) {
+      setCurrentImageIndex(currentImageIndex - 1);
+    }
+  };
+
+  const goToNextImage = () => {
+    if (currentImageIndex < currentUnitImages.length - 1) {
+      setCurrentImageIndex(currentImageIndex + 1);
+    }
+  };
+
+  const selectImage = (index: number) => {
+    setCurrentImageIndex(index);
+  };
+
+  const toggleAmenitiesExpansion = (unitId: string) => {
+    setExpandedAmenities(prev => ({
+      ...prev,
+      [unitId]: !prev[unitId]
+    }));
+  };
+
   const getAvailableLeaseTerms = (unit: Unit): LeaseTerm[] => {
+    // If unit already has generated lease terms, use them
+    if (unit.leaseTerms && unit.leaseTerms.length > 0) {
+      return unit.leaseTerms;
+    }
+    
     const terms: LeaseTerm[] = [];
     
     // Use actual lease_term_options from selected property, fallback to unit data, then default
@@ -418,14 +561,15 @@ const QualifiedProperties: React.FC<QualifiedPropertiesProps> = ({
     // Remove duplicates from lease term options
     const uniqueLeaseTermOptions = [...new Set(leaseTermOptions)];
     
+    // Get base rent from the first available term or use a default
+    const baseRent = unit.leaseTerms?.[0]?.rent || 1200;
+    
     uniqueLeaseTermOptions.forEach(termOption => {
       // Parse the term option to extract months (e.g., "12 Months" -> 12)
       const months = parseInt(termOption.replace(/\D/g, '')) || 12;
       
       // Use existing lease terms if available, otherwise calculate based on base rent
-      const existingTerm = unit.leaseTerms.find(term => term.months === months);
-      const baseTerm = unit.leaseTerms.find(term => term.months === 12) || unit.leaseTerms[0];
-      const baseRent = baseTerm?.rent || 1200;
+      const existingTerm = unit.leaseTerms?.find(term => term.months === months);
       
       let calculatedRent = baseRent;
       let savings = null;
@@ -805,7 +949,57 @@ const QualifiedProperties: React.FC<QualifiedPropertiesProps> = ({
                                 </motion.button>
                               </div>
                             </div>
-
+ {/* Unit Images - Now First Priority */}
+ {unit.images && unit.images.length > 0 && (
+                            <div className="py-2 border-b border-gray-100">
+                              
+                              <div className="grid grid-cols-1 ">
+                                {unit.images.slice(0, 4).map((image, index) => (
+                                  <div key={index} className="relative group">
+                                    <img
+                                      src={image}
+                                      alt={`Unit ${unit.unitNumber} - Image ${index + 1}`}
+                                      className="w-full h-52 object-cover rounded-lg border border-gray-200 hover:border-blue-300 transition-all duration-200 cursor-pointer"
+                                      onError={(e) => {
+                                        const target = e.target as HTMLImageElement;
+                                        target.style.display = 'none';
+                                      }}
+                                      onClick={(e) => {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        openImageModal(unit, index);
+                                      }}
+                                    />
+                                    <div 
+                                      className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-200 rounded-lg flex items-center justify-center cursor-pointer"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        openImageModal(unit, index);
+                                      }}
+                                    >
+                                      <Eye className="h-6 w-6 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
+                                    </div>
+                                  </div>
+                                ))}
+                                {unit.images.length > 4 && (
+                                  <div className="relative group">
+                                    <div className="w-full h-28 bg-gray-100 rounded-lg border border-gray-200 flex items-center justify-center">
+                                      <span className="text-sm font-medium text-gray-600">
+                                        +{unit.images.length - 4} more
+                                      </span>
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                              {unit.images.length > 1 && (
+                                <div className="text-center mt-2">
+                                  <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
+                                    {unit.images.length} images available
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+                          )}
                             {/* Unit Stats */}
                         <div className="grid grid-cols-3 gap-3">
                               <div className="bg-white rounded-lg p-3 border border-gray-200">
@@ -832,6 +1026,8 @@ const QualifiedProperties: React.FC<QualifiedPropertiesProps> = ({
                               </div>
                             </div>
                           </div>
+
+                         
 
                       {/* Lease Terms Dropdown */}
                           <div className="p-5">
@@ -983,7 +1179,7 @@ const QualifiedProperties: React.FC<QualifiedPropertiesProps> = ({
                               Unit Features
                             </h5>
                             <div className="flex flex-wrap gap-1">
-                              {unit.unitAmenities.slice(0, 3).map((amenity) => (
+                              {(expandedAmenities[unit.id] ? unit.unitAmenities : unit.unitAmenities.slice(0, 3)).map((amenity) => (
                                 <span
                                   key={amenity}
                                   className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700"
@@ -992,10 +1188,44 @@ const QualifiedProperties: React.FC<QualifiedPropertiesProps> = ({
                                 </span>
                               ))}
                               {unit.unitAmenities.length > 3 && (
-                                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700">
-                                  +{unit.unitAmenities.length - 3} more
-                                </span>
+                                <motion.button
+                                  whileHover={{ scale: 1.05 }}
+                                  whileTap={{ scale: 0.95 }}
+                                  onClick={() => toggleAmenitiesExpansion(unit.id)}
+                                  className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700 hover:bg-blue-200 transition-colors cursor-pointer"
+                                >
+                                  {expandedAmenities[unit.id] 
+                                    ? "Show Less" 
+                                    : `+${unit.unitAmenities.length - 3} more`
+                                  }
+                                </motion.button>
                               )}
+                            </div>
+                          </div>
+
+                          {/* Additional Financial Info */}
+                          <div className="px-5 pb-3">
+                            <div className="grid grid-cols-2 gap-2 text-xs">
+                              <div className="flex justify-between items-center p-2 bg-blue-50 rounded">
+                                <span className="text-blue-700 font-medium">Deposit:</span>
+                                <span className="text-blue-800 font-bold">${unit.deposit?.toLocaleString() || 'N/A'}</span>
+                              </div>
+                              {unit.pet_deposit && unit.pet_deposit > 0 && (
+                                <div className="flex justify-between items-center p-2 bg-green-50 rounded">
+                                  <span className="text-green-700 font-medium">Pet Fee:</span>
+                                  <span className="text-green-800 font-bold">${unit.pet_deposit.toLocaleString()}</span>
+                                </div>
+                              )}
+                              {unit.application_fee && unit.application_fee > 0 && (
+                                <div className="flex justify-between items-center p-2 bg-purple-50 rounded">
+                                  <span className="text-purple-700 font-medium">App Fee:</span>
+                                  <span className="text-purple-800 font-bold">${unit.application_fee.toLocaleString()}</span>
+                                </div>
+                              )}
+                              <div className="flex justify-between items-center p-2 bg-gray-50 rounded">
+                                <span className="text-gray-700 font-medium">Security:</span>
+                                <span className="text-gray-800 font-bold">{unit.security_deposit_months || 1} mo</span>
+                              </div>
                             </div>
                           </div>
 
@@ -1070,11 +1300,12 @@ const QualifiedProperties: React.FC<QualifiedPropertiesProps> = ({
         onScheduleTour={(unit) => {
           setSelectedPropertyForTour(selectedUnitForDetails?.property || null);
           // Convert to the format expected by ScheduleTourModal
-          const tourUnit = {
+          const tourUnit: TourUnit = {
             id: unit.id,
             unitNumber: unit.unitNumber,
             type: unit.type,
             bedrooms: unit.bedrooms,
+            bathrooms: unit.bathrooms,
             sqft: unit.sqft,
             available: unit.available,
             qualified: unit.qualified,
@@ -1082,6 +1313,23 @@ const QualifiedProperties: React.FC<QualifiedPropertiesProps> = ({
             floorLevel: unit.floorLevel,
             unitAmenities: unit.unitAmenities,
             floorPlan: unit.floorPlan,
+            propertyId: unit.propertyId,
+            description: unit.description,
+            deposit: unit.deposit,
+            images: unit.images,
+            availableDate: unit.availableDate,
+            lease_term_options: unit.lease_term_options,
+            pet_deposit: unit.pet_deposit,
+            application_fee: unit.application_fee,
+            security_deposit_months: unit.security_deposit_months,
+            first_month_rent_required: unit.first_month_rent_required,
+            last_month_rent_required: unit.last_month_rent_required,
+            landlordId: unit.landlordId,
+            userDetails: unit.userDetails,
+            updatedAt: unit.updatedAt,
+            createdAt: unit.createdAt,
+            lease_term_months: unit.lease_term_months,
+            floorImage: unit.floorImage,
           };
           setSelectedUnitForTour(tourUnit);
           setScheduleTourModalOpen(true);
@@ -1114,6 +1362,18 @@ const QualifiedProperties: React.FC<QualifiedPropertiesProps> = ({
           unit={selectedUnitForTour}
         />
       )}
+
+      {/* Image Modal */}
+      <ImageModal
+        isOpen={imageModalOpen}
+        onClose={closeImageModal}
+        images={currentUnitImages}
+        currentIndex={currentImageIndex}
+        onPrevious={goToPreviousImage}
+        onNext={goToNextImage}
+        onImageSelect={selectImage}
+        unitNumber={currentUnitNumber}
+      />
     </div>
   );
 };
