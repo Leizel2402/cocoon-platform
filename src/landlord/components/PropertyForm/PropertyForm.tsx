@@ -12,7 +12,7 @@ import { Button } from '../../../components/ui/Button';
 import { useToast } from '../../../hooks/use-toast';
 import { Building, Plus, ArrowLeft, List } from 'lucide-react';
 
-const PropertyForm: React.FC = () => {
+const PropertyForm: React.FC<{ setPropertyFormOpen: (open: boolean) => void }> = ({ setPropertyFormOpen }) => {
   const { user } = useAuth();
   const { toast } = useToast();
   const stepperRef = useRef<HTMLDivElement>(null);
@@ -833,7 +833,7 @@ const PropertyForm: React.FC = () => {
               <Button
                 variant="outline"
                 size="sm"
-                // onClick={() => window.history.back()}
+                onClick={() => setPropertyFormOpen(false)}
                 className="bg-white text-green-600 hover:bg-green-50 font-semibold transition-all duration-200 shadow-lg"
               >
                 <ArrowLeft className="h-4 w-4 mr-2" />

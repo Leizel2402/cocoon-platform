@@ -77,6 +77,7 @@ interface ApplicationProcessProps {
   type: "prequalify" | "apply";
   initialStep?: number | null;
   onNavigateToUnitSelection?: () => void;
+  landlordId?: string; // Optional landlordId to pass explicitly
 }
 
 /**
@@ -92,7 +93,8 @@ interface ApplicationProcessProps {
  *        address: "123 Main St, Austin, TX",
  *        rent: 2800,
  *        bedrooms: 2,
- *        bathrooms: 2
+ *        bathrooms: 2,
+ *        landlordId: "landlord-123"
  *      }}
  *      selectedUnit={{
  *        id: "unit-456",
@@ -124,7 +126,8 @@ interface ApplicationProcessProps {
  *        address: "123 Main St, Austin, TX",
  *        rent: 2800,
  *        bedrooms: 2,
- *        bathrooms: 2
+ *        bathrooms: 2,
+ *        landlordId: "landlord-123"
  *      }}
  *      type="apply"
  *    />
@@ -134,6 +137,19 @@ interface ApplicationProcessProps {
  *      isOpen={true}
  *      onClose={() => setShowApplication(false)}
  *      type="prequalify"
+ *    />
+ * 
+ * 4. With explicit landlordId (when property doesn't include landlordId):
+ *    <ApplicationProcess
+ *      isOpen={true}
+ *      onClose={() => setShowApplication(false)}
+ *      property={{
+ *        id: "prop-123",
+ *        name: "Luxury Apartments",
+ *        address: "123 Main St, Austin, TX"
+ *      }}
+ *      landlordId="landlord-123"
+ *      type="apply"
  *    />
  */
 
@@ -145,6 +161,7 @@ const ApplicationProcess = ({
   type,
   initialStep,
   onNavigateToUnitSelection,
+  landlordId,
 }: ApplicationProcessProps) => {
   console.log("prequalify", type);
 
@@ -1981,6 +1998,8 @@ console.log("selectedUnit111", selectedUnit?.selectedLeaseTerm);
             propertyName: property?.name || selectedProperty?.name || selectedProperty?.title || "General Application",
             unitId: selectedUnit?.id || null,
             unitNumber: selectedUnit?.unitNumber || null,
+            // Landlord information
+            landlordId: landlordId || property?.landlordId || selectedProperty?.landlordId || null,
             // Unit-specific information
             unitRent: selectedUnit?.selectedLeaseTerm?.rent || null,
             unitBedrooms: selectedUnit?.bedrooms || null,

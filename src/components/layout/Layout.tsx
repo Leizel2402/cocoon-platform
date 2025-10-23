@@ -36,34 +36,34 @@ export function Layout({ children }: LayoutProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { t } = useTranslation(selectedLanguage);
 
-  // Redirect logged-in users away from auth pages and to appropriate dashboards
-  useEffect(() => {
-    if (!user) return;
+  // COMMENTED OUT FOR TESTING: Redirect logged-in users away from auth pages and to appropriate dashboards
+  // useEffect(() => {
+  //   if (!user) return;
 
-    // Redirect from auth pages
-    if (location.pathname === "/signin" ) {
-      if (user.role === "prospect") {
-        // navigate("/property", { replace: true });
-      } else if (user.role === "renter") {
-        navigate("/portal", { replace: true });
-      } else if (
-        user.role === "landlord_admin" ||
-        user.role === "landlord_employee"
-      ) {
-        navigate("/landlord-dashboard", { replace: true });
-      } else if (
-        user.role === "cocoon_admin" ||
-        user.role === "cocoon_employee"
-      ) {
-        navigate("/cocoon-dashboard", { replace: true });
-      }
-    }
+  //   // Redirect from auth pages
+  //   if (location.pathname === "/signin" ) {
+  //     if (user.role === "prospect") {
+  //       // navigate("/property", { replace: true });
+  //     } else if (user.role === "renter") {
+  //       navigate("/portal", { replace: true });
+  //     } else if (
+  //       user.role === "landlord_admin" ||
+  //       user.role === "landlord_employee"
+  //     ) {
+  //       navigate("/property-management", { replace: true });
+  //     } else if (
+  //       user.role === "cocoon_admin" ||
+  //       user.role === "cocoon_employee"
+  //     ) {
+  //       navigate("/cocoon-dashboard", { replace: true });
+  //     }
+  //   }
 
-    // Redirect prospect users from home page to their dashboard
-    if (location.pathname === "/" && user.role === "prospect") {
-      // navigate("/property", { replace: true });
-    }
-  }, [user, location.pathname, navigate]);
+  //   // Redirect prospect users from home page to their dashboard
+  //   if (location.pathname === "/" && user.role === "prospect") {
+  //     // navigate("/property", { replace: true });
+  //   }
+  // }, [user, location.pathname, navigate]);
 
   const handleLogout = async () => {
     try {
@@ -119,13 +119,13 @@ export function Layout({ children }: LayoutProps) {
                   >
                     Get Prequalified
                   </Button>
-                   <Button
+                   {/* <Button
                    variant="ghost"
                    className="text-gray-700 hover:bg-muted"
                    onClick={() => navigate("/my-applications")}
                  >
                    My Applications
-                 </Button>
+                 </Button> */}
                  </>
                 )}
 
@@ -321,19 +321,19 @@ export function Layout({ children }: LayoutProps) {
                             user.role === "landlord_employee") && (
                             <>
                               <button
-                                onClick={() => navigate("/landlord-dashboard")}
+                                onClick={() => navigate("/property-management")}
                                 className="w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-green-50 hover:text-green-700 transition-colors flex items-center"
                               >
                                 <BarChart3 className="h-4 w-4 mr-3 text-green-600" />
                                 Dashboard
                               </button>
-                              <button
+                              {/* <button
                                 onClick={() => navigate("/properties")}
                                 className="w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-green-50 hover:text-green-700 transition-colors flex items-center"
                               >
                                 <Home className="h-4 w-4 mr-3 text-green-600" />
                                 Properties
-                              </button>
+                              </button> */}
                               <button
                                 onClick={() => navigate("/learning-center")}
                                 className="w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-green-50 hover:text-green-700 transition-colors flex items-center"
@@ -694,11 +694,11 @@ export function Layout({ children }: LayoutProps) {
                   <motion.div whileTap={{ scale: 0.95 }}>
                     <button
                       onClick={() => {
-                        navigate("/landlord-dashboard");
+                        navigate("/property-management");
                         setIsMobileMenuOpen(false);
                       }}
                       className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all w-full ${
-                        isActive("/landlord-dashboard")
+                        isActive("/property-management")
                           ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-md"
                           : "text-gray-700 hover:bg-gray-100"
                       }`}

@@ -173,14 +173,14 @@ function App() {
           />
           
           {/* Landlord routes */}
-          <Route
-            path="/landlord-dashboard"
+          {/* <Route
+            path="/property-management"
             element={
               <ProtectedRoute requiredRoles={['landlord_admin', 'landlord_employee']}>
                 <LandlordDashboard />
               </ProtectedRoute>
             }
-          />
+          /> */}
           <Route
             path="/properties"
             element={
@@ -190,7 +190,7 @@ function App() {
             }
           />
           <Route
-            path="/dashboard"
+            path="/property-management"
             element={
               <ProtectedRoute requiredRoles={['landlord_admin', 'landlord_employee']}>
                 <LandlordPropertyManagement />
@@ -213,7 +213,7 @@ function App() {
             path="/dashboard"
             element={
               <ProtectedRoute>
-                <Dashboard />
+                <Dashboards/>
               </ProtectedRoute>
             }
           />

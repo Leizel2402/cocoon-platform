@@ -1,21 +1,17 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { motion } from 'framer-motion';
 import { Mail, Home, ArrowRight, CheckCircle, AlertCircle } from 'lucide-react';
-import { isSignInWithEmailLink } from 'firebase/auth';
-import { auth } from '../../lib/firebase';
 import { QuotaExceededFallback } from '../../components/QuotaExceededFallback';
 
 export function SignIn() {
+  const { user } = useAuth();
   const [email, setEmail] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
-  const [isVerifying, setIsVerifying] = useState(false);
   const [quotaExceeded, setQuotaExceeded] = useState(false);
-
-  const { sendMagicLink, verifyMagicLink, user } = useAuth();
   const navigate = useNavigate();
 
   // Role-based redirect function
@@ -40,54 +36,55 @@ export function SignIn() {
   //   }
   // }, [navigate]);
 
-  const handleMagicLinkVerification = useCallback(async () => {
-    try {
-      const savedEmail = localStorage.getItem('emailForSignIn');
-      console.log('Starting magic link verification:', { savedEmail });
+  // COMMENTED OUT FOR TESTING: Magic link verification
+  // const handleMagicLinkVerification = useCallback(async () => {
+  //   try {
+  //     const savedEmail = localStorage.getItem('emailForSignIn');
+  //     console.log('Starting magic link verification:', { savedEmail });
       
-      await verifyMagicLink(savedEmail || '');
-      console.log('Magic link verification successful');
+  //     await verifyMagicLink(savedEmail || '');
+  //     console.log('Magic link verification successful');
       
-      // Clean up URL after successful verification
-      window.history.replaceState({}, document.title, window.location.pathname);
+  //     // Clean up URL after successful verification
+  //     window.history.replaceState({}, document.title, window.location.pathname);
       
-      // The navigation will be handled by useEffect above when user state updates
-    } catch (error: unknown) {
-      console.error('Magic link verification failed:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Verification failed';
-      setError(errorMessage);
-      setIsVerifying(false);
+  //     // The navigation will be handled by useEffect above when user state updates
+  //   } catch (error: unknown) {
+  //     console.error('Magic link verification failed:', error);
+  //     const errorMessage = error instanceof Error ? error.message : 'Verification failed';
+  //     setError(errorMessage);
+  //     setIsVerifying(false);
       
-      // Clean up URL on error too
-      window.history.replaceState({}, document.title, window.location.pathname);
-    }
-  }, [verifyMagicLink]);
+  //     // Clean up URL on error too
+  //     window.history.replaceState({}, document.title, window.location.pathname);
+  //   }
+  // }, [verifyMagicLink]);
 
-  // Enhanced magic link detection
-  useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const hasOobCode = urlParams.has('oobCode');
-    const hasApiKey = urlParams.has('apiKey');
-    const mode = urlParams.get('mode');
+  // COMMENTED OUT FOR TESTING: Enhanced magic link detection
+  // useEffect(() => {
+  //   const urlParams = new URLSearchParams(window.location.search);
+  //   const hasOobCode = urlParams.has('oobCode');
+  //   const hasApiKey = urlParams.has('apiKey');
+  //   const mode = urlParams.get('mode');
     
-    // Check multiple conditions for magic link
-    const isMagicLink = isSignInWithEmailLink(auth, window.location.href) || 
-                       (hasOobCode && hasApiKey && mode === 'signIn');
+  //   // Check multiple conditions for magic link
+  //   const isMagicLink = isSignInWithEmailLink(auth, window.location.href) || 
+  //                      (hasOobCode && hasApiKey && mode === 'signIn');
     
-    console.log('Magic link detection:', {
-      currentUrl: window.location.href,
-      isMagicLink,
-      hasOobCode,
-      hasApiKey,
-      mode,
-      searchParams: window.location.search
-    });
+  //   console.log('Magic link detection:', {
+  //     currentUrl: window.location.href,
+  //     isMagicLink,
+  //     hasOobCode,
+  //     hasApiKey,
+  //     mode,
+  //     searchParams: window.location.search
+  //   });
     
-    if (isMagicLink) {
-      setIsVerifying(true);
-      handleMagicLinkVerification();
-    }
-  }, [handleMagicLinkVerification]);
+  //   if (isMagicLink) {
+  //     setIsVerifying(true);
+  //     handleMagicLinkVerification();
+  //   }
+  // }, [handleMagicLinkVerification]);
 
 
   // Updated redirect effect for logged in users
@@ -123,54 +120,93 @@ export function SignIn() {
   //   }
   // };
 
+  // COMMENTED OUT FOR TESTING: Magic link authentication
+  // const handleSubmit = async (e: React.FormEvent) => {
+  // e.preventDefault();
+  // setError("");
+  // setLoading(true);
+  // setQuotaExceeded(false);
+
+  // try {
+  //   const { auth } = await import("../../lib/firebase");
+
+
+  //   const currentUser = auth.currentUser;
+  //   if (currentUser) {
+  //     await currentUser.reload();
+  //   }
+
+    
+  //   if (
+  //     currentUser &&
+  //     currentUser.email === email &&
+  //     !currentUser.emailVerified
+  //   ) {
+  //     throw new Error(
+  //       "Please verify your email address before logging in. Check your inbox for a verification email."
+  //     );
+  //   }
+
+    
+
+  //   await sendMagicLink(email);
+  //   setEmailSent(true);
+  // } catch (error: unknown) {
+  //   console.error("Magic link error:", error);
+  //   const errorMessage =
+  //     error instanceof Error ? error.message : "An error occurred";
+
+  //   // Quota check
+  //   if (
+  //     errorMessage.includes("quota") ||
+  //     errorMessage.includes("QUOTA_EXCEEDED")
+  //   ) {
+  //     setQuotaExceeded(true);
+  //   } else {
+  //     setError(errorMessage);
+  //   }
+  // } finally {
+  //   setLoading(false);
+  // }
+  // };
+
+  // TESTING: Direct sign in without magic link
   const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
-  setError("");
-  setLoading(true);
-  setQuotaExceeded(false);
+    e.preventDefault();
+    setError("");
+    setLoading(true);
 
-  try {
-    const { auth } = await import("../../lib/firebase");
-
-
-    const currentUser = auth.currentUser;
-    if (currentUser) {
-      await currentUser.reload();
-    }
-
-    
-    if (
-      currentUser &&
-      currentUser.email === email &&
-      !currentUser.emailVerified
-    ) {
-      throw new Error(
-        "Please verify your email address before logging in. Check your inbox for a verification email."
-      );
-    }
-
-    
-
-    await sendMagicLink(email);
-    setEmailSent(true);
-  } catch (error: unknown) {
-    console.error("Magic link error:", error);
-    const errorMessage =
-      error instanceof Error ? error.message : "An error occurred";
-
-    // Quota check
-    if (
-      errorMessage.includes("quota") ||
-      errorMessage.includes("QUOTA_EXCEEDED")
-    ) {
-      setQuotaExceeded(true);
-    } else {
+    try {
+      // For testing purposes - direct sign in
+      console.log("TESTING: Direct sign in for email:", email);
+      
+      // Simulate successful sign in
+      setEmailSent(true);
+      
+      // You can add actual authentication logic here if needed
+      // For now, just show success message
+      setTimeout(() => {
+        if (user?.role === "prospect" || user?.role === "renter") {
+          navigate("/property", { replace: true });
+        }else if (user?.role === "landlord_admin" || user?.role === "landlord_employee") {
+          navigate("/property-management", { replace: true });
+        } else if (user?.role === "cocoon_admin" || user?.role === "cocoon_employee") {
+          navigate("/cocoon-dashboard", { replace: true });
+        } else {
+          navigate("/", { replace: true });
+        navigate("/property", { replace: true });
+        }
+      }, 1000);
+      
+      
+    } catch (error: unknown) {
+      console.error("Sign in error:", error);
+      const errorMessage = error instanceof Error ? error.message : "An error occurred";
       setError(errorMessage);
+    } finally {
+      setLoading(false);
     }
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
   const handleRetry = () => {
     setQuotaExceeded(false);
@@ -186,34 +222,35 @@ export function SignIn() {
     return <QuotaExceededFallback onRetry={handleRetry} onContactSupport={handleContactSupport} />;
   }
 
-  if (isVerifying) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-600 via-purple-600 to-indigo-800 flex flex-col justify-center py-12 sm:px-6 lg:px-8 relative overflow-hidden">
-        {/* Background Elements */}
-        <div className="absolute inset-0 overflow-hidden">
-          <div className="absolute -top-40 -right-40 w-80 h-80 bg-white/10 rounded-full blur-3xl"></div>
-          <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-white/10 rounded-full blur-3xl"></div>
-        </div>
+  // COMMENTED OUT FOR TESTING: Magic link verification UI
+  // if (isVerifying) {
+  //   return (
+  //     <div className="min-h-screen bg-gradient-to-br from-blue-600 via-purple-600 to-indigo-800 flex flex-col justify-center py-12 sm:px-6 lg:px-8 relative overflow-hidden">
+  //       {/* Background Elements */}
+  //       <div className="absolute inset-0 overflow-hidden">
+  //         <div className="absolute -top-40 -right-40 w-80 h-80 bg-white/10 rounded-full blur-3xl"></div>
+  //         <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-white/10 rounded-full blur-3xl"></div>
+  //       </div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          className="sm:mx-auto sm:w-full sm:max-w-md relative z-10"
-        >
-          <div className="bg-white/95 backdrop-blur-md py-10 px-8 shadow-2xl sm:rounded-3xl border border-white/20 text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">
-              Verifying Magic Link
-            </h2>
-            <p className="text-gray-600">
-              Please wait while we verify your magic link...
-            </p>
-          </div>
-        </motion.div>
-      </div>
-    );
-  }
+  //       <motion.div
+  //         initial={{ opacity: 0, y: 20 }}
+  //         animate={{ opacity: 1, y: 0 }}
+  //         transition={{ duration: 0.6 }}
+  //         className="sm:mx-auto sm:w-full sm:max-w-md relative z-10"
+  //       >
+  //         <div className="bg-white/95 backdrop-blur-md py-10 px-8 shadow-2xl sm:rounded-3xl border border-white/20 text-center">
+  //           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+  //           <h2 className="text-2xl font-bold text-gray-900 mb-2">
+  //             Verifying Magic Link
+  //           </h2>
+  //           <p className="text-gray-600">
+  //             Please wait while we verify your magic link...
+  //           </p>
+  //         </div>
+  //       </motion.div>
+  //     </div>
+  //   );
+  // }
 
   if (emailSent) {
     return (

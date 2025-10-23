@@ -1,55 +1,55 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { motion } from 'framer-motion';
 import { CheckCircle, AlertCircle, Home } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { isSignInWithEmailLink } from 'firebase/auth';
-import { auth } from '../lib/firebase';
 
 export function MagicLinkHandler() {
   const [status, setStatus] = useState<'verifying' | 'success' | 'error'>('verifying');
-  const [error, setError] = useState('');
-  const { verifyMagicLink, user } = useAuth();
+  // COMMENTED OUT FOR TESTING: Error state not needed since we skip magic link verification
+  // const [error, setError] = useState('');
+  const { user } = useAuth();
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const handleVerification = async () => {
-      try {
-        // Check if this is actually a magic link
-        const isMagicLink = isSignInWithEmailLink(auth, window.location.href);
-        console.log('Magic link detection:', {
-          currentUrl: window.location.href,
-          isMagicLink,
-          searchParams: window.location.search
-        });
+  // COMMENTED OUT FOR TESTING: Magic link verification
+  // useEffect(() => {
+  //   const handleVerification = async () => {
+  //     try {
+  //       // Check if this is actually a magic link
+  //       const isMagicLink = isSignInWithEmailLink(auth, window.location.href);
+  //       console.log('Magic link detection:', {
+  //         currentUrl: window.location.href,
+  //         isMagicLink,
+  //         searchParams: window.location.search
+  //       });
 
-        if (!isMagicLink) {
-          throw new Error('Invalid magic link. Please try signing in again.');
-        }
+  //       if (!isMagicLink) {
+  //         throw new Error('Invalid magic link. Please try signing in again.');
+  //       }
 
-        const savedEmail = localStorage.getItem('emailForSignIn');
-        console.log('Magic link verification starting...', { savedEmail });
+  //       const savedEmail = localStorage.getItem('emailForSignIn');
+  //       console.log('Magic link verification starting...', { savedEmail });
         
-        await verifyMagicLink(savedEmail || '');
-        console.log('Magic link verification successful');
-        setStatus('success');
+  //       await verifyMagicLink(savedEmail || '');
+  //       console.log('Magic link verification successful');
+  //       setStatus('success');
         
-        // Wait a moment to show success, then redirect
-        setTimeout(() => {
-          redirectToDashboard();
-        }, 1500);
-      } catch (error: any) {
-        console.error('Magic link verification failed:', error);
-        setError(error.message);
-        setStatus('error');
-      }
-    };
+  //       // Wait a moment to show success, then redirect
+  //       setTimeout(() => {
+  //         redirectToDashboard();
+  //       }, 1500);
+  //     } catch (error: any) {
+  //       console.error('Magic link verification failed:', error);
+  //       setError(error.message);
+  //       setStatus('error');
+  //     }
+  //   };
 
-    handleVerification();
-  }, [verifyMagicLink]);
+  //   handleVerification();
+  // }, [verifyMagicLink]);
 
-  const redirectToDashboard = () => {
+  const redirectToDashboard = useCallback(() => {
     if (user) {
       console.log('Redirecting user to dashboard based on role:', user.role);
       
@@ -62,7 +62,7 @@ export function MagicLinkHandler() {
           break;
         case 'landlord_admin':
         case 'landlord_employee':
-          navigate('/landlord-dashboard', { replace: true });
+          navigate('/property-management', { replace: true });
           break;
         case 'cocoon_admin':
         case 'cocoon_employee':
@@ -75,7 +75,16 @@ export function MagicLinkHandler() {
       // Fallback if user is not available
       navigate('/', { replace: true });
     }
-  };
+  }, [user, navigate]);
+
+  // TESTING: Skip magic link verification and redirect to dashboard
+  useEffect(() => {
+    console.log('TESTING: Skipping magic link verification, redirecting to dashboard');
+    setStatus('success');
+    setTimeout(() => {
+      redirectToDashboard();
+    }, 1000);
+  }, [redirectToDashboard]);
 
   if (status === 'verifying') {
     return (
@@ -182,31 +191,19 @@ export function MagicLinkHandler() {
             </motion.div>
             
             <h2 className="text-3xl font-bold text-gray-900 mb-4">
-              {error.includes('An error occurred during authentication. Please try again.') ? 'Account Not Found' : 'Verification Failed'}
+              Verification Failed
             </h2>
             <p className="text-lg text-gray-600 mb-6">
-              {error.includes('An error occurred during authentication. Please try again.') 
-                ? 'No account found with this email. Please create an account first before signing in.'
-                : error || 'There was an error verifying your magic link.'
-              }
+              There was an error verifying your magic link.
             </p>
             
             <div className="space-y-4">
-              {error.includes('An error occurred during authentication. Please try again.') ? (
-                <Link
-                  to="/signup"
-                  className="block w-full py-3 px-4 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-                >
-                  Create Account
-                </Link>
-              ) : (
-                <Link
-                  to="/signin"
-                  className="block w-full py-3 px-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                >
-                  Try Magic Link Again
-                </Link>
-              )}
+              <Link
+                to="/signin"
+                className="block w-full py-3 px-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                Try Magic Link Again
+              </Link>
               
               <Link
                 to="/"

@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { motion } from 'framer-motion';
-import { UserPlus, Eye, EyeOff, Home, ArrowRight, User, Building, Search, Wrench, Crown } from 'lucide-react';
+import { UserPlus, Eye, EyeOff, Home, ArrowRight, User, Building, Search, Wrench } from 'lucide-react';
 import { UserRole } from '../../types';
 import { useToast } from '../../hooks/use-toast';
 
@@ -18,7 +18,7 @@ export function SignUp() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   
-  const { signUp, user } = useAuth();
+  const { signUp } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
   // Redirect if already logged in
@@ -28,7 +28,7 @@ export function SignUp() {
   //     switch (user.role) {
   //       case 'landlord_admin':
   //       case 'landlord_employee':
-  //         navigate('/landlord-dashboard', { replace: true });
+  //         navigate('/property-management', { replace: true });
   //         break;
   //       case 'cocoon_admin':
   //       case 'cocoon_employee':
@@ -83,21 +83,29 @@ export function SignUp() {
 
     try {
       await signUp(email, password, displayName, role, phone);
+      
       // Redirect to home page after successful signup
       // navigate('/', { replace: true });
 
-      toast({
-        title: "Verification link sent!",
-        description: "Please check your email for the verification link.",
-      });
+      // COMMENTED OUT FOR TESTING: Email verification toast
+      // toast({
+      //   title: "Verification link sent!",
+      //   description: "Please check your email for the verification link.",
+      // });
  
-      // Redirect to signin page after a short delay
+      // TESTING: Direct redirect to signin after signup
+      toast({
+        title: "Account created successfully!",
+        description: "Welcome to Cocoon!",
+      });
+      
+      // Redirect to signin after a short delay
       setTimeout(() => {
         navigate("/signin", { replace: true });
       }, 2000);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('SignUp error:', error);
-      setError(error.message);
+      setError(error instanceof Error ? error.message : 'An error occurred');
     } finally {
       setLoading(false);
     }
