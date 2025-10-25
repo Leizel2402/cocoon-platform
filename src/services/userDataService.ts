@@ -56,6 +56,7 @@ export interface UserApplication {
   status: 'pending' | 'under_review' | 'approved' | 'rejected' | 'withdrawn';
   submittedAt: Date;
   appFeeCents: number;
+  landlordId?: string;
 }
 
 export interface UserProperty {
@@ -217,6 +218,38 @@ export const getUserApplications = async (userId: string): Promise<UserApplicati
     });
   } catch (error) {
     console.error('Error fetching applications:', error);
+    return [];
+  }
+};
+
+// Fetch user's approved applications for property selection
+export const getUserApprovedApplications = async (userId: string): Promise<UserApplication[]> => {
+  try {
+    const q = query(
+      collection(db, 'applications'),
+      where('applicationMetadata.submittedBy', '==', userId),
+      where('status', '==', 'approved')
+    );
+    
+    const querySnapshot = await getDocs(q);
+    return querySnapshot.docs.map(doc => {
+      const data = doc.data();
+      console.log("data",data);
+      
+      return {
+        id: doc.id,
+        propertyId: data.applicationMetadata?.propertyId || '',
+        propertyName: data.applicationMetadata?.propertyName || 'Unknown Property',
+        unitId: data.applicationMetadata?.unitId,
+        unitNumber: data.applicationMetadata?.unitNumber,
+        status: data.status || 'approved',
+        submittedAt: data.submittedAt?.toDate() || new Date(),
+        appFeeCents: data.appFeeCents || 0,
+        landlordId: data.applicationMetadata?.landlordId || ''
+      };
+    });
+  } catch (error) {
+    console.error('Error fetching approved applications:', error);
     return [];
   }
 };

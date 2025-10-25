@@ -219,8 +219,8 @@ const PropertyDetailsModal: React.FC<PropertyDetailsModalProps> = ({
           <div className="relative">
               <div className="relative h-80 rounded-2xl overflow-hidden bg-gray-100 shadow-2xl">
               <img
-                src={propertyImages[currentImageIndex].src}
-                alt={propertyImages[currentImageIndex].caption}
+                src={propertyImages[currentImageIndex]?.src}
+                alt={propertyImages[currentImageIndex]?.caption}
                   className="w-full h-full object-cover transition-all duration-500"
               />
               
@@ -248,7 +248,7 @@ const PropertyDetailsModal: React.FC<PropertyDetailsModalProps> = ({
                   {currentImageIndex + 1} of {propertyImages.length}
                 </Badge>
                   <Badge className="bg-white/90 text-gray-800 border-0 shadow-lg text-xs">
-                  {propertyImages[currentImageIndex].caption}
+                  {propertyImages[currentImageIndex]?.caption}
                 </Badge>
               </div>
             </div>

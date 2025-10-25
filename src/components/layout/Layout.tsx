@@ -424,9 +424,9 @@ export function Layout({ children }: LayoutProps) {
           >
             {/* Header inside menu */}
             <div className="flex justify-between items-center p-4 border-b border-gray-200">
-              <span className="text-lg font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
+              {/* <span className="text-lg font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
                 Cocoon
-              </span>
+              </span> */}
               <button
                 onClick={() => setIsMobileMenuOpen(false)}
                 className="p-2 rounded-lg hover:bg-gray-100 transition"

@@ -27,25 +27,15 @@ import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/input';
 import { Textarea } from '../components/ui/textarea';
 import { useToast } from '../hooks/use-toast';
+import { useAuth } from '../hooks/useAuth';
+import { maintenanceService, MaintenanceRequest } from '../services/maintenanceService';
+import { getUserApprovedApplications, UserApplication } from '../services/userDataService';
 
-interface MaintenanceRequest {
-  id: string;
-  title: string;
-  description: string;
-  category: 'plumbing' | 'electrical' | 'hvac' | 'appliance' | 'structural' | 'other';
-  priority: 'low' | 'medium' | 'high' | 'emergency';
-  status: 'submitted' | 'in_progress' | 'completed' | 'cancelled';
-  images: File[];
-  submittedAt: Date;
-  scheduledDate?: Date;
-  completedDate?: Date;
-  notes?: string;
-  propertyAddress: string;
-  unitNumber?: string;
-}
+// Using MaintenanceRequest interface from maintenanceService
 
 export function MaintenanceRequests() {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [requests, setRequests] = useState<MaintenanceRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [showNewRequestForm, setShowNewRequestForm] = useState(false);
@@ -54,6 +44,11 @@ export function MaintenanceRequests() {
   const [selectedRequest, setSelectedRequest] = useState<MaintenanceRequest | null>(null);
   const [uploadedImages, setUploadedImages] = useState<File[]>([]);
   const [imagePreviewUrls, setImagePreviewUrls] = useState<string[]>([]);
+  const [submitting, setSubmitting] = useState(false);
+  const [approvedApplications, setApprovedApplications] = useState<UserApplication[]>([]);
+  const [selectedProperty, setSelectedProperty] = useState<UserApplication | null>(null);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+// console.log("uploadedImages",uploadedImages);
 
   // Form state
   const [newRequest, setNewRequest] = useState({
@@ -71,54 +66,76 @@ export function MaintenanceRequests() {
     };
   }, [imagePreviewUrls]);
 
-  // Mock data - in real app, this would come from Firebase
+  // Close dropdown when clicking outside
   useEffect(() => {
-    const mockRequests: MaintenanceRequest[] = [
-      {
-        id: '1',
-        title: 'Kitchen Sink Leak',
-        description: 'The kitchen sink has been dripping for the past few days. Water is pooling under the sink.',
-        category: 'plumbing',
-        priority: 'medium',
-        status: 'in_progress',
-        images: [],
-        submittedAt: new Date('2024-01-15'),
-        scheduledDate: new Date('2024-01-20'),
-        propertyAddress: '1200 Autumn Willow Dr, Austin, TX 78745',
-        unitNumber: 'Apt 205'
-      },
-      {
-        id: '2',
-        title: 'Broken Light Switch',
-        description: 'The light switch in the living room is not working properly. Sometimes it works, sometimes it doesn\'t.',
-        category: 'electrical',
-        priority: 'low',
-        status: 'submitted',
-        images: [],
-        submittedAt: new Date('2024-01-18'),
-        propertyAddress: '1200 Autumn Willow Dr, Austin, TX 78745',
-        unitNumber: 'Apt 205'
-      },
-      {
-        id: '3',
-        title: 'AC Not Cooling',
-        description: 'The air conditioning unit is not cooling the apartment properly. It\'s been running but not getting cold.',
-        category: 'hvac',
-        priority: 'high',
-        status: 'completed',
-        images: [],
-        submittedAt: new Date('2024-01-10'),
-        completedDate: new Date('2024-01-12'),
-        propertyAddress: '1200 Autumn Willow Dr, Austin, TX 78745',
-        unitNumber: 'Apt 205'
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (isDropdownOpen && !target.closest('.property-dropdown')) {
+        setIsDropdownOpen(false);
       }
-    ];
+    };
 
-    setTimeout(() => {
-      setRequests(mockRequests);
+    if (isDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isDropdownOpen]);
+
+  // Fetch maintenance requests from Firebase
+  useEffect(() => {
+    const fetchRequests = async () => {
+      if (!user?.uid) {
+        setLoading(false);
+        return;
+      }
+
+      try {
+        setLoading(true);
+        const userRequests = await maintenanceService.getMaintenanceRequestsByTenant(user.uid);
+        setRequests(userRequests);
+      } catch (error) {
+        console.error('Error fetching maintenance requests:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load maintenance requests. Please try again.",
+          variant: "destructive"
+        });
+      } finally {
       setLoading(false);
-    }, 1000);
-  }, []);
+      }
+    };
+
+    fetchRequests();
+  }, [user, toast]);
+
+  // Fetch approved applications for property selection
+  useEffect(() => {
+    const loadApprovedApplications = async () => {
+      if (!user) return;
+      
+      try {
+        const applications = await getUserApprovedApplications(user.uid);
+        setApprovedApplications(applications);
+        
+        // Auto-select first property if only one is available
+        if (applications.length === 1) {
+          setSelectedProperty(applications[0]);
+        }
+      } catch (error) {
+        console.error('Error loading approved applications:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load your approved properties.",
+          variant: "destructive"
+        });
+      }
+    };
+
+    loadApprovedApplications();
+  }, [user, toast]);
 
   const filteredRequests = requests.filter(request => {
     const matchesSearch = request.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -186,7 +203,7 @@ export function MaintenanceRequests() {
     setImagePreviewUrls(newPreviewUrls);
   };
 
-  const handleSubmitRequest = () => {
+  const handleSubmitRequest = async () => {
     if (!newRequest.title || !newRequest.description) {
       toast({
         title: "Missing information",
@@ -196,17 +213,57 @@ export function MaintenanceRequests() {
       return;
     }
 
-    const request: MaintenanceRequest = {
-      id: Date.now().toString(),
-      ...newRequest,
-      status: 'submitted',
-      images: uploadedImages,
-      submittedAt: new Date(),
-      propertyAddress: '1200 Autumn Willow Dr, Austin, TX 78745',
-      unitNumber: 'Apt 205'
-    };
+    if (!user?.uid) {
+      toast({
+        title: "Authentication required",
+        description: "Please log in to submit a maintenance request.",
+        variant: "destructive"
+      });
+      return;
+    }
 
-    setRequests(prev => [request, ...prev]);
+    if (!selectedProperty) {
+      toast({
+        title: "Property selection required",
+        description: "Please select a property for this maintenance request.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+console.log("selectedProperty",selectedProperty);
+
+      // For now, we'll store image URLs as empty array
+      // In a real implementation, you'd upload images to Firebase Storage first
+
+      const requestData = {
+        title: newRequest.title,
+        description: newRequest.description,
+        category: newRequest.category,
+        priority: newRequest.priority,
+        status: 'submitted' as const,
+        images: [], // Will be populated after image upload
+        propertyAddress: selectedProperty.propertyName,
+        unitNumber: selectedProperty.unitNumber || 'N/A',
+        tenantId: user.uid,
+        landlordId: selectedProperty.landlordId || 'unknown', // This will be updated when we have landlord info
+        propertyId: selectedProperty.propertyId
+      };
+
+      const requestId = await maintenanceService.createMaintenanceRequest(requestData);
+    
+      // Add the new request to the local state
+      const newRequestWithId: MaintenanceRequest = {
+        id: requestId,
+        ...requestData,
+        submittedAt: new Date()
+      };
+
+      setRequests(prev => [newRequestWithId, ...prev]);
+      
+      // Reset form
     setNewRequest({
       title: '',
       description: '',
@@ -222,6 +279,16 @@ export function MaintenanceRequests() {
       title: "Request submitted",
       description: "Your maintenance request has been submitted successfully.",
     });
+    } catch (error) {
+      console.error('Error submitting maintenance request:', error);
+      toast({
+        title: "Error",
+        description: "Failed to submit maintenance request. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   // Custom Select Component
@@ -464,17 +531,93 @@ export function MaintenanceRequests() {
             
             {/* Modal Content */}
             <div className="p-6 space-y-6 max-h-[70vh] overflow-y-auto">
-              {/* Property Info */}
-              <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                <div className="flex items-center space-x-3">
-                  <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
-                    <MapPin className="h-4 w-4 text-green-600" />
+              {/* Property Selection */}
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Select Property *
+                </label>
+                {approvedApplications.length === 0 ? (
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                    <div className="flex items-center space-x-3">
+                      <AlertTriangle className="h-5 w-5 text-yellow-600" />
+                      <div>
+                        <p className="text-sm font-medium text-yellow-800">No Approved Properties</p>
+                        <p className="text-sm text-yellow-700">You need to have an approved application to submit maintenance requests.</p>
+                      </div>
+                    </div>
                   </div>
-              <div>
-                    <p className="text-sm font-medium text-gray-900">Property</p>
-                    <p className="text-sm text-gray-600">1200 Autumn Willow Dr, Austin, TX 78745 • Apt 205</p>
+                ) : (
+                  <div className="relative property-dropdown">
+                    <button
+                      type="button"
+                      onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                      className="w-full p-4 border border-gray-200 rounded-lg cursor-pointer transition-all hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-3">
+                          <div className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center">
+                            <MapPin className="h-4 w-4 text-gray-600" />
+                          </div>
+                          <div className="flex-1 text-left">
+                            {selectedProperty ? (
+                              <>
+                                <p className="text-sm font-medium text-gray-900">{selectedProperty.propertyName}</p>
+                                <p className="text-sm text-gray-600">
+                                  Unit {selectedProperty.unitNumber || 'N/A'} • Status: {selectedProperty.status}
+                                </p>
+                              </>
+                            ) : (
+                              <p className="text-sm text-gray-500">Select a property...</p>
+                            )}
+                          </div>
+                        </div>
+                        <ChevronDown className={`h-5 w-5 text-gray-400 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
+                      </div>
+                    </button>
+                    
+                    {isDropdownOpen && (
+                      <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                        {approvedApplications.map((application) => (
+                          <div
+                            key={application.id}
+                            onClick={() => {
+                              setSelectedProperty(application);
+                              setIsDropdownOpen(false);
+                            }}
+                            className={`p-4 cursor-pointer transition-all hover:bg-gray-50 ${
+                              selectedProperty?.id === application.id ? 'bg-green-50' : ''
+                            }`}
+                          >
+                            <div className="flex items-center space-x-3">
+                              <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                                selectedProperty?.id === application.id
+                                  ? 'bg-green-100'
+                                  : 'bg-gray-100'
+                              }`}>
+                                <MapPin className={`h-4 w-4 ${
+                                  selectedProperty?.id === application.id
+                                    ? 'text-green-600'
+                                    : 'text-gray-600'
+                                }`} />
+                              </div>
+                              <div className="flex-1">
+                                <p className="text-sm font-medium text-gray-900">{application.propertyName}</p>
+                                <p className="text-sm text-gray-600">
+                                  Unit {application.unitNumber || 'N/A'} • Status: {application.status}
+                                </p>
+                              </div>
+                              {selectedProperty?.id === application.id && (
+                                <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
+                                  <CheckCircle className="h-4 w-4 text-white" />
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
-                </div>
+                )}
               </div>
 
               {/* Title Field */}
@@ -620,10 +763,15 @@ export function MaintenanceRequests() {
               </Button>
               <Button
                 onClick={handleSubmitRequest}
-                className="bg-green-600 hover:bg-green-700 text-white px-6"
+                disabled={submitting}
+                className="bg-green-600 hover:bg-green-700 text-white px-6 disabled:opacity-50"
               >
+                {submitting ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
                 <Wrench className="h-4 w-4 mr-2" />
-                Submit Request
+                )}
+                {submitting ? 'Submitting...' : 'Submit Request'}
               </Button>
             </div>
           </motion.div>

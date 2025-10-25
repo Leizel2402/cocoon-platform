@@ -146,9 +146,9 @@ export function SignUp() {
           >
             <UserPlus className="h-8 w-8 sm:h-10 sm:w-10 text-white" />
           </motion.div>
-          <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white mb-2 sm:mb-4">
+          {/* <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white mb-2 sm:mb-4">
             Join Cocoon
-          </h2>
+          </h2> */}
           <p className="text-base sm:text-lg lg:text-xl text-white/80">
             Create your account to get started
           </p>

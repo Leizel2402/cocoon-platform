@@ -6,6 +6,9 @@ import { motion } from "framer-motion";
 import { useAuth } from "../../hooks/useAuth";
 import { collection, query, where, getDocs, orderBy } from "firebase/firestore";
 import { db } from "../../lib/firebase";
+import { maintenanceService, MaintenanceActivity, MaintenanceRequest } from "../../services/maintenanceService";
+import { updateApplicationStatus } from "../../services/submissionService";
+import { useToast } from "../../hooks/use-toast";
 import { 
   Building, 
   Plus, 
@@ -28,6 +31,16 @@ import {
   Bath,
   Bed,
   Square,
+  X,
+  Phone,
+  Mail,
+  Calendar,
+  FileText,
+  Heart,
+  User,
+  Star,
+  Check,
+  XCircle,
 } from "lucide-react";
 
 // Property interface based on the provided JSON format
@@ -442,6 +455,7 @@ interface ApplicationData {
 
 const LandlordPropertyManagement: React.FC = () => {
   const { user } = useAuth();
+  const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("overview");
   const [showPropertyForm, setShowPropertyForm] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -453,6 +467,16 @@ const LandlordPropertyManagement: React.FC = () => {
   const [applicationsLoading, setApplicationsLoading] = useState(false);
   const [applicationsError, setApplicationsError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [selectedApplication, setSelectedApplication] = useState<ApplicationData | null>(null);
+  const [showApplicationModal, setShowApplicationModal] = useState(false);
+  const [selectedProperty, setSelectedProperty] = useState<ListingData | null>(null);
+  const [showPropertyDetailsModal, setShowPropertyDetailsModal] = useState(false);
+  const [selectedPropertyForView, setSelectedPropertyForView] = useState<PropertyData | null>(null);
+  const [showPropertyViewModal, setShowPropertyViewModal] = useState(false);
+  const [maintenanceActivities, setMaintenanceActivities] = useState<MaintenanceActivity[]>([]);
+  const [maintenanceRequests, setMaintenanceRequests] = useState<MaintenanceRequest[]>([]);
+  const [maintenanceLoading, setMaintenanceLoading] = useState(false);
+// console.log("maintenanceRequests", maintenanceRequests);
 
   // Fetch properties from Firebase
   const fetchProperties = useCallback(async () => {
@@ -681,9 +705,27 @@ const LandlordPropertyManagement: React.FC = () => {
     }
   }, [user]);
 
+  // Fetch maintenance activities for Recent Activity section
+  const fetchMaintenanceActivities = useCallback(async () => {
+    if (!user?.uid) return;
+
+    try {
+
+     
+      
+      const activities = await maintenanceService.getRecentMaintenanceActivities(user.uid, 7);
+    
+      console.log("useriod",activities);
+      setMaintenanceActivities(activities);
+    } catch (error) {
+      console.error('Error fetching maintenance activities:', error);
+    }
+  }, [user]);
+
   useEffect(() => {
     fetchProperties();
-  }, [user, fetchProperties]);
+    fetchMaintenanceActivities();
+  }, [user, fetchProperties, fetchMaintenanceActivities]);
 
   useEffect(() => {
     if (activeTab === "listings") {
@@ -697,53 +739,70 @@ const LandlordPropertyManagement: React.FC = () => {
     }
   }, [activeTab, fetchApplications]);
 
+  // Fetch maintenance requests when maintenance tab is active
+  const fetchMaintenanceRequests = useCallback(async () => {
+    if (!user?.uid) return;
+
+    setMaintenanceLoading(true);
+    try {
+      const requests = await maintenanceService.getMaintenanceRequestsByLandlord(user.uid);
+      setMaintenanceRequests(requests);
+    } catch (error) {
+      console.error('Error fetching maintenance requests:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load maintenance requests.",
+        variant: "destructive"
+      });
+    } finally {
+      setMaintenanceLoading(false);
+    }
+  }, [user, toast]);
+
+  useEffect(() => {
+    if (activeTab === "maintenance-requests") {
+      fetchMaintenanceRequests();
+    }
+  }, [activeTab, fetchMaintenanceRequests]);
+
+  // Combine maintenance activities with other activities
   const recentActivity = [
-    {
-      id: "1",
-      type: "application",
-      message: "New application received for Unit 3A",
-      time: "2 hours ago",
-      status: "pending",
-      property: "Downtown Apartments",
-      priority: "medium",
-    },
-    {
-      id: "2",
-      type: "maintenance",
-      message: "Maintenance request completed for Unit 5B",
-      time: "4 hours ago",
-      status: "completed",
-      property: "Garden View Complex",
-      priority: "low",
-    },
-    {
-      id: "3",
-      type: "payment",
-      message: "Rent payment received from Unit 2C",
-      time: "1 day ago",
-      status: "paid",
-      property: "Downtown Apartments",
-      priority: "low",
-    },
-    {
-      id: "4",
-      type: "maintenance",
-      message: "Urgent: Water leak reported in Unit 1A",
-      time: "3 hours ago",
-      status: "urgent",
-      property: "Sunset Heights",
-      priority: "high",
-    },
-    {
-      id: "5",
-      type: "application",
-      message: "Application approved for Unit 4B",
-      time: "1 day ago",
-      status: "approved",
-      property: "Garden View Complex",
-      priority: "low",
-    },
-  ];
+    // Static application activities (you can replace these with real data later)
+    // {
+    //   id: "1",
+    //   type: "application",
+    //   message: "New application received for Unit 3A",
+    //   time: "2 hours ago",
+    //   status: "pending",
+    //   property: "Downtown Apartments",
+    //   priority: "medium",
+    // },
+    // {
+    //   id: "3",
+    //   type: "payment",
+    //   message: "Rent payment received from Unit 2C",
+    //   time: "1 day ago",
+    //   status: "paid",
+    //   property: "Downtown Apartments",
+    //   priority: "low",
+    // },
+    // {
+    //   id: "5",
+    //   type: "application",
+    //   message: "Application approved for Unit 4B",
+    //   time: "1 day ago",
+    //   status: "approved",
+    //   property: "Garden View Complex",
+    //   priority: "low",
+    // },
+    // Add real maintenance activities from Firebase
+    ...maintenanceActivities
+  ].sort((a, b) => {
+    // Sort by time (most recent first)
+    const timeA = a.time.includes('minute') ? 0 : a.time.includes('hour') ? 1 : 2;
+    const timeB = b.time.includes('minute') ? 0 : b.time.includes('hour') ? 1 : 2;
+    return timeA - timeB;
+  });
 
   // Calculate stats based on Firebase data
   const totalProperties = properties.length;
@@ -757,6 +816,74 @@ const LandlordPropertyManagement: React.FC = () => {
   const urgentMaintenance = recentActivity.filter(
     (a) => a.type === "maintenance" && a.priority === "high"
   ).length;
+
+  // Handle opening application details modal
+  const handleViewApplicationDetails = (application: ApplicationData) => {
+    setSelectedApplication(application);
+    setShowApplicationModal(true);
+  };
+
+  // Handle closing application details modal
+  const handleCloseApplicationModal = () => {
+    setSelectedApplication(null);
+    setShowApplicationModal(false);
+  };
+
+  // Handle application status update
+  const handleStatusUpdate = async (applicationId: string, newStatus: 'approved' | 'rejected') => {
+    try {
+      const result = await updateApplicationStatus(applicationId, newStatus);
+      
+      if (result.success) {
+        // Update local state
+        setApplications(prev => 
+          prev.map(app => 
+            app.id === applicationId 
+              ? { ...app, status: newStatus }
+              : app
+          )
+        );
+        
+        toast({
+          title: "Status Updated",
+          description: `Application ${newStatus === 'approved' ? 'approved' : 'rejected'} successfully.`,
+        });
+      } else {
+        throw new Error(result.error);
+      }
+    } catch (error) {
+      console.error('Error updating application status:', error);
+      toast({
+        title: "Update Failed",
+        description: "Failed to update application status. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Handle opening property details modal
+  const handleViewPropertyDetails = (property: ListingData) => {
+    setSelectedProperty(property);
+    setShowPropertyDetailsModal(true);
+  };
+
+  // Handle closing property details modal
+  const handleClosePropertyDetailsModal = () => {
+    setSelectedProperty(null);
+    setShowPropertyDetailsModal(false);
+  };
+
+  // Handle opening property view modal
+  const handleViewProperty = (property: PropertyData) => {
+    setSelectedPropertyForView(property);
+    setShowPropertyViewModal(true);
+  };
+
+  // Handle closing property view modal
+  const handleClosePropertyViewModal = () => {
+    setSelectedPropertyForView(null);
+    setShowPropertyViewModal(false);
+  };
 
   if (showPropertyForm) {
     return <PropertyForm setPropertyFormOpen={(open: boolean) => setShowPropertyForm(open)} />;
@@ -779,7 +906,7 @@ const LandlordPropertyManagement: React.FC = () => {
       {/* Header Banner */}
       <div className="sticky top-16 z-30 bg-gradient-to-r from-green-600 via-green-600 to-emerald-600 text-white">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col md:flex-row items-center justify-between">
             <div className="flex items-center space-x-3">
               <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
                 <Building className="h-6 w-6 text-green-600" />
@@ -904,13 +1031,14 @@ const LandlordPropertyManagement: React.FC = () => {
           className="mb-8"
         >
           <div className="bg-white/80 backdrop-blur-md rounded-2xl shadow-xl border border-white/20 p-2">
-            <nav className="flex space-x-2">
+            <nav className="flex flex-wrap space-x-2">
               {[
                 { id: "overview", label: "Dashboard", icon: TrendingUp },
                 { id: "properties", label: "Properties", icon: Building },
                 { id: "listings", label: "Listings", icon: List },
                 { id: "applications", label: "Applications", icon: Users },
                 { id: "maintenance", label: "Work Orders", icon: Wrench },
+                { id: "maintenance-requests", label: "Maintenance Requests", icon: Wrench },
                 { id: "reports", label: "Reports", icon: BarChart3 },
                 { id: "settings", label: "Settings", icon: Settings },
               ].map((tab) => (
@@ -1093,6 +1221,7 @@ const LandlordPropertyManagement: React.FC = () => {
                   <motion.button
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
+                    onClick={() => setActiveTab("maintenance-requests")}
                     className="flex items-center px-4 py-2 text-green-600 border border-green-200 rounded-lg hover:bg-green-50 font-semibold transition-all duration-200"
                   >
                     View All
@@ -1179,7 +1308,7 @@ const LandlordPropertyManagement: React.FC = () => {
           >
             <div className="flex justify-between items-center">
               <div>
-                <h2 className="text-2xl font-bold text-gray-900">Properties</h2>
+                <h2 className="text-lg md:text-xl font-bold text-gray-900">Properties</h2>
                 <p className="text-gray-600 mt-1">
                   Manage your property portfolio
                 </p>
@@ -1379,7 +1508,8 @@ const LandlordPropertyManagement: React.FC = () => {
                       <motion.button
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
-                            className="flex-1 flex items-center justify-center px-3 py-2 border border-gray-200 rounded-lg hover:bg-gray-50 font-medium text-gray-700 transition-all duration-200"
+                        onClick={() => handleViewProperty(property)}
+                        className="flex-1 flex items-center justify-center px-3 py-2 border border-gray-200 rounded-lg hover:bg-gray-50 font-medium text-gray-700 transition-all duration-200"
                       >
                         <Eye className="h-4 w-4 mr-2" />
                         View
@@ -1387,7 +1517,7 @@ const LandlordPropertyManagement: React.FC = () => {
                       <motion.button
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
-                            className="flex-1 flex items-center justify-center px-3 py-2 border border-gray-200 rounded-lg hover:bg-gray-50 font-medium text-gray-700 transition-all duration-200"
+                        className="flex-1 flex items-center justify-center px-3 py-2 border border-gray-200 rounded-lg hover:bg-gray-50 font-medium text-gray-700 transition-all duration-200"
                       >
                         <Edit className="h-4 w-4 mr-2" />
                         Edit
@@ -1419,7 +1549,7 @@ const LandlordPropertyManagement: React.FC = () => {
           >
             <div className="flex justify-between items-center">
               <div>
-                <h2 className="text-2xl font-bold text-gray-900">
+                <h2 className="text-lg md:text-xl font-bold text-gray-900">
                   Active Listings
                 </h2>
                 <p className="text-gray-600 mt-1">
@@ -1635,6 +1765,7 @@ const LandlordPropertyManagement: React.FC = () => {
                           <motion.button
                             whileHover={{ scale: 1.02 }}
                             whileTap={{ scale: 0.98 }}
+                            onClick={() => handleViewPropertyDetails(listing)}
                             className="flex-1 flex items-center justify-center px-3 py-2 border border-gray-200 rounded-lg hover:bg-gray-50 font-medium text-gray-700 transition-all duration-200"
                           >
                             <Eye className="h-4 w-4 mr-2" />
@@ -1673,16 +1804,16 @@ const LandlordPropertyManagement: React.FC = () => {
             transition={{ duration: 0.6 }}
             className="space-y-8"
           >
-            <div className="flex justify-between items-center">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center">
               <div>
-                <h2 className="text-2xl font-bold text-gray-900">
+                <h2 className="text-lg md:text-2xl font-bold text-gray-900">
                   Tenant Applications
                 </h2>
                 <p className="text-gray-600 mt-1">
                   Review, screen, and manage rental applications
                 </p>
               </div>
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center space-x-2 mt-3 md:mt-0">
                 <Badge className="bg-blue-100 text-blue-700 border-blue-200">
                   {pendingApplications} Pending Review
                 </Badge>
@@ -1857,19 +1988,52 @@ const LandlordPropertyManagement: React.FC = () => {
                           <motion.button
                             whileHover={{ scale: 1.02 }}
                             whileTap={{ scale: 0.98 }}
+                            onClick={() => handleViewApplicationDetails(application)}
                             className="flex-1 flex items-center justify-center px-3 py-2 border border-gray-200 rounded-lg hover:bg-gray-50 font-medium text-gray-700 transition-all duration-200"
                           >
                             <Eye className="h-4 w-4 mr-2" />
-                            Review
+                            View
                           </motion.button>
-                          <motion.button
-                            whileHover={{ scale: 1.02 }}
-                            whileTap={{ scale: 0.98 }}
-                            className="flex-1 flex items-center justify-center px-3 py-2 border border-gray-200 rounded-lg hover:bg-gray-50 font-medium text-gray-700 transition-all duration-200"
-                          >
-                    <Users className="h-4 w-4 mr-2" />
-                            Screen
-                          </motion.button>
+                          
+                          {/* Status Change Buttons - Only show for pending applications */}
+                          {application.status === 'pending' && (
+                            <>
+                              <motion.button
+                                whileHover={{ scale: 1.02 }}
+                                whileTap={{ scale: 0.98 }}
+                                onClick={() => handleStatusUpdate(application.id, 'approved')}
+                                className="flex-1 flex items-center justify-center px-3 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-all duration-200"
+                              >
+                                <Check className="h-4 w-4 mr-2" />
+                                Approve
+                              </motion.button>
+                              <motion.button
+                                whileHover={{ scale: 1.02 }}
+                                whileTap={{ scale: 0.98 }}
+                                onClick={() => handleStatusUpdate(application.id, 'rejected')}
+                                className="flex-1 flex items-center justify-center px-3 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-all duration-200"
+                              >
+                                <XCircle className="h-4 w-4 mr-2" />
+                                Reject
+                              </motion.button>
+                            </>
+                          )}
+                          
+                          {/* Show status for non-pending applications */}
+                          {application.status !== 'pending' && (
+                            <div className="flex-1 flex items-center justify-center px-3 py-2 bg-gray-100 rounded-lg">
+                              <span className={`text-sm font-medium ${
+                                application.status === 'approved' 
+                                  ? 'text-green-700' 
+                                  : application.status === 'rejected'
+                                  ? 'text-red-700'
+                                  : 'text-gray-700'
+                              }`}>
+                                {application.status.charAt(0).toUpperCase() + application.status.slice(1)}
+                              </span>
+                            </div>
+                          )}
+                          
                           <motion.button
                             whileHover={{ scale: 1.02 }}
                             whileTap={{ scale: 0.98 }}
@@ -1890,16 +2054,16 @@ const LandlordPropertyManagement: React.FC = () => {
         {/* Work Orders Tab */}
         {activeTab === "maintenance" && (
           <div className="space-y-6">
-            <div className="flex justify-between items-center">
+            <div className=" flex flex-col md:flex-row justify-between items-start md:items-center">
               <div>
-                <h2 className="text-2xl font-bold text-gray-900">
+                <h2 className="text-lg md:text-2xl font-bold text-gray-900">
                   Work Orders
                 </h2>
                 <p className="text-gray-600 mt-1">
                   Manage maintenance requests and work orders
                 </p>
               </div>
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center space-x-2 mt-3 md:mt-0">
                 <Badge className="bg-red-100 text-red-700 border-red-200">
                   {urgentMaintenance} Urgent
                 </Badge>
@@ -1923,7 +2087,7 @@ const LandlordPropertyManagement: React.FC = () => {
                   Track and manage maintenance requests from tenants. Schedule
                   repairs, assign contractors, and monitor work progress.
                 </p>
-                <div className="flex justify-center space-x-3">
+                <div className="flex flex-col md:flex-row justify-center  gap-y-2 md:gap-y-0 space-x-0 md:space-x-3">
                   <Button
                     variant="outline"
                     className="border-gray-200 hover:bg-gray-50"
@@ -1939,6 +2103,151 @@ const LandlordPropertyManagement: React.FC = () => {
               </div>
             </motion.div>
           </div>
+        )}
+
+        {/* Maintenance Requests Tab */}
+        {activeTab === "maintenance-requests" && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+            className="space-y-6"
+          >
+            <div className="flex flex-col md:flex-row  justify-between items-start md:items-center">
+              <div>
+                <h2 className="text-lg md:text-2xl font-bold text-gray-900">
+                  Maintenance Requests
+                </h2>
+                <p className="text-gray-600 mt-1">
+                  Manage maintenance requests and work orders from tenants
+                </p>
+              </div>
+              <div className="flex items-center space-x-2 mt-2 md:mt-0 ">
+                <Badge className="bg-red-100 text-red-700 border-red-200">
+                  {maintenanceRequests.filter(req => req.priority === 'emergency' || req.priority === 'high').length} Urgent
+                </Badge>
+                <Badge className="bg-yellow-100 text-yellow-700 border-yellow-200">
+                  {maintenanceRequests.filter(req => req.status === 'submitted').length} Pending
+                </Badge>
+              </div>
+            </div>
+
+            {/* Loading State */}
+            {maintenanceLoading && (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-green-600" />
+                <span className="ml-2 text-gray-600">Loading maintenance requests...</span>
+              </div>
+            )}
+
+            {/* Maintenance Requests List */}
+            {!maintenanceLoading && maintenanceRequests.length === 0 ? (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8"
+              >
+                <div className="text-center">
+                  <div className="w-16 h-16 bg-orange-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                    <Wrench className="h-8 w-8 text-orange-600" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                    No Maintenance Requests
+                  </h3>
+                  <p className="text-gray-600 mb-6 max-w-md mx-auto">
+                    You haven't received any maintenance requests yet. They will appear here when tenants submit them.
+                  </p>
+                </div>
+              </motion.div>
+            ) : (
+              <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+                {maintenanceRequests.map((request, index) => (
+                  <motion.div
+                    key={request.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.6, delay: index * 0.1 }}
+                    whileHover={{ scale: 1.02, y: -4 }}
+                    className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-lg transition-all duration-300"
+                  >
+                    <div className="p-6">
+                      <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-4">
+                        <div className="flex items-center space-x-3">
+                          <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${
+                            request.priority === 'emergency' ? 'bg-red-100' :
+                            request.priority === 'high' ? 'bg-orange-100' :
+                            request.priority === 'medium' ? 'bg-yellow-100' :
+                            'bg-green-100'
+                          }`}>
+                            <Wrench className={`h-6 w-6 ${
+                              request.priority === 'emergency' ? 'text-red-600' :
+                              request.priority === 'high' ? 'text-orange-600' :
+                              request.priority === 'medium' ? 'text-yellow-600' :
+                              'text-green-600'
+                            }`} />
+                          </div>
+                          <div>
+                            <h3 className="font-semibold text-gray-900 text-lg">
+                              {request.title}
+                            </h3>
+                            <div className="flex items-center text-gray-500 text-sm">
+                              <MapPin className="h-3 w-3 mr-1" />
+                              <span className="truncate">
+                                {request.propertyAddress}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                        <span className={`px-3 mt-3 md:mt-0 py-1 rounded-full text-xs font-medium ${
+                          request.status === 'submitted' ? "bg-yellow-100 text-yellow-700" :
+                          request.status === 'in_progress' ? "bg-blue-100 text-blue-700" :
+                          request.status === 'completed' ? "bg-green-100 text-green-700" :
+                          "bg-gray-100 text-gray-700"
+                        }`}>
+                          {request.status.charAt(0).toUpperCase() + request.status.slice(1)}
+                        </span>
+                      </div>
+
+                      <p className="text-gray-600 text-sm mb-4 line-clamp-2">
+                        {request.description}
+                      </p>
+
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center space-x-2">
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                            request.priority === 'emergency' ? 'bg-red-100 text-red-700' :
+                            request.priority === 'high' ? 'bg-orange-100 text-orange-700' :
+                            request.priority === 'medium' ? 'bg-yellow-100 text-yellow-700' :
+                            'bg-green-100 text-green-700'
+                          }`}>
+                            {request.priority.charAt(0).toUpperCase() + request.priority.slice(1)} Priority
+                          </span>
+                          <span className="px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-700">
+                            {request.category.charAt(0).toUpperCase() + request.category.slice(1)}
+                          </span>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-xs text-gray-500">Unit</p>
+                          <p className="text-sm font-semibold text-gray-900">
+                            {request.unitNumber || 'N/A'}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between text-sm text-gray-500 mb-4">
+                        <span>Submitted: {new Date(request.submittedAt).toLocaleDateString()}</span>
+                        {request.scheduledDate && (
+                          <span>Scheduled: {new Date(request.scheduledDate).toLocaleDateString()}</span>
+                        )}
+                      </div>
+
+                     
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            )}
+          </motion.div>
         )}
 
         {/* Reports Tab */}
@@ -2037,8 +2346,1003 @@ const LandlordPropertyManagement: React.FC = () => {
           </div>
         )}
       </div>
-    </div>
-  );
-};
+
+      {/* Application Details Modal */}
+      {showApplicationModal && selectedApplication && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            className="bg-white rounded-2xl shadow-2xl max-w-5xl w-full max-h-[90vh] overflow-hidden bg-gradient-to-br from-slate-50 via-gray-50 to-zinc-100"
+          >
+            {/* Modern Header with Gradient Background */}
+            <div className="relative bg-gradient-to-r from-green-600 via-emerald-600 to-green-600 p-6 text-white">
+              <div className="absolute inset-0 bg-black/10"></div>
+              <div className="relative z-10 flex items-center justify-between">
+                <div className="flex items-center space-x-4">
+                  <motion.div
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ delay: 0.1, type: "spring", stiffness: 200 }}
+                    className="w-12 h-12 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center shadow-2xl"
+                  >
+                    <Users className="h-6 w-6 text-white" />
+                  </motion.div>
+                  <div>
+                    <h2 className="text-3xl font-bold text-white mb-1">
+                      {selectedApplication.personalInfo.firstName} {selectedApplication.personalInfo.lastName}
+                    </h2>
+                    <p className="text-white/90 text-sm">
+                      Application for {selectedApplication.applicationMetadata.propertyName || 'Property'}
+                    </p>
+                    <div className="flex items-center space-x-4 mt-2">
+                      <div className="flex items-center">
+                        <Calendar className="h-4 w-4 mr-1" />
+                        <span className="text-sm">
+                          Applied: {selectedApplication.submittedAt 
+                            ? new Date(
+                                typeof selectedApplication.submittedAt === 'object' && 'seconds' in selectedApplication.submittedAt
+                                  ? selectedApplication.submittedAt.seconds * 1000
+                                  : selectedApplication.submittedAt
+                              ).toLocaleDateString()
+                            : "N/A"}
+                        </span>
+                      </div>
+                      <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                        selectedApplication.status === 'pending'
+                          ? "bg-yellow-100 text-yellow-700"
+                          : selectedApplication.status === 'approved'
+                          ? "bg-green-100 text-green-700"
+                          : selectedApplication.status === 'rejected'
+                          ? "bg-red-100 text-red-700"
+                          : "bg-gray-100 text-gray-700"
+                      }`}>
+                        {selectedApplication.status.charAt(0).toUpperCase() + selectedApplication.status.slice(1)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <button
+                  onClick={handleCloseApplicationModal}
+                  className="p-2 hover:bg-white/20 rounded-lg transition-colors"
+                >
+                  <X className="h-6 w-6" />
+                </button>
+              </div>
+            </div>
+
+            {/* Security Banner */}
+            <div className="bg-gradient-to-r from-emerald-50 to-teal-50 border-b border-emerald-200 px-6 py-3">
+              <div className="flex items-center space-x-2">
+                <div className="w-5 h-5 bg-emerald-100 rounded-full flex items-center justify-center">
+                  <div className="w-2 h-2 bg-emerald-600 rounded-full"></div>
+                </div>
+                <span className="text-sm font-medium text-emerald-800">
+                  All application information is secure and verified
+                </span>
+              </div>
+            </div>
+
+            {/* Modal Content */}
+            <div className="p-6 max-h-[calc(90vh-200px)] overflow-y-auto">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Left Column - Personal Information */}
+                <div className="space-y-6">
+                  {/* Personal Information Card */}
+                  <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 hover:shadow-xl transition-shadow">
+                    <div className="flex items-center mb-6">
+                      <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center mr-3">
+                        <User className="h-5 w-5 text-blue-600" />
+                      </div>
+                      <h3 className="text-xl font-bold text-gray-900">Personal Information</h3>
+                    </div>
+                    <div className="space-y-4">
+                      <div className="flex items-center space-x-4 p-3 bg-gray-50 rounded-xl">
+                        <div className="w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center">
+                          <Mail className="h-4 w-4 text-blue-600" />
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-sm text-gray-600 font-medium">Email</p>
+                          <p className="font-semibold text-gray-900">{selectedApplication.personalInfo.email}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-4 p-3 bg-gray-50 rounded-xl">
+                        <div className="w-8 h-8 bg-green-50 rounded-lg flex items-center justify-center">
+                          <Phone className="h-4 w-4 text-green-600" />
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-sm text-gray-600 font-medium">Phone</p>
+                          <p className="font-semibold text-gray-900">{selectedApplication.personalInfo.phone}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-4 p-3 bg-gray-50 rounded-xl">
+                        <div className="w-8 h-8 bg-purple-50 rounded-lg flex items-center justify-center">
+                          <Calendar className="h-4 w-4 text-purple-600" />
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-sm text-gray-600 font-medium">Date of Birth</p>
+                          <p className="font-semibold text-gray-900">
+                            {new Date(selectedApplication.personalInfo.dateOfBirth).toLocaleDateString()}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-4 p-3 bg-gray-50 rounded-xl">
+                        <div className="w-8 h-8 bg-orange-50 rounded-lg flex items-center justify-center">
+                          <Calendar className="h-4 w-4 text-orange-600" />
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-sm text-gray-600 font-medium">Move-in Date</p>
+                          <p className="font-semibold text-gray-900">
+                            {new Date(selectedApplication.personalInfo.moveInDate).toLocaleDateString()}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Financial Information Card */}
+                  <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 hover:shadow-xl transition-shadow">
+                    <div className="flex items-center mb-6">
+                      <div className="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center mr-3">
+                        <DollarSign className="h-5 w-5 text-green-600" />
+                      </div>
+                      <h3 className="text-xl font-bold text-gray-900">Financial Information</h3>
+                    </div>
+                    <div className="space-y-6">
+                      {/* Financial Highlights */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-2xl p-6 border border-blue-200">
+                          <div className="flex items-center justify-between mb-2">
+                            <p className="text-sm text-blue-700 font-semibold">Monthly Income</p>
+                            <div className="w-6 h-6 bg-blue-200 rounded-full flex items-center justify-center">
+                              <DollarSign className="h-3 w-3 text-blue-700" />
+                            </div>
+                          </div>
+                          <p className="text-2xl font-bold text-blue-900">
+                            ${selectedApplication.leaseHoldersAndGuarantors.leaseHolders[0]?.monthlyIncome || selectedApplication.legacy.annualIncome || "0"}
+                          </p>
+                        </div>
+                        <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-2xl p-6 border border-green-200">
+                          <div className="flex items-center justify-between mb-2">
+                            <p className="text-sm text-green-700 font-semibold">Unit Rent</p>
+                            <div className="w-6 h-6 bg-green-200 rounded-full flex items-center justify-center">
+                              <Home className="h-3 w-3 text-green-700" />
+                            </div>
+                          </div>
+                          <p className="text-2xl font-bold text-green-900">
+                            ${selectedApplication.applicationMetadata.unitRent?.toLocaleString() || "0"}
+                          </p>
+                        </div>
+                      </div>
+                      
+                      {/* Employment Information */}
+                      <div className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-2xl p-6 border border-gray-200">
+                        <div className="flex items-center mb-4">
+                          <div className="w-8 h-8 bg-indigo-50 rounded-lg flex items-center justify-center mr-3">
+                            <User className="h-4 w-4 text-indigo-600" />
+                          </div>
+                          <h4 className="text-lg font-semibold text-gray-900">Employment Details</h4>
+                        </div>
+                        <div className="space-y-3">
+                          <div>
+                            <p className="text-sm text-gray-600 font-medium">Status</p>
+                            <p className="font-semibold text-gray-900">{selectedApplication.financialInfo.employment}</p>
+                          </div>
+                          {selectedApplication.financialInfo.employerName && (
+                            <div>
+                              <p className="text-sm text-gray-600 font-medium">Employer</p>
+                              <p className="font-semibold text-gray-900">{selectedApplication.financialInfo.employerName}</p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Housing History Card */}
+                  <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 hover:shadow-xl transition-shadow">
+                    <div className="flex items-center mb-6">
+                      <div className="w-10 h-10 bg-purple-100 rounded-xl flex items-center justify-center mr-3">
+                        <Home className="h-5 w-5 text-purple-600" />
+                      </div>
+                      <h3 className="text-xl font-bold text-gray-900">Housing History</h3>
+                    </div>
+                    <div className="space-y-4">
+                      <div className="bg-gradient-to-r from-purple-50 to-purple-100 rounded-2xl p-6 border border-purple-200">
+                        <div className="flex items-center mb-3">
+                          <div className="w-6 h-6 bg-purple-200 rounded-full flex items-center justify-center mr-3">
+                            <Home className="h-3 w-3 text-purple-700" />
+                          </div>
+                          <h4 className="text-lg font-semibold text-purple-900">Current Address</h4>
+                        </div>
+                        <p className="font-semibold text-gray-900 mb-2">{selectedApplication.housingHistory.currentAddress.fullAddress}</p>
+                        <p className="text-sm text-purple-700 font-medium">Duration: {selectedApplication.housingHistory.currentAddress.duration}</p>
+                      </div>
+                      {selectedApplication.housingHistory.previousAddress.fullAddress && (
+                        <div className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-2xl p-6 border border-gray-200">
+                          <div className="flex items-center mb-3">
+                            <div className="w-6 h-6 bg-gray-200 rounded-full flex items-center justify-center mr-3">
+                              <Home className="h-3 w-3 text-gray-700" />
+                            </div>
+                            <h4 className="text-lg font-semibold text-gray-900">Previous Address</h4>
+                          </div>
+                          <p className="font-semibold text-gray-900">{selectedApplication.housingHistory.previousAddress.fullAddress}</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Right Column - Additional Information */}
+                <div className="space-y-6">
+                  {/* Application Details Card */}
+                  <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 hover:shadow-xl transition-shadow">
+                    <div className="flex items-center mb-6">
+                      <div className="w-10 h-10 bg-indigo-100 rounded-xl flex items-center justify-center mr-3">
+                        <FileText className="h-5 w-5 text-indigo-600" />
+                      </div>
+                      <h3 className="text-xl font-bold text-gray-900">Application Details</h3>
+                    </div>
+                    <div className="space-y-6">
+                      {/* Unit Information Grid */}
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="bg-gradient-to-br from-indigo-50 to-indigo-100 rounded-xl p-4 border border-indigo-200">
+                          <div className="flex items-center mb-2">
+                            <div className="w-6 h-6 bg-indigo-200 rounded-full flex items-center justify-center mr-2">
+                              <Home className="h-3 w-3 text-indigo-700" />
+                            </div>
+                            <p className="text-sm text-indigo-700 font-semibold">Unit</p>
+                          </div>
+                          <p className="text-lg font-bold text-indigo-900">{selectedApplication.applicationMetadata.unitNumber}</p>
+                        </div>
+                        <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-4 border border-blue-200">
+                          <div className="flex items-center mb-2">
+                            <div className="w-6 h-6 bg-blue-200 rounded-full flex items-center justify-center mr-2">
+                              <Calendar className="h-3 w-3 text-blue-700" />
+                            </div>
+                            <p className="text-sm text-blue-700 font-semibold">Lease Term</p>
+                          </div>
+                          <p className="text-lg font-bold text-blue-900">{selectedApplication.applicationMetadata.selectedLeaseTermMonths} months</p>
+                        </div>
+                      </div>
+                      
+                      {/* Unit Specifications */}
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-4 border border-green-200">
+                          <div className="flex items-center mb-2">
+                            <div className="w-6 h-6 bg-green-200 rounded-full flex items-center justify-center mr-2">
+                              <Home className="h-3 w-3 text-green-700" />
+                            </div>
+                            <p className="text-sm text-green-700 font-semibold">Bedrooms</p>
+                          </div>
+                          <p className="text-lg font-bold text-green-900">{selectedApplication.applicationMetadata.unitBedrooms}</p>
+                        </div>
+                        <div className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl p-4 border border-orange-200">
+                          <div className="flex items-center mb-2">
+                            <div className="w-6 h-6 bg-orange-200 rounded-full flex items-center justify-center mr-2">
+                              <Home className="h-3 w-3 text-orange-700" />
+                            </div>
+                            <p className="text-sm text-orange-700 font-semibold">Bathrooms</p>
+                          </div>
+                          <p className="text-lg font-bold text-orange-900">{selectedApplication.applicationMetadata.unitBathrooms}</p>
+                        </div>
+                      </div>
+                      
+                      {/* Security Deposit Highlight */}
+                      <div className="bg-gradient-to-br from-emerald-50 to-emerald-100 rounded-2xl p-6 border border-emerald-200">
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="flex items-center">
+                            <div className="w-8 h-8 bg-emerald-200 rounded-full flex items-center justify-center mr-3">
+                              <DollarSign className="h-4 w-4 text-emerald-700" />
+                            </div>
+                            <h4 className="text-lg font-semibold text-emerald-900">Security Deposit</h4>
+                          </div>
+                          <div className="bg-emerald-200 text-emerald-800 px-3 py-1 rounded-full text-xs font-bold">
+                            Required
+                          </div>
+                        </div>
+                        <p className="text-3xl font-bold text-emerald-900">
+                          ${selectedApplication.applicationMetadata.unitDeposit?.toLocaleString() || "0"}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Emergency Contact Card */}
+                  <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 hover:shadow-xl transition-shadow">
+                    <div className="flex items-center mb-6">
+                      <div className="w-10 h-10 bg-red-100 rounded-xl flex items-center justify-center mr-3">
+                        <Phone className="h-5 w-5 text-red-600" />
+                      </div>
+                      <h3 className="text-xl font-bold text-gray-900">Emergency Contact</h3>
+                    </div>
+                    <div className="bg-gradient-to-r from-red-50 to-red-100 rounded-2xl p-6 border border-red-200">
+                      <div className="space-y-4">
+                        <div className="flex items-center space-x-4">
+                          <div className="w-8 h-8 bg-red-200 rounded-lg flex items-center justify-center">
+                            <User className="h-4 w-4 text-red-700" />
+                          </div>
+                          <div className="flex-1">
+                            <p className="text-sm text-red-700 font-medium">Name</p>
+                            <p className="font-semibold text-gray-900">{selectedApplication.additionalInfo.emergencyContact.name}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-4">
+                          <div className="w-8 h-8 bg-red-200 rounded-lg flex items-center justify-center">
+                            <Phone className="h-4 w-4 text-red-700" />
+                          </div>
+                          <div className="flex-1">
+                            <p className="text-sm text-red-700 font-medium">Phone</p>
+                            <p className="font-semibold text-gray-900">{selectedApplication.additionalInfo.emergencyContact.phone}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-4">
+                          <div className="w-8 h-8 bg-red-200 rounded-lg flex items-center justify-center">
+                            <Heart className="h-4 w-4 text-red-700" />
+                          </div>
+                          <div className="flex-1">
+                            <p className="text-sm text-red-700 font-medium">Relation</p>
+                            <p className="font-semibold text-gray-900">{selectedApplication.additionalInfo.emergencyContact.relation}</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Pets & Vehicles Card */}
+                  <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 hover:shadow-xl transition-shadow">
+                    <div className="flex items-center mb-6">
+                      <div className="w-10 h-10 bg-pink-100 rounded-xl flex items-center justify-center mr-3">
+                        <Heart className="h-5 w-5 text-pink-600" />
+                      </div>
+                      <h3 className="text-xl font-bold text-gray-900">Pets & Vehicles</h3>
+                    </div>
+                    <div className="space-y-6">
+                      {/* Pets Section */}
+                      <div className="bg-gradient-to-r from-pink-50 to-pink-100 rounded-2xl p-6 border border-pink-200">
+                        <div className="flex items-center mb-4">
+                          <div className="w-8 h-8 bg-pink-200 rounded-lg flex items-center justify-center mr-3">
+                            <Heart className="h-4 w-4 text-pink-700" />
+                          </div>
+                          <h4 className="text-lg font-semibold text-pink-900">Pets</h4>
+                        </div>
+                        {selectedApplication.additionalInfo.pets.hasPets ? (
+                          <div className="space-y-3">
+                            {selectedApplication.additionalInfo.pets.pets.map((pet, index) => (
+                              <div key={index} className="bg-white rounded-xl p-4 border border-pink-200">
+                                <div className="flex items-center justify-between mb-2">
+                                  <p className="font-semibold text-gray-900">{pet.type} - {pet.breed}</p>
+                                  <div className="bg-pink-100 text-pink-700 px-2 py-1 rounded-full text-xs font-medium">
+                                    Pet
+                                  </div>
+                                </div>
+                                <p className="text-sm text-pink-700">Age: {pet.age}, Weight: {pet.weight}</p>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="text-center py-4">
+                            <div className="w-12 h-12 bg-pink-100 rounded-full flex items-center justify-center mx-auto mb-2">
+                              <Heart className="h-6 w-6 text-pink-400" />
+                            </div>
+                            <p className="text-pink-600 font-medium">No pets</p>
+                          </div>
+                        )}
+                      </div>
+                      
+                      {/* Vehicles Section */}
+                      <div className="bg-gradient-to-r from-blue-50 to-blue-100 rounded-2xl p-6 border border-blue-200">
+                        <div className="flex items-center mb-4">
+                          <div className="w-8 h-8 bg-blue-200 rounded-lg flex items-center justify-center mr-3">
+                            <Home className="h-4 w-4 text-blue-700" />
+                          </div>
+                          <h4 className="text-lg font-semibold text-blue-900">Vehicles</h4>
+                        </div>
+                        {selectedApplication.additionalInfo.vehicles.hasVehicles ? (
+                          <div className="space-y-3">
+                            {selectedApplication.additionalInfo.vehicles.vehicles.map((vehicle, index) => (
+                              <div key={index} className="bg-white rounded-xl p-4 border border-blue-200">
+                                <div className="flex items-center justify-between mb-2">
+                                  <p className="font-semibold text-gray-900">{vehicle.year} {vehicle.make} {vehicle.model}</p>
+                                  <div className="bg-blue-100 text-blue-700 px-2 py-1 rounded-full text-xs font-medium">
+                                    Vehicle
+                                  </div>
+                                </div>
+                                <p className="text-sm text-blue-700">License: {vehicle.licensePlate}</p>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="text-center py-4">
+                            <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-2">
+                              <Home className="h-6 w-6 text-blue-400" />
+                            </div>
+                            <p className="text-blue-600 font-medium">No vehicles</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Additional Notes Card */}
+                  {selectedApplication.additionalInfo.notes && (
+                    <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 hover:shadow-xl transition-shadow">
+                      <div className="flex items-center mb-6">
+                        <div className="w-10 h-10 bg-gray-100 rounded-xl flex items-center justify-center mr-3">
+                          <FileText className="h-5 w-5 text-gray-600" />
+                        </div>
+                        <h3 className="text-xl font-bold text-gray-900">Additional Notes</h3>
+                      </div>
+                      <div className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-2xl p-6 border border-gray-200">
+                        <p className="text-gray-700 leading-relaxed">{selectedApplication.additionalInfo.notes}</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Modern Footer with Action Buttons */}
+            <div className="bg-gradient-to-r from-gray-50 to-gray-100 px-6 py-6 border-t border-gray-200">
+              <div className="flex flex-col sm:flex-row items-center justify-between space-y-4 sm:space-y-0">
+                <div className="flex items-center space-x-4">
+                  <div className="flex items-center space-x-2">
+                    <div className={`w-3 h-3 rounded-full ${
+                      selectedApplication.status === 'pending'
+                        ? "bg-yellow-400"
+                        : selectedApplication.status === 'approved'
+                        ? "bg-green-400"
+                        : selectedApplication.status === 'rejected'
+                        ? "bg-red-400"
+                        : "bg-gray-400"
+                    }`}></div>
+                    <span className="text-sm font-medium text-gray-700">
+                      Status: {selectedApplication.status.charAt(0).toUpperCase() + selectedApplication.status.slice(1)}
+                    </span>
+                  </div>
+                </div>
+                <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
+                  <Button
+                    variant="outline"
+                    onClick={handleCloseApplicationModal}
+                    className="border-gray-300 text-gray-700 hover:bg-gray-50 px-6 py-2"
+                  >
+                    <X className="h-4 w-4 mr-2" />
+                    Close
+                  </Button>
+                  <Button className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white px-6 py-2 shadow-lg hover:shadow-xl transition-all">
+                    <Users className="h-4 w-4 mr-2" />
+                    Screen Applicant
+                  </Button>
+                  <Button className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-6 py-2 shadow-lg hover:shadow-xl transition-all">
+                    <FileText className="h-4 w-4 mr-2" />
+                    Download PDF
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+        )}
+
+        {/* Property Details Modal */}
+        {showPropertyDetailsModal && selectedProperty && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              transition={{ duration: 0.2 }}
+              className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden"
+            >
+              {/* Modal Header - Green Background */}
+              <div className="bg-green-600 text-white p-6">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-4">
+                    <div className="bg-white/20 p-3 rounded-full">
+                      <Home className="h-6 w-6" />
+                    </div>
+                    <div>
+                      <h2 className="text-2xl font-bold">
+                        {selectedProperty.title || 'Property Details'}
+                      </h2>
+                     
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <span className="bg-green-500 px-3 py-1 rounded-full text-sm font-medium">
+                      {selectedProperty.available ? 'Active' : 'Inactive'}
+                    </span>
+                    <button
+                      onClick={handleClosePropertyDetailsModal}
+                      className="p-2 hover:bg-white/20 rounded-lg transition-colors"
+                    >
+                      <X className="h-6 w-6" />
+                    </button>
+                  </div>
+                </div>
+                <div className="mt-4 flex items-center text-green-100 text-sm">
+                  <Calendar className="h-4 w-4 mr-2" />
+                  Listed: {selectedProperty.availableDate ? 
+                    (typeof selectedProperty.availableDate === 'object' && 'seconds' in selectedProperty.availableDate
+                      ? new Date(selectedProperty.availableDate.seconds * 1000).toLocaleDateString()
+                      : new Date(selectedProperty.availableDate).toLocaleDateString()) : 
+                    'N/A'
+                  }
+                </div>
+              </div>
+
+              {/* Security Verification Bar */}
+              <div className="bg-green-50 border-l-4 border-green-400 px-4 py-2">
+                <div className="flex items-center text-green-800 text-sm">
+                  <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
+                  All property information is secure and verified
+                </div>
+              </div>
+
+              {/* Modal Content */}
+              <div className="p-6 max-h-[calc(90vh-200px)] overflow-y-auto">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {/* Left Column */}
+                  <div className="space-y-6">
+                    {/* Property Information */}
+                    <div className="bg-white border border-gray-200 rounded-xl p-6">
+                      <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                        <Home className="h-5 w-5 mr-2 text-blue-600" />
+                        Property Information
+                      </h3>
+                      <div className="space-y-4">
+                        <div className="bg-blue-50 rounded-lg p-4 flex items-center justify-between">
+                          <div className="flex items-center">
+                            <Bed className="h-5 w-5 text-blue-600 mr-3" />
+                            <span className="text-gray-700 font-medium">Bedrooms</span>
+                          </div>
+                          <span className="text-2xl font-bold text-blue-600">
+                            {selectedProperty.bedrooms || 'N/A'}
+                          </span>
+                        </div>
+                        <div className="bg-green-50 rounded-lg p-4 flex items-center justify-between">
+                          <div className="flex items-center">
+                            <Bath className="h-5 w-5 text-green-600 mr-3" />
+                            <span className="text-gray-700 font-medium">Bathrooms</span>
+                          </div>
+                          <span className="text-2xl font-bold text-green-600">
+                            {selectedProperty.bathrooms || 'N/A'}
+                          </span>
+                        </div>
+                        <div className="bg-orange-50 rounded-lg p-4 flex items-center justify-between">
+                          <div className="flex items-center">
+                            <Square className="h-5 w-5 text-orange-600 mr-3" />
+                            <span className="text-gray-700 font-medium">Square Feet</span>
+                          </div>
+                          <span className="text-2xl font-bold text-orange-600">
+                            {selectedProperty.squareFeet || 'N/A'}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Financial Information */}
+                    <div className="bg-white border border-gray-200 rounded-xl p-6">
+                      <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                        <DollarSign className="h-5 w-5 mr-2 text-green-600" />
+                        Financial Information
+                      </h3>
+                      <div className="space-y-4">
+                        <div className="bg-blue-50 rounded-lg p-4">
+                          <div className="flex items-center mb-2">
+                            <DollarSign className="h-5 w-5 text-blue-600 mr-2" />
+                            <span className="text-gray-700 font-medium">Monthly Rent</span>
+                          </div>
+                          <span className="text-3xl font-bold text-blue-600">
+                            ${selectedProperty.rent || '0'}
+                          </span>
+                        </div>
+                        <div className="bg-green-50 rounded-lg p-4">
+                          <div className="flex items-center mb-2">
+                            <Home className="h-5 w-5 text-green-600 mr-2" />
+                            <span className="text-gray-700 font-medium">Security Deposit</span>
+                            <span className="ml-2 bg-green-200 text-green-800 text-xs px-2 py-1 rounded-full">
+                              Required
+                            </span>
+                          </div>
+                          <span className="text-3xl font-bold text-green-600">
+                            ${selectedProperty.deposit || '0'}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Right Column */}
+                  <div className="space-y-6">
+                    {/* Property Details */}
+                    <div className="bg-white border border-gray-200 rounded-xl p-6">
+                      <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                        <FileText className="h-5 w-5 mr-2 text-blue-600" />
+                        Property Details
+                      </h3>
+                      <div className="space-y-4">
+                        <div className="bg-blue-50 rounded-lg p-4 flex items-center justify-between">
+                          <div className="flex items-center">
+                            <Home className="h-5 w-5 text-blue-600 mr-3" />
+                            <span className="text-gray-700 font-medium">Property Type</span>
+                          </div>
+                          <span className="text-lg font-semibold text-blue-600">
+                            Apartment
+                          </span>
+                        </div>
+                        <div className="bg-blue-50 rounded-lg p-4 flex items-center justify-between">
+                          <div className="flex items-center">
+                            <Calendar className="h-5 w-5 text-blue-600 mr-3" />
+                            <span className="text-gray-700 font-medium">Lease Term</span>
+                          </div>
+                          <span className="text-lg font-semibold text-blue-600">
+                            12 months
+                          </span>
+                        </div>
+                        <div className="bg-green-50 rounded-lg p-4 flex items-center justify-between">
+                          <div className="flex items-center">
+                            <Bed className="h-5 w-5 text-green-600 mr-3" />
+                            <span className="text-gray-700 font-medium">Bedrooms</span>
+                          </div>
+                          <span className="text-lg font-semibold text-green-600">
+                            {selectedProperty.bedrooms || 'N/A'}
+                          </span>
+                        </div>
+                        <div className="bg-orange-50 rounded-lg p-4 flex items-center justify-between">
+                          <div className="flex items-center">
+                            <Bath className="h-5 w-5 text-orange-600 mr-3" />
+                            <span className="text-gray-700 font-medium">Bathrooms</span>
+                          </div>
+                          <span className="text-lg font-semibold text-orange-600">
+                            {selectedProperty.bathrooms || 'N/A'}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Location Information */}
+                    <div className="bg-white border border-gray-200 rounded-xl p-6">
+                      <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                        <MapPin className="h-5 w-5 mr-2 text-blue-600" />
+                        Location Information
+                      </h3>
+                      <div className="space-y-3">
+                        <div className="bg-gray-50 rounded-lg p-3">
+                          <div className="flex items-center mb-1">
+                            <MapPin className="h-4 w-4 text-gray-600 mr-2" />
+                            <span className="text-sm font-medium text-gray-600">Address</span>
+                          </div>
+                          <p className="text-gray-900">
+                            {selectedProperty.property?.address?.line1 || 'Address not available'}
+                          </p>
+                        </div>
+                        <div className="bg-gray-50 rounded-lg p-3">
+                          <div className="flex items-center mb-1">
+                            <Building className="h-4 w-4 text-gray-600 mr-2" />
+                            <span className="text-sm font-medium text-gray-600">City</span>
+                          </div>
+                          <p className="text-gray-900">
+                            {selectedProperty.property?.address?.city || 'N/A'}
+                          </p>
+                        </div>
+                        <div className="bg-gray-50 rounded-lg p-3">
+                          <div className="flex items-center mb-1">
+                            <MapPin className="h-4 w-4 text-gray-600 mr-2" />
+                            <span className="text-sm font-medium text-gray-600">State</span>
+                          </div>
+                          <p className="text-gray-900">
+                            {selectedProperty.property?.address?.region || 'N/A'}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Amenities */}
+                    <div className="bg-white border border-gray-200 rounded-xl p-6">
+                      <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                        <Star className="h-5 w-5 mr-2 text-purple-600" />
+                        Amenities
+                      </h3>
+                      <div className="flex flex-wrap gap-2">
+                        {selectedProperty.amenities && selectedProperty.amenities.length > 0 ? (
+                          selectedProperty.amenities.map((amenity: string, index: number) => (
+                            <span
+                              key={index}
+                              className="px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-sm font-medium"
+                            >
+                              {amenity}
+                            </span>
+                          ))
+                        ) : (
+                          <span className="text-gray-500">No amenities listed</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Modal Footer */}
+           
+            </motion.div>
+          </div>
+        )}
+
+        {/* Property View Modal */}
+        {showPropertyViewModal && selectedPropertyForView && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              transition={{ duration: 0.2 }}
+              className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden"
+            >
+              {/* Modal Header - Green Background */}
+              <div className="bg-green-600 text-white p-6">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-4">
+                    <div className="bg-white/20 p-3 rounded-full">
+                      <Home className="h-6 w-6" />
+                    </div>
+                    <div>
+                      <h2 className="text-2xl font-bold">
+                        {selectedPropertyForView.name || selectedPropertyForView.title || 'Property Details'}
+                      </h2>
+                     
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+                      selectedPropertyForView.is_available 
+                        ? 'bg-green-500' 
+                        : 'bg-gray-500'
+                    }`}>
+                      {selectedPropertyForView.is_available ? 'Available' : 'Unavailable'}
+                    </span>
+                    <button
+                      onClick={handleClosePropertyViewModal}
+                      className="p-2 hover:bg-white/20 rounded-lg transition-colors"
+                    >
+                      <X className="h-6 w-6" />
+                    </button>
+                  </div>
+                </div>
+                <div className="mt-4 flex items-center text-green-100 text-sm">
+                  <Calendar className="h-4 w-4 mr-2" />
+                  Available: {selectedPropertyForView.available_date ? 
+                    new Date(selectedPropertyForView.available_date).toLocaleDateString() : 
+                    'N/A'
+                  }
+                </div>
+              </div>
+
+              {/* Security Verification Bar */}
+              <div className="bg-green-50 border-l-4 border-green-400 px-4 py-2">
+                <div className="flex items-center text-green-800 text-sm">
+                  <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
+                  All property information is secure and verified
+                </div>
+              </div>
+
+              {/* Modal Content */}
+              <div className="p-6 max-h-[calc(90vh-200px)] overflow-y-auto">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {/* Left Column */}
+                  <div className="space-y-6">
+                    {/* Property Information */}
+                    <div className="bg-white border border-gray-200 rounded-xl p-6">
+                      <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                        <Home className="h-5 w-5 mr-2 text-blue-600" />
+                        Property Information
+                      </h3>
+                      <div className="space-y-4">
+                        <div className="bg-blue-50 rounded-lg p-4 flex items-center justify-between">
+                          <div className="flex items-center">
+                            <Bed className="h-5 w-5 text-blue-600 mr-3" />
+                            <span className="text-gray-700 font-medium">Bedrooms</span>
+                          </div>
+                          <span className="text-2xl font-bold text-blue-600">
+                            {selectedPropertyForView.bedrooms || 'N/A'}
+                          </span>
+                        </div>
+                        <div className="bg-green-50 rounded-lg p-4 flex items-center justify-between">
+                          <div className="flex items-center">
+                            <Bath className="h-5 w-5 text-green-600 mr-3" />
+                            <span className="text-gray-700 font-medium">Bathrooms</span>
+                          </div>
+                          <span className="text-2xl font-bold text-green-600">
+                            {selectedPropertyForView.bathrooms || 'N/A'}
+                          </span>
+                        </div>
+                        <div className="bg-orange-50 rounded-lg p-4 flex items-center justify-between">
+                          <div className="flex items-center">
+                            <Square className="h-5 w-5 text-orange-600 mr-3" />
+                            <span className="text-gray-700 font-medium">Square Feet</span>
+                          </div>
+                          <span className="text-2xl font-bold text-orange-600">
+                            {selectedPropertyForView.square_feet || 'N/A'}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Financial Information */}
+                    <div className="bg-white border border-gray-200 rounded-xl p-6">
+                      <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                        <DollarSign className="h-5 w-5 mr-2 text-green-600" />
+                        Financial Information
+                      </h3>
+                      <div className="space-y-4">
+                        <div className="bg-blue-50 rounded-lg p-4">
+                          <div className="flex items-center mb-2">
+                            <DollarSign className="h-5 w-5 text-blue-600 mr-2" />
+                            <span className="text-gray-700 font-medium">Monthly Rent</span>
+                          </div>
+                          <span className="text-3xl font-bold text-blue-600">
+                            ${selectedPropertyForView.rent_amount || '0'}
+                          </span>
+                        </div>
+                        <div className="bg-green-50 rounded-lg p-4">
+                          <div className="flex items-center mb-2">
+                            <Home className="h-5 w-5 text-green-600 mr-2" />
+                            <span className="text-gray-700 font-medium">Security Deposit</span>
+                            <span className="ml-2 bg-green-200 text-green-800 text-xs px-2 py-1 rounded-full">
+                              Required
+                            </span>
+                          </div>
+                          <span className="text-3xl font-bold text-green-600">
+                            ${selectedPropertyForView.rent_amount ? Math.round(selectedPropertyForView.rent_amount * 0.5) : '0'}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Right Column */}
+                  <div className="space-y-6">
+                    {/* Property Details */}
+                    <div className="bg-white border border-gray-200 rounded-xl p-6">
+                      <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                        <FileText className="h-5 w-5 mr-2 text-blue-600" />
+                        Property Details
+                      </h3>
+                      <div className="space-y-4">
+                        <div className="bg-blue-50 rounded-lg p-4 flex items-center justify-between">
+                          <div className="flex items-center">
+                            <Home className="h-5 w-5 text-blue-600 mr-3" />
+                            <span className="text-gray-700 font-medium">Property Type</span>
+                          </div>
+                          <span className="text-lg font-semibold text-blue-600">
+                            {selectedPropertyForView.property_type || 'Apartment'}
+                          </span>
+                        </div>
+                        <div className="bg-blue-50 rounded-lg p-4 flex items-center justify-between">
+                          <div className="flex items-center">
+                            <Calendar className="h-5 w-5 text-blue-600 mr-3" />
+                            <span className="text-gray-700 font-medium">Available Date</span>
+                          </div>
+                          <span className="text-lg font-semibold text-blue-600">
+                            {selectedPropertyForView.available_date ? 
+                              new Date(selectedPropertyForView.available_date).toLocaleDateString() : 
+                              'N/A'
+                            }
+                          </span>
+                        </div>
+                        <div className="bg-green-50 rounded-lg p-4 flex items-center justify-between">
+                          <div className="flex items-center">
+                            <Bed className="h-5 w-5 text-green-600 mr-3" />
+                            <span className="text-gray-700 font-medium">Bedrooms</span>
+                          </div>
+                          <span className="text-lg font-semibold text-green-600">
+                            {selectedPropertyForView.bedrooms || 'N/A'}
+                          </span>
+                        </div>
+                        <div className="bg-orange-50 rounded-lg p-4 flex items-center justify-between">
+                          <div className="flex items-center">
+                            <Bath className="h-5 w-5 text-orange-600 mr-3" />
+                            <span className="text-gray-700 font-medium">Bathrooms</span>
+                          </div>
+                          <span className="text-lg font-semibold text-orange-600">
+                            {selectedPropertyForView.bathrooms || 'N/A'}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Location Information */}
+                    <div className="bg-white border border-gray-200 rounded-xl p-6">
+                      <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                        <MapPin className="h-5 w-5 mr-2 text-blue-600" />
+                        Location Information
+                      </h3>
+                      <div className="space-y-3">
+                        <div className="bg-gray-50 rounded-lg p-3">
+                          <div className="flex items-center mb-1">
+                            <MapPin className="h-4 w-4 text-gray-600 mr-2" />
+                            <span className="text-sm font-medium text-gray-600">Address</span>
+                          </div>
+                          <p className="text-gray-900">
+                            {selectedPropertyForView.address?.line1 || 'Address not available'}
+                          </p>
+                        </div>
+                        <div className="bg-gray-50 rounded-lg p-3">
+                          <div className="flex items-center mb-1">
+                            <Building className="h-4 w-4 text-gray-600 mr-2" />
+                            <span className="text-sm font-medium text-gray-600">City</span>
+                          </div>
+                          <p className="text-gray-900">
+                            {selectedPropertyForView.address?.city || 'N/A'}
+                          </p>
+                        </div>
+                        <div className="bg-gray-50 rounded-lg p-3">
+                          <div className="flex items-center mb-1">
+                            <MapPin className="h-4 w-4 text-gray-600 mr-2" />
+                            <span className="text-sm font-medium text-gray-600">State</span>
+                          </div>
+                          <p className="text-gray-900">
+                            {selectedPropertyForView.address?.region || 'N/A'}
+                          </p>
+                        </div>
+                        <div className="bg-gray-50 rounded-lg p-3">
+                          <div className="flex items-center mb-1">
+                            <MapPin className="h-4 w-4 text-gray-600 mr-2" />
+                            <span className="text-sm font-medium text-gray-600">ZIP Code</span>
+                          </div>
+                          <p className="text-gray-900">
+                            {selectedPropertyForView.address?.postalCode || 'N/A'}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Amenities */}
+                    <div className="bg-white border border-gray-200 rounded-xl p-6">
+                      <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                        <Star className="h-5 w-5 mr-2 text-purple-600" />
+                        Amenities
+                      </h3>
+                      <div className="flex flex-wrap gap-2">
+                        {selectedPropertyForView.amenities && selectedPropertyForView.amenities.length > 0 ? (
+                          selectedPropertyForView.amenities.map((amenity: string, index: number) => (
+                            <span
+                              key={index}
+                              className="px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-sm font-medium"
+                            >
+                              {amenity}
+                            </span>
+                          ))
+                        ) : (
+                          <span className="text-gray-500">No amenities listed</span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Property Description */}
+                    <div className="bg-white border border-gray-200 rounded-xl p-6">
+                      <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                        <FileText className="h-5 w-5 mr-2 text-gray-600" />
+                        Description
+                      </h3>
+                      <p className="text-gray-700 leading-relaxed">
+                        {selectedPropertyForView.description || 
+                         'No description available for this property. Contact the property manager for more details.'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Modal Footer */}
+              
+            </motion.div>
+          </div>
+        )}
+      </div>
+    );
+  };
 
 export default LandlordPropertyManagement;

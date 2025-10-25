@@ -811,7 +811,7 @@ const ListingForm: React.FC<ListingFormProps> = ({
 
         {/* User Details Section */}
         <div className="space-y-6">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
                 <User className="h-4 w-4 text-purple-600" />
@@ -823,7 +823,7 @@ const ListingForm: React.FC<ListingFormProps> = ({
               variant="outline"
               size="sm"
               onClick={populateFromAuthUser}
-              className="text-purple-600 hover:text-purple-700 hover:bg-purple-50 px-3 py-2 border border-purple-200 rounded-lg"
+              className="text-purple-600 hover:text-purple-700 hover:bg-purple-50 px-3 py-2 border border-purple-200 rounded-lg mt-3 md:mt-0"
             >
               Use My Account Info
             </Button>

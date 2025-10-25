@@ -12,7 +12,24 @@ import { Button } from '../../../components/ui/Button';
 import { useToast } from '../../../hooks/use-toast';
 import { Building, Plus, ArrowLeft, List } from 'lucide-react';
 
-const PropertyForm: React.FC<{ setPropertyFormOpen: (open: boolean) => void }> = ({ setPropertyFormOpen }) => {
+const PropertyForm: React.FC<{ 
+  setPropertyFormOpen: (open: boolean) => void;
+  editingListing?: {
+    id: string;
+    title: string;
+    description: string;
+    rent: number;
+    deposit: number;
+    bedrooms: number;
+    bathrooms: number;
+    squareFeet: number;
+    available: boolean;
+    amenities: string[];
+    images: string[];
+    lease_term_months?: number;
+    application_fee?: number;
+  };
+}> = ({ setPropertyFormOpen, editingListing }) => {
   const { user } = useAuth();
   const { toast } = useToast();
   const stepperRef = useRef<HTMLDivElement>(null);
@@ -100,6 +117,56 @@ const PropertyForm: React.FC<{ setPropertyFormOpen: (open: boolean) => void }> =
     isSubmitting: false,
     isDirty: false,
   });
+
+  // Populate form with editingListing data when editing
+  React.useEffect(() => {
+    if (editingListing) {
+      setFormState(prevState => ({
+        ...prevState,
+        data: {
+          ...prevState.data,
+          property: {
+            ...prevState.data.property,
+            name: editingListing.title || '',
+            title: editingListing.title || '',
+            rent_amount: editingListing.rent || 0,
+            bedrooms: editingListing.bedrooms || 0,
+            bathrooms: editingListing.bathrooms || 0,
+            square_feet: editingListing.squareFeet || 0,
+            description: editingListing.description || '',
+            amenities: editingListing.amenities || [],
+            images: editingListing.images || [],
+            is_available: editingListing.available !== false,
+            lease_term_months: editingListing.lease_term_months || 12,
+          },
+          listings: [{
+            title: editingListing.title || '',
+            description: editingListing.description || '',
+            rent: editingListing.rent || 0,
+            deposit: editingListing.deposit || 0,
+            bedrooms: editingListing.bedrooms || 0,
+            bathrooms: editingListing.bathrooms || 0,
+            squareFeet: editingListing.squareFeet || 0,
+            available: editingListing.available !== false,
+            amenities: editingListing.amenities || [],
+            images: editingListing.images || [],
+            lease_term_months: editingListing.lease_term_months || 12,
+            application_fee: editingListing.application_fee || 0,
+            userDetails: {
+              name: '',
+              phone: '',
+              email: '',
+            },
+            lease_term_options: ['12 Months'],
+            security_deposit_months: 1,
+            first_month_rent_required: true,
+            last_month_rent_required: false,
+            pet_deposit: 0,
+          }],
+        },
+      }));
+    }
+  }, [editingListing]);
 
   const [steps, setSteps] = useState({
     property: { completed: false, valid: false },
@@ -535,20 +602,38 @@ const PropertyForm: React.FC<{ setPropertyFormOpen: (open: boolean) => void }> =
     updateFormState({ isSubmitting: true });
 
     try {
-      // Create property
-      const propertyData = {
-        ...formState.data.property,
-        landlordId: user.uid,
-        // Ensure lease_term_options is explicitly set
-        lease_term_options: formState.data.property.lease_term_options || ['12 Months'],
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-      };
-      console.log('Creating property with lease_term_options:', propertyData.lease_term_options);
-      console.log('Property data being saved:', propertyData);
-      const propertyRef = await addDoc(collection(db, 'properties'), propertyData);
+      let propertyRef: { id: string };
+      
+      if (editingListing) {
+        // Update existing listing
+        const listingData = {
+          ...formState.data.listings[0],
+          updatedAt: serverTimestamp(),
+        };
+        
+        // Update the listing in Firestore
+        const { doc, updateDoc } = await import('firebase/firestore');
+        await updateDoc(doc(db, 'listings', editingListing.id), listingData);
+        
+        toast({
+          title: 'Listing updated successfully!',
+          description: 'Your listing has been updated.',
+        });
+      } else {
+        // Create new property
+        const propertyData = {
+          ...formState.data.property,
+          landlordId: user.uid,
+          // Ensure lease_term_options is explicitly set
+          lease_term_options: formState.data.property.lease_term_options || ['12 Months'],
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+        };
+        console.log('Creating property with lease_term_options:', propertyData.lease_term_options);
+        console.log('Property data being saved:', propertyData);
+        propertyRef = await addDoc(collection(db, 'properties'), propertyData);
 
-      // Create units
+        // Create units
       const unitPromises = formState.data.units.map(unit => {
         const unitData = {
           ...unit,
@@ -585,12 +670,12 @@ const PropertyForm: React.FC<{ setPropertyFormOpen: (open: boolean) => void }> =
       });
       await Promise.all(listingPromises);
 
-      toast({
-        title: 'Property created successfully!',
-        description: 'Property created successfully!',
-      });
+        toast({
+          title: 'Property created successfully!',
+          description: 'Property created successfully!',
+        });
 
-      // Reset form
+        // Reset form
       setFormState({
         currentStep: 'property',
         data: {
@@ -643,6 +728,7 @@ const PropertyForm: React.FC<{ setPropertyFormOpen: (open: boolean) => void }> =
         isSubmitting: false,
         isDirty: false,
       });
+      }
 
     } catch (error) {
       console.error('Error creating property:', error);
@@ -692,7 +778,7 @@ const PropertyForm: React.FC<{ setPropertyFormOpen: (open: boolean) => void }> =
       case 'units':
         return (
           <div className="space-y-6">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
                   <Building className="h-5 w-5 text-green-600" />
@@ -702,7 +788,7 @@ const PropertyForm: React.FC<{ setPropertyFormOpen: (open: boolean) => void }> =
                   <p className="text-sm text-gray-600">Add individual units to your property</p>
                 </div>
               </div>
-              <Button onClick={addUnit} className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white">
+              <Button onClick={addUnit} className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white mt-3 md:mt-0">
                 <Plus className="h-4 w-4" />
                 Add Unit
               </Button>
@@ -746,7 +832,7 @@ const PropertyForm: React.FC<{ setPropertyFormOpen: (open: boolean) => void }> =
       case 'listings':
         return (
           <div className="space-y-6">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
                   <List className="h-5 w-5 text-green-600" />
@@ -756,7 +842,7 @@ const PropertyForm: React.FC<{ setPropertyFormOpen: (open: boolean) => void }> =
                   <p className="text-sm text-gray-600">Create public listings for your property</p>
                 </div>
               </div>
-              <Button onClick={addListing} className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white">
+              <Button onClick={addListing} className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white mt-3 md:mt-0">
                 <Plus className="h-4 w-4" />
                 Add Listing
               </Button>
@@ -817,19 +903,19 @@ const PropertyForm: React.FC<{ setPropertyFormOpen: (open: boolean) => void }> =
       {/* Header Banner */}
       <div className="sticky top-16 z-30 bg-gradient-to-r from-green-600 via-green-600 to-emerald-600 text-white">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between">
             <div className="flex items-center space-x-3">
               <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
                 <Building className="h-6 w-6 text-green-600" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold">Add New Property</h1>
+                <h1 className="text-lg md:text-2xl font-bold">Add New Property</h1>
                 <p className="text-sm text-green-50">
                   Create a new property with units and listings • All fields marked with * are required
                 </p>
               </div>
             </div>
-            <div className="flex items-center space-x-3">
+            <div className="flex items-center space-x-3 mt-3 md:mt-0">
               <Button
                 variant="outline"
                 size="sm"
