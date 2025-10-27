@@ -1148,7 +1148,7 @@ console.log("selectedProperty",selectedProperty);
                     className="w-full h-12 text-base font-semibold bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105"
                   >
                     <Phone className="h-4 w-4 mr-2" />
-                    {landlordContactInfo?.phone ? `Call ${landlordContactInfo.name || 'Manager'}` : 'Contact Manager'}
+                    Contact to landlord 
                   </Button>
                 </div>
               </div>
