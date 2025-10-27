@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import PropertyForm from "../components/PropertyForm/PropertyForm";
 import { Button } from "../../components/ui/Button";
 import { Badge } from "../../components/ui/badge";
+import { Popover, PopoverContent, PopoverTrigger } from "../../components/ui/popover";
 import { motion } from "framer-motion";
 import { useAuth } from "../../hooks/useAuth";
 import { collection, query, where, getDocs, orderBy } from "firebase/firestore";
@@ -41,6 +42,7 @@ import {
   Star,
   Check,
   XCircle,
+  MoreVertical,
 } from "lucide-react";
 
 // Property interface based on the provided JSON format
@@ -476,7 +478,10 @@ const LandlordPropertyManagement: React.FC = () => {
   const [maintenanceActivities, setMaintenanceActivities] = useState<MaintenanceActivity[]>([]);
   const [maintenanceRequests, setMaintenanceRequests] = useState<MaintenanceRequest[]>([]);
   const [maintenanceLoading, setMaintenanceLoading] = useState(false);
-// console.log("maintenanceRequests", maintenanceRequests);
+  const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
+  const [selectedMaintenanceRequest, setSelectedMaintenanceRequest] = useState<MaintenanceRequest | null>(null);
+  const [showMaintenanceModal, setShowMaintenanceModal] = useState(false);
+console.log("maintenanceRequests", maintenanceRequests);
 
   // Fetch properties from Firebase
   const fetchProperties = useCallback(async () => {
@@ -2140,7 +2145,7 @@ const LandlordPropertyManagement: React.FC = () => {
               </div>
             )}
 
-            {/* Maintenance Requests List */}
+            {/* Maintenance Requests Table */}
             {!maintenanceLoading && maintenanceRequests.length === 0 ? (
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
@@ -2160,92 +2165,175 @@ const LandlordPropertyManagement: React.FC = () => {
                 </div>
               </motion.div>
             ) : (
-              <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-                {maintenanceRequests.map((request, index) => (
-                  <motion.div
-                    key={request.id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.6, delay: index * 0.1 }}
-                    whileHover={{ scale: 1.02, y: -4 }}
-                    className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-lg transition-all duration-300"
-                  >
-                    <div className="p-6">
-                      <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-4">
-                        <div className="flex items-center space-x-3">
-                          <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${
-                            request.priority === 'emergency' ? 'bg-red-100' :
-                            request.priority === 'high' ? 'bg-orange-100' :
-                            request.priority === 'medium' ? 'bg-yellow-100' :
-                            'bg-green-100'
-                          }`}>
-                            <Wrench className={`h-6 w-6 ${
-                              request.priority === 'emergency' ? 'text-red-600' :
-                              request.priority === 'high' ? 'text-orange-600' :
-                              request.priority === 'medium' ? 'text-yellow-600' :
-                              'text-green-600'
-                            }`} />
-                          </div>
-                          <div>
-                            <h3 className="font-semibold text-gray-900 text-lg">
-                              {request.title}
-                            </h3>
-                            <div className="flex items-center text-gray-500 text-sm">
-                              <MapPin className="h-3 w-3 mr-1" />
-                              <span className="truncate">
-                                {request.propertyAddress}
-                              </span>
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden"
+              >
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead className="bg-gray-50 border-b border-gray-200">
+                      <tr>
+                        <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Issue
+                        </th>
+                       
+                        <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Description
+                        </th>
+                        <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Status
+                        </th>
+                        <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Priority
+                        </th>
+                        <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Category
+                        </th>
+                        <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Unit
+                        </th>
+                        <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Submitted
+                        </th>
+                        <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Actions
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {maintenanceRequests.map((request, index) => (
+                        <motion.tr
+                          key={request.id}
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ duration: 0.6, delay: index * 0.1 }}
+                          className="hover:bg-gray-50 transition-colors duration-200"
+                        >
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="flex items-center">
+                              <div className={`w-10 h-10 rounded-lg flex items-center justify-center mr-3 ${
+                                request.priority === 'emergency' ? 'bg-red-100' :
+                                request.priority === 'high' ? 'bg-orange-100' :
+                                request.priority === 'medium' ? 'bg-yellow-100' :
+                                'bg-green-100'
+                              }`}>
+                                <Wrench className={`h-5 w-5 ${
+                                  request.priority === 'emergency' ? 'text-red-600' :
+                                  request.priority === 'high' ? 'text-orange-600' :
+                                  request.priority === 'medium' ? 'text-yellow-600' :
+                                  'text-green-600'
+                                }`} />
+                              </div>
+                              <div>
+                                <div className="text-sm font-medium text-gray-900">
+                                  {request.title}
+                                </div>
+                                <div className="text-sm text-gray-500">
+                                  {request.propertyAddress || 'N/A'}
+                                </div>
+                              </div>
                             </div>
-                          </div>
-                        </div>
-                        <span className={`px-3 mt-3 md:mt-0 py-1 rounded-full text-xs font-medium ${
-                          request.status === 'submitted' ? "bg-yellow-100 text-yellow-700" :
-                          request.status === 'in_progress' ? "bg-blue-100 text-blue-700" :
-                          request.status === 'completed' ? "bg-green-100 text-green-700" :
-                          "bg-gray-100 text-gray-700"
-                        }`}>
-                          {request.status.charAt(0).toUpperCase() + request.status.slice(1)}
-                        </span>
-                      </div>
-
-                      <p className="text-gray-600 text-sm mb-4 line-clamp-2">
-                        {request.description}
-                      </p>
-
-                      <div className="flex items-center justify-between mb-4">
-                        <div className="flex items-center space-x-2">
-                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                            request.priority === 'emergency' ? 'bg-red-100 text-red-700' :
-                            request.priority === 'high' ? 'bg-orange-100 text-orange-700' :
-                            request.priority === 'medium' ? 'bg-yellow-100 text-yellow-700' :
-                            'bg-green-100 text-green-700'
-                          }`}>
-                            {request.priority.charAt(0).toUpperCase() + request.priority.slice(1)} Priority
-                          </span>
-                          <span className="px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-700">
-                            {request.category.charAt(0).toUpperCase() + request.category.slice(1)}
-                          </span>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-xs text-gray-500">Unit</p>
-                          <p className="text-sm font-semibold text-gray-900">
-                            {request.unitNumber || 'N/A'}
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center justify-between text-sm text-gray-500 mb-4">
-                        <span>Submitted: {new Date(request.submittedAt).toLocaleDateString()}</span>
-                        {request.scheduledDate && (
-                          <span>Scheduled: {new Date(request.scheduledDate).toLocaleDateString()}</span>
-                        )}
-                      </div>
-
-                     
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
+                          </td>
+                         
+                          <td className="px-6 py-4">
+                            <div className="text-sm text-gray-900 max-w-xs truncate">
+                              {request.description}
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                              request.status === 'submitted' ? "bg-yellow-100 text-yellow-700" :
+                              request.status === 'in_progress' ? "bg-blue-100 text-blue-700" :
+                              request.status === 'completed' ? "bg-green-100 text-green-700" :
+                              "bg-gray-100 text-gray-700"
+                            }`}>
+                              {request.status.charAt(0).toUpperCase() + request.status.slice(1)}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                              request.priority === 'emergency' ? 'bg-red-100 text-red-700' :
+                              request.priority === 'high' ? 'bg-orange-100 text-orange-700' :
+                              request.priority === 'medium' ? 'bg-yellow-100 text-yellow-700' :
+                              'bg-green-100 text-green-700'
+                            }`}>
+                              {request.priority.charAt(0).toUpperCase() + request.priority.slice(1)}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className="px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-700">
+                              {request.category.charAt(0).toUpperCase() + request.category.slice(1)}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm text-gray-900">
+                              {request.unitNumber || 'N/A'}
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm text-gray-900">
+                              {new Date(request.submittedAt).toLocaleDateString()}
+                            </div>
+                            {request.scheduledDate && (
+                              <div className="text-xs text-gray-500">
+                                Scheduled: {new Date(request.scheduledDate).toLocaleDateString()}
+                              </div>
+                            )}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                            <Popover 
+                              open={openDropdownId === request.id} 
+                              onOpenChange={(open) => setOpenDropdownId(open ? request.id || null : null)}
+                            >
+                              <PopoverTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-8 w-8 p-0 hover:bg-gray-100"
+                                >
+                                  <MoreVertical className="h-4 w-4" />
+                                </Button>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-40 p-1" align="end">
+                                <div className="space-y-1">
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="w-full justify-start text-blue-600 hover:text-blue-900 hover:bg-blue-50"
+                                    onClick={() => {
+                                      // Handle view action
+                                      setSelectedMaintenanceRequest(request);
+                                      setShowMaintenanceModal(true);
+                                      setOpenDropdownId(null);
+                                    }}
+                                  >
+                                    <Eye className="h-4 w-4 mr-2" />
+                                    View
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="w-full justify-start text-green-600 hover:text-green-900 hover:bg-green-50"
+                                    onClick={() => {
+                                      // Handle update action
+                                      console.log('Update request:', request.id);
+                                      setOpenDropdownId(null);
+                                    }}
+                                  >
+                                    <Edit className="h-4 w-4 mr-2" />
+                                    Update
+                                  </Button>
+                                </div>
+                              </PopoverContent>
+                            </Popover>
+                          </td>
+                        </motion.tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </motion.div>
             )}
           </motion.div>
         )}
@@ -3338,6 +3426,273 @@ const LandlordPropertyManagement: React.FC = () => {
 
               {/* Modal Footer */}
               
+            </motion.div>
+          </div>
+        )}
+
+        {/* Maintenance Request Details Modal */}
+        {showMaintenanceModal && selectedMaintenanceRequest && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden"
+            >
+              {/* Modern Header with Gradient Background */}
+              <div className="relative bg-gradient-to-r from-green-600 via-green-600 to-emerald-600 p-6 text-white">
+                <div className="absolute inset-0 bg-black/10"></div>
+                <div className="relative z-10 flex items-center justify-between">
+                  <div className="flex items-center space-x-4">
+                    <motion.div
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      transition={{ delay: 0.1, type: "spring", stiffness: 200 }}
+                      className="w-12 h-12 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center shadow-2xl"
+                    >
+                      <Wrench className="h-6 w-6 text-white" />
+                    </motion.div>
+                    <div>
+                      <h2 className="text-3xl font-bold text-white mb-1">
+                        {selectedMaintenanceRequest.title}
+                      </h2>
+                      <div className="flex items-center space-x-4 mt-2">
+                        <div className="flex items-center">
+                          <Calendar className="h-4 w-4 mr-1" />
+                          <span className="text-sm">
+                            Submitted: {new Date(selectedMaintenanceRequest.submittedAt).toLocaleDateString()}
+                          </span>
+                        </div>
+                       
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                      selectedMaintenanceRequest.status === 'submitted'
+                        ? "bg-yellow-100 text-yellow-700"
+                        : selectedMaintenanceRequest.status === 'in_progress'
+                        ? "bg-blue-100 text-blue-700"
+                        : selectedMaintenanceRequest.status === 'completed'
+                        ? "bg-green-100 text-green-700"
+                        : "bg-gray-100 text-gray-700"
+                    }`}>
+                      {selectedMaintenanceRequest.status.charAt(0).toUpperCase() + selectedMaintenanceRequest.status.slice(1)}
+                    </span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setShowMaintenanceModal(false)}
+                      className="text-white hover:bg-white/20 p-2 rounded-xl"
+                    >
+                      <X className="h-6 w-6" />
+                    </Button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Modal Content */}
+              <div className="p-6 max-h-[calc(90vh-120px)] overflow-y-auto">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {/* Left Column */}
+                  <div className="space-y-6">
+                    {/* Request Information */}
+                    <div className="bg-white border border-gray-200 rounded-xl p-6">
+                      <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                        <Wrench className="h-5 w-5 mr-2 text-gray-600" />
+                        Request Information
+                      </h3>
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center">
+                            <FileText className="h-4 w-4 mr-2 text-gray-500" />
+                            <span className="text-sm font-medium text-gray-600">Category</span>
+                          </div>
+                          <span className="px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-700">
+                            {selectedMaintenanceRequest.category.charAt(0).toUpperCase() + selectedMaintenanceRequest.category.slice(1)}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center">
+                            <AlertTriangle className="h-4 w-4 mr-2 text-gray-500" />
+                            <span className="text-sm font-medium text-gray-600">Priority</span>
+                          </div>
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                            selectedMaintenanceRequest.priority === 'emergency' ? 'bg-red-100 text-red-700' :
+                            selectedMaintenanceRequest.priority === 'high' ? 'bg-orange-100 text-orange-700' :
+                            selectedMaintenanceRequest.priority === 'medium' ? 'bg-yellow-100 text-yellow-700' :
+                            'bg-green-100 text-green-700'
+                          }`}>
+                            {selectedMaintenanceRequest.priority.charAt(0).toUpperCase() + selectedMaintenanceRequest.priority.slice(1)}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center">
+                            <Clock className="h-4 w-4 mr-2 text-gray-500" />
+                            <span className="text-sm font-medium text-gray-600">Status</span>
+                          </div>
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                            selectedMaintenanceRequest.status === 'submitted' ? "bg-yellow-100 text-yellow-700" :
+                            selectedMaintenanceRequest.status === 'in_progress' ? "bg-blue-100 text-blue-700" :
+                            selectedMaintenanceRequest.status === 'completed' ? "bg-green-100 text-green-700" :
+                            "bg-gray-100 text-gray-700"
+                          }`}>
+                            {selectedMaintenanceRequest.status.charAt(0).toUpperCase() + selectedMaintenanceRequest.status.slice(1)}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Property Information */}
+                    <div className="bg-white border border-gray-200 rounded-xl p-6">
+                      <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                        <Building className="h-5 w-5 mr-2 text-gray-600" />
+                        Property Information
+                      </h3>
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center">
+                            <MapPin className="h-4 w-4 mr-2 text-gray-500" />
+                            <span className="text-sm font-medium text-gray-600">Address</span>
+                          </div>
+                          <span className="text-sm text-gray-900 text-right max-w-48 truncate">
+                            {selectedMaintenanceRequest.propertyAddress}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center">
+                            <Home className="h-4 w-4 mr-2 text-gray-500" />
+                            <span className="text-sm font-medium text-gray-600">Unit</span>
+                          </div>
+                          <span className="px-2 py-1 rounded-full text-xs bg-green-100 text-green-700">
+                            {selectedMaintenanceRequest.unitNumber || 'N/A'}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center">
+                            <User className="h-4 w-4 mr-2 text-gray-500" />
+                            <span className="text-sm font-medium text-gray-600">Tenant ID</span>
+                          </div>
+                          <span className="text-sm text-gray-900 font-mono text-xs">
+                            {selectedMaintenanceRequest.tenantId.slice(0, 8)}...
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Right Column */}
+                  <div className="space-y-6">
+                    {/* Timeline */}
+                    <div className="bg-white border border-gray-200 rounded-xl p-6">
+                      <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                        <Clock className="h-5 w-5 mr-2 text-gray-600" />
+                        Timeline
+                      </h3>
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center">
+                            <Calendar className="h-4 w-4 mr-2 text-gray-500" />
+                            <span className="text-sm font-medium text-gray-600">Submitted</span>
+                          </div>
+                          <span className="text-sm text-gray-900">
+                            {new Date(selectedMaintenanceRequest.submittedAt).toLocaleDateString()}
+                          </span>
+                        </div>
+                        {selectedMaintenanceRequest.scheduledDate && (
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center">
+                              <Calendar className="h-4 w-4 mr-2 text-gray-500" />
+                              <span className="text-sm font-medium text-gray-600">Scheduled</span>
+                            </div>
+                            <span className="text-sm text-gray-900">
+                              {new Date(selectedMaintenanceRequest.scheduledDate).toLocaleDateString()}
+                            </span>
+                          </div>
+                        )}
+                        {selectedMaintenanceRequest.completedDate && (
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center">
+                              <Check className="h-4 w-4 mr-2 text-gray-500" />
+                              <span className="text-sm font-medium text-gray-600">Completed</span>
+                            </div>
+                            <span className="text-sm text-gray-900">
+                              {new Date(selectedMaintenanceRequest.completedDate).toLocaleDateString()}
+                            </span>
+                          </div>
+                        )}
+                       
+                      </div>
+                    </div>
+
+                    {/* Description */}
+                    <div className="bg-white border border-gray-200 rounded-xl p-6">
+                      <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                        <FileText className="h-5 w-5 mr-2 text-gray-600" />
+                        Description
+                      </h3>
+                      <p className="text-gray-700 leading-relaxed text-sm">
+                        {selectedMaintenanceRequest.description || 'No description provided.'}
+                      </p>
+                    </div>
+
+                    {/* Images */}
+                    {selectedMaintenanceRequest.images && selectedMaintenanceRequest.images.length > 0 && (
+                      <div className="bg-white border border-gray-200 rounded-xl p-6">
+                        <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                          <Eye className="h-5 w-5 mr-2 text-gray-600" />
+                          Attached Images
+                        </h3>
+                        <div className="grid grid-cols-2 gap-4">
+                          {selectedMaintenanceRequest.images.map((image, index) => (
+                            <img
+                              key={index}
+                              src={image}
+                              alt={`Maintenance request image ${index + 1}`}
+                              className="w-full h-32 object-cover rounded-lg border border-gray-200"
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Notes */}
+                    {selectedMaintenanceRequest.notes && (
+                      <div className="bg-white border border-gray-200 rounded-xl p-6">
+                        <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                          <FileText className="h-5 w-5 mr-2 text-gray-600" />
+                          Notes
+                        </h3>
+                        <p className="text-gray-700 leading-relaxed text-sm">
+                          {selectedMaintenanceRequest.notes}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Modal Footer */}
+              <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex justify-end space-x-3">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowMaintenanceModal(false)}
+                  className="border-gray-200 hover:bg-gray-50"
+                >
+                  Close
+                </Button>
+                <Button
+                  className="bg-green-600 hover:bg-green-700 text-white"
+                  onClick={() => {
+                    // Handle update action
+                    console.log('Update maintenance request:', selectedMaintenanceRequest.id);
+                    setShowMaintenanceModal(false);
+                  }}
+                >
+                  <Edit className="h-4 w-4 mr-2" />
+                  Update Status
+                </Button>
+              </div>
             </motion.div>
           </div>
         )}

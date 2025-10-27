@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { 
   onAuthStateChanged, 
   createUserWithEmailAndPassword, 
+  signInWithEmailAndPassword,
   signOut,
   updateProfile
 } from 'firebase/auth';
@@ -84,9 +85,15 @@ export function useAuth() {
     return unsubscribe;
   }, []);
  
-  // Legacy signIn function - deprecated in favor of magic links
-  const signIn = async () => {
-    throw new Error('Password authentication is disabled. Please use magic link authentication.');
+  const signIn = async (email: string, password: string) => {
+    try {
+      const result = await signInWithEmailAndPassword(auth, email, password);
+      return result;
+    } catch (error: unknown) {
+      console.error('Sign in error:', error);
+      const errorCode = (error as { code?: string })?.code || 'unknown';
+      throw new Error(getAuthErrorMessage(errorCode));
+    }
   };
  
   const signUp = async (

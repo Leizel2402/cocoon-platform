@@ -426,9 +426,9 @@ export function ModernPropertyCard({
                 // Navigate to property details URL which will open the modal
                 navigate(`/property-details/${property.id.toString()}`);
               }}
-              className="relative px-4 py-3 rounded-lg font-semibold transition-all duration-300 flex items-center
+              className="relative px-3 py-2 rounded-lg font-semibold transition-all duration-300 flex items-center
              justify-center overflow-hidden group bg-gray-50 border-2 border-gray-300 text-gray-700 
-            hover:bg-gradient-to-r hover:text-white hover:from-green-600 hover:to-emerald-600 hover:border-green-500 flex-1 shadow-sm hover:shadow-md"
+            hover:bg-gradient-to-r hover:text-white hover:from-green-600 hover:to-emerald-600 hover:border-green-600 flex-1 shadow-sm hover:shadow-md"
             >
               <span className="relative transition-all duration-300 group-hover:text-white">
                 View Details
@@ -442,7 +442,7 @@ export function ModernPropertyCard({
                 e.stopPropagation();
                 onViewUnits?.(property);
               }}
-              className="relative px-3 py-3 rounded-lg font-semibold transition-all duration-300 flex items-center justify-center overflow-hidden group bg-gradient-to-r from-blue-600 to-blue-600 text-white flex-1 shadow-md hover:shadow-lg border-2 border-blue-600 hover:border-blue-700"
+              className="relative px-3 py-2 rounded-lg font-semibold transition-all duration-300 flex items-center justify-center overflow-hidden group bg-gradient-to-r from-blue-600 to-blue-600 text-white flex-1 shadow-md hover:shadow-lg border-2 border-blue-600 hover:border-blue-700"
             >
               <div className="absolute inset-0 rounded-lg bg-gradient-to-r from-blue-700 to-blue-700 opacity-0 group-hover:opacity-100 transition-all duration-300" />
               <span className="relative transition-all duration-300">

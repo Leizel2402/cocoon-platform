@@ -40,7 +40,7 @@ export function PropertyManagement() {
     
     try {
       setLoading(true);
-      
+              
       // Load properties
       const propertiesQuery = query(
         collection(db, 'properties'),

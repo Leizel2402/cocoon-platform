@@ -17,25 +17,187 @@ import {
   Clock,
   MapPin,
   DollarSign,
-  Loader2
+  Loader2,
+  CheckCircle2,
+  Clock3,
+  XCircle,
+  RotateCcw,
+  AlertCircle
 } from "lucide-react";
 import { useAuth } from "../hooks/useAuth";
 import {
   getUserRentPayments,
   getUserSubscriptions,
-  getUserMaintenanceRequests,
   getUserMessages,
   getUserApplications,
   getUserProperty,
-  calculateUserStats,
+  debugFirebaseCollections,
   type RentPayment,
   type UserSubscription,
-  type MaintenanceRequest,
   type UserMessage,
   type UserApplication,
   type UserProperty
 } from "../services/userDataService";
+import { maintenanceService, type MaintenanceRequest } from "../services/maintenanceService";
 import { useNavigate } from "react-router-dom";
+
+// Dummy data for UI demonstration
+const dummyRentPayments: RentPayment[] = [
+  {
+    id: '1',
+    amount: 2500,
+    dueDate: new Date('2024-02-01'),
+    status: 'due',
+    property: 'Sunset Apartments - Unit 205',
+    propertyId: 'prop1',
+    unitId: 'unit1',
+    unitNumber: '205'
+  },
+  {
+    id: '2',
+    amount: 2500,
+    dueDate: new Date('2024-01-01'),
+    status: 'paid',
+    property: 'Sunset Apartments - Unit 205',
+    propertyId: 'prop1',
+    unitId: 'unit1',
+    unitNumber: '205'
+  },
+  {
+    id: '3',
+    amount: 2500,
+    dueDate: new Date('2023-12-01'),
+    status: 'paid',
+    property: 'Sunset Apartments - Unit 205',
+    propertyId: 'prop1',
+    unitId: 'unit1',
+    unitNumber: '205'
+  }
+];
+
+const dummySubscriptions: UserSubscription[] = [
+  {
+    id: '1',
+    name: 'Covered Parking',
+    type: 'parking',
+    price: 75,
+    status: 'active',
+    nextBilling: new Date('2024-02-01'),
+    propertyId: 'prop1',
+    unitId: 'unit1'
+  },
+  {
+    id: '2',
+    name: 'Fitness Center',
+    type: 'amenities',
+    price: 25,
+    status: 'active',
+    nextBilling: new Date('2024-02-01'),
+    propertyId: 'prop1',
+    unitId: 'unit1'
+  },
+  {
+    id: '3',
+    name: 'High-Speed Internet',
+    type: 'utilities',
+    price: 89,
+    status: 'active',
+    nextBilling: new Date('2024-02-01'),
+    propertyId: 'prop1',
+    unitId: 'unit1'
+  }
+];
+
+const dummyMaintenanceRequests: MaintenanceRequest[] = [
+  {
+    id: '1',
+    title: 'Kitchen Sink Leak',
+    description: 'Water dripping from under the kitchen sink',
+    status: 'in_progress',
+    priority: 'medium',
+    submittedAt: new Date('2024-01-15'),
+    propertyId: 'prop1',
+    tenantId: 'user123',
+    landlordId: 'landlord123',
+    propertyAddress: '123 Sunset Blvd, Los Angeles, CA 90210',
+    unitNumber: '205',
+    category: 'plumbing',
+    images: []
+  },
+  {
+    id: '2',
+    title: 'Broken Light Switch',
+    description: 'Light switch in bedroom not working',
+    status: 'submitted',
+    priority: 'low',
+    submittedAt: new Date('2024-01-18'),
+    propertyId: 'prop1',
+    tenantId: 'user123',
+    landlordId: 'landlord123',
+    propertyAddress: '123 Sunset Blvd, Los Angeles, CA 90210',
+    unitNumber: '205',
+    category: 'electrical',
+    images: []
+  }
+];
+
+const dummyMessages: UserMessage[] = [
+  {
+    id: '1',
+    from: 'Property Manager',
+    subject: 'Maintenance Update',
+    message: 'Your kitchen sink repair has been scheduled for tomorrow.',
+    timestamp: new Date('2024-01-20'),
+    isRead: false,
+    isUrgent: false,
+    propertyId: 'prop1'
+  },
+  {
+    id: '2',
+    from: 'Building Management',
+    subject: 'Rent Reminder',
+    message: 'Your rent payment is due in 3 days.',
+    timestamp: new Date('2024-01-19'),
+    isRead: true,
+    isUrgent: true,
+    propertyId: 'prop1'
+  }
+];
+
+const dummyApplications: UserApplication[] = [
+  {
+    id: 'app123456',
+    propertyId: 'prop1',
+    propertyName: 'Sunset Apartments',
+    unitId: 'unit1',
+    unitNumber: '205',
+    status: 'approved',
+    submittedAt: new Date('2024-01-15'),
+    appFeeCents: 7500
+  }
+];
+
+const dummyUserProperty: UserProperty = {
+  id: 'prop1',
+  name: 'Sunset Apartments',
+  address: '123 Sunset Blvd, Los Angeles, CA 90210',
+  unitId: 'unit1',
+  unitNumber: '205',
+  rent: 2500,
+  leaseStart: new Date('2023-06-01'),
+  leaseEnd: new Date('2024-05-31'),
+  status: 'active'
+};
+
+const dummyStats = {
+  totalApplications: 1,
+  recentApplications: 1,
+  currentRent: 2500,
+  currentRentStatus: 'due' as 'due' | 'paid' | 'overdue',
+  activeSubscriptions: 3,
+  openMaintenanceRequests: 1,
+  unreadMessages: 1
+};
 
 export function UserPortal() {
   const { user, loading: authLoading } = useAuth();
@@ -57,156 +219,8 @@ export function UserPortal() {
     unreadMessages: 0
   });
   const [dataLoading, setDataLoading] = useState(true);
-
-  // Dummy data for UI demonstration
-  const dummyRentPayments: RentPayment[] = [
-    {
-      id: '1',
-      amount: 2500,
-      dueDate: new Date('2024-02-01'),
-      status: 'due',
-      property: 'Sunset Apartments - Unit 205',
-      propertyId: 'prop1',
-      unitId: 'unit1',
-      unitNumber: '205'
-    },
-    {
-      id: '2',
-      amount: 2500,
-      dueDate: new Date('2024-01-01'),
-      status: 'paid',
-      property: 'Sunset Apartments - Unit 205',
-      propertyId: 'prop1',
-      unitId: 'unit1',
-      unitNumber: '205'
-    },
-    {
-      id: '3',
-      amount: 2500,
-      dueDate: new Date('2023-12-01'),
-      status: 'paid',
-      property: 'Sunset Apartments - Unit 205',
-      propertyId: 'prop1',
-      unitId: 'unit1',
-      unitNumber: '205'
-    }
-  ];
-
-  const dummySubscriptions: UserSubscription[] = [
-    {
-      id: '1',
-      name: 'Covered Parking',
-      type: 'parking',
-      price: 75,
-      status: 'active',
-      nextBilling: new Date('2024-02-01'),
-      propertyId: 'prop1',
-      unitId: 'unit1'
-    },
-    {
-      id: '2',
-      name: 'Fitness Center',
-      type: 'amenities',
-      price: 25,
-      status: 'active',
-      nextBilling: new Date('2024-02-01'),
-      propertyId: 'prop1',
-      unitId: 'unit1'
-    },
-    {
-      id: '3',
-      name: 'High-Speed Internet',
-      type: 'utilities',
-      price: 89,
-      status: 'active',
-      nextBilling: new Date('2024-02-01'),
-      propertyId: 'prop1',
-      unitId: 'unit1'
-    }
-  ];
-
-  const dummyMaintenanceRequests: MaintenanceRequest[] = [
-    {
-      id: '1',
-      title: 'Kitchen Sink Leak',
-      description: 'Water dripping from under the kitchen sink',
-      status: 'in_progress',
-      priority: 'medium',
-      submittedAt: new Date('2024-01-15'),
-      propertyId: 'prop1',
-      unitId: 'unit1',
-      unitNumber: '205'
-    },
-    {
-      id: '2',
-      title: 'Broken Light Switch',
-      description: 'Light switch in bedroom not working',
-      status: 'open',
-      priority: 'low',
-      submittedAt: new Date('2024-01-18'),
-      propertyId: 'prop1',
-      unitId: 'unit1',
-      unitNumber: '205'
-    }
-  ];
-
-  const dummyMessages: UserMessage[] = [
-    {
-      id: '1',
-      from: 'Property Manager',
-      subject: 'Maintenance Update',
-      message: 'Your kitchen sink repair has been scheduled for tomorrow.',
-      timestamp: new Date('2024-01-20'),
-      isRead: false,
-      isUrgent: false,
-      propertyId: 'prop1'
-    },
-    {
-      id: '2',
-      from: 'Building Management',
-      subject: 'Rent Reminder',
-      message: 'Your rent payment is due in 3 days.',
-      timestamp: new Date('2024-01-19'),
-      isRead: true,
-      isUrgent: true,
-      propertyId: 'prop1'
-    }
-  ];
-
-  const dummyApplications: UserApplication[] = [
-    {
-      id: 'app123456',
-      propertyId: 'prop1',
-      propertyName: 'Sunset Apartments',
-      unitId: 'unit1',
-      unitNumber: '205',
-      status: 'approved',
-      submittedAt: new Date('2024-01-15'),
-      appFeeCents: 7500
-    }
-  ];
-
-  const dummyUserProperty: UserProperty = {
-    id: 'prop1',
-    name: 'Sunset Apartments',
-    address: '123 Sunset Blvd, Los Angeles, CA 90210',
-    unitId: 'unit1',
-    unitNumber: '205',
-    rent: 2500,
-    leaseStart: new Date('2023-06-01'),
-    leaseEnd: new Date('2024-05-31'),
-    status: 'active'
-  };
-
-  const dummyStats = {
-    totalApplications: 1,
-    recentApplications: 1,
-    currentRent: 2500,
-    currentRentStatus: 'due' as 'due' | 'paid' | 'overdue',
-    activeSubscriptions: 3,
-    openMaintenanceRequests: 1,
-    unreadMessages: 1
-  };
+  const [maintenanceLoading, setMaintenanceLoading] = useState(false);
+  const [applicationsLoading, setApplicationsLoading] = useState(false);
 
   // Fetch user data when user is available
   useEffect(() => {
@@ -231,31 +245,50 @@ export function UserPortal() {
 
         // Uncomment below when Firebase collections are ready:
         
+        // Debug Firebase collections first
+        await debugFirebaseCollections(user.uid);
+        
         const [
           rentPaymentsData,
           subscriptionsData,
           maintenanceRequestsData,
           messagesData,
           applicationsData,
-          userPropertyData,
-          statsData
+          userPropertyData
         ] = await Promise.all([
           getUserRentPayments(user.uid),
           getUserSubscriptions(user.uid),
-          getUserMaintenanceRequests(user.uid),
+          maintenanceService.getMaintenanceRequestsByTenant(user.uid),
           getUserMessages(user.uid),
           getUserApplications(user.uid),
-          getUserProperty(user.uid),
-          calculateUserStats(user.uid)
+          getUserProperty(user.uid)
         ]);
 
+     
         setRentPayments(rentPaymentsData);
         setSubscriptions(subscriptionsData);
         setMaintenanceRequests(maintenanceRequestsData);
         setMessages(messagesData);
         setApplications(applicationsData);
         setUserProperty(userPropertyData);
-        setStats(statsData);
+        // Calculate stats with the fetched data
+        const calculatedStats = {
+          totalApplications: applicationsData.length,
+          recentApplications: applicationsData.filter(app => {
+            const thirtyDaysAgo = new Date();
+            thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+            // Handle both Date and string types for submittedAt
+            const submittedDate = typeof app.submittedAt === 'string' ? new Date(app.submittedAt) : app.submittedAt;
+            return submittedDate >= thirtyDaysAgo;
+          }).length,
+          currentRent: rentPaymentsData.find(p => p.status === 'due')?.amount || 0,
+          currentRentStatus: (rentPaymentsData.find(p => p.status === 'due')?.status || 'paid') as 'due' | 'paid' | 'overdue',
+          activeSubscriptions: subscriptionsData.filter(s => s.status === 'active').length,
+          openMaintenanceRequests: maintenanceRequestsData.filter(m => m.status === 'submitted' || m.status === 'in_progress').length,
+          unreadMessages: messagesData.filter(m => !m.isRead).length
+        };
+        
+        setStats(calculatedStats);
         
       } catch (error) {
         console.error('Error fetching user data:', error);
@@ -274,6 +307,59 @@ export function UserPortal() {
 
     fetchUserData();
   }, [user]);
+
+  // Function to refresh maintenance requests
+  const refreshMaintenanceRequests = async () => {
+    if (!user) return;
+    
+    try {
+      setMaintenanceLoading(true);
+      const requests = await maintenanceService.getMaintenanceRequestsByTenant(user.uid);
+      setMaintenanceRequests(requests);
+      
+      // Update stats
+      setStats(prevStats => ({
+        ...prevStats,
+        openMaintenanceRequests: requests.filter(m => m.status === 'submitted' || m.status === 'in_progress').length
+      }));
+    } catch (error) {
+      console.error('Error refreshing maintenance requests:', error);
+    } finally {
+      setMaintenanceLoading(false);
+    }
+  };
+
+  // Function to refresh applications
+  const refreshApplications = async () => {
+    if (!user) return;
+    
+    try {
+      setApplicationsLoading(true);
+      const apps = await getUserApplications(user.uid);
+     
+      setApplications(apps);
+      
+      // Update stats
+      const recentApps = apps.filter(app => {
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+        // Handle both Date and string types for submittedAt
+        const submittedDate = typeof app.submittedAt === 'string' ? new Date(app.submittedAt) : app.submittedAt;
+        return submittedDate >= thirtyDaysAgo;
+      }).length;
+      
+      
+      setStats(prevStats => ({
+        ...prevStats,
+        totalApplications: apps.length,
+        recentApplications: recentApps
+      }));
+    } catch (error) {
+      console.error('Error refreshing applications:', error);
+    } finally {
+      setApplicationsLoading(false);
+    }
+  };
 
   // Show loading state while authentication or data is loading
   if (authLoading || dataLoading) {
@@ -325,7 +411,10 @@ export function UserPortal() {
                   </span>
                 </div>
               )}
-              <button className="px-3 py-2 bg-white text-green-600 rounded-lg hover:bg-green-50 font-semibold transition-all duration-200 shadow-lg text-xs">
+              <button 
+              
+              onClick={() => navigate('/property')}
+              className="px-3 py-2 bg-white text-green-600 rounded-lg hover:bg-green-50 font-semibold transition-all duration-200 shadow-lg text-xs">
                 Find Home
               </button>
             </div>
@@ -356,7 +445,10 @@ export function UserPortal() {
                   </span>
                 </div>
               )}
-              <button className="px-6 py-2 bg-white text-green-600 rounded-lg hover:bg-green-50 font-semibold transition-all duration-200 shadow-lg text-sm">
+              <button 
+              
+              onClick={() => navigate('/property')}
+              className="px-6 py-2 bg-white text-green-600 rounded-lg hover:bg-green-50 font-semibold transition-all duration-200 shadow-lg text-sm">
                 Find New Home
               </button>
             </div>
@@ -507,7 +599,10 @@ export function UserPortal() {
                   <p className="text-xs text-gray-500 mt-1 text-center">{stats.unreadMessages} unread</p>
                 </button>
 
-                <button className="p-4 bg-purple-50 hover:bg-purple-100 border border-purple-200 rounded-lg transition-all duration-200 group">
+                <button 
+                
+                onClick={() => navigate('/subscriptions')}
+                className="p-4 bg-purple-50 hover:bg-purple-100 border border-purple-200 rounded-lg transition-all duration-200 group">
                   <div className="w-12 h-12 bg-white rounded-lg flex items-center justify-center mb-3 mx-auto shadow-sm">
                     <Settings className="h-6 w-6 text-purple-600" />
                   </div>
@@ -598,53 +693,89 @@ export function UserPortal() {
                 <div className="flex items-center">
                   <Wrench className="h-5 w-5 text-red-600 mr-2" />
                   <h3 className="text-lg font-bold text-gray-900">Maintenance Requests</h3>
+                  {maintenanceLoading && (
+                    <Loader2 className="h-4 w-4 animate-spin text-gray-400 ml-2" />
+                  )}
                 </div>
-                <button className="text-sm text-green-600 hover:text-green-700 font-semibold flex items-center">
-                  View All <ChevronRight className="h-4 w-4 ml-1" />
-                </button>
+                <div className="flex items-center space-x-2">
+                  <button 
+                    onClick={refreshMaintenanceRequests}
+                    disabled={maintenanceLoading}
+                    className="text-sm text-gray-600 hover:text-gray-700 font-semibold flex items-center disabled:opacity-50"
+                  >
+                    Refresh
+                  </button>
+                  <button 
+                  
+                  onClick={() => navigate('/maintenance')}
+                  className="text-sm text-green-600 hover:text-green-700 font-semibold flex items-center">
+                    View All <ChevronRight className="h-4 w-4 ml-1" />
+                  </button>
+                </div>
               </div>
 
               <div className="space-y-3">
                 {maintenanceRequests.length > 0 ? (
-                  maintenanceRequests.map((request) => (
+                  maintenanceRequests.slice(0, 5).map((request) => (
                     <div key={request.id} className="p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center space-x-3">
                           <Wrench className={`h-5 w-5 ${
                             request.status === 'in_progress' ? 'text-blue-600' : 
-                            request.status === 'completed' ? 'text-green-600' : 'text-gray-400'
+                            request.status === 'completed' ? 'text-green-600' : 
+                            request.status === 'cancelled' ? 'text-red-600' : 'text-gray-400'
                           }`} />
-                        <div>
+                          <div>
                             <h4 className="font-semibold text-gray-900 text-sm">{request.title}</h4>
                             <p className="text-xs text-gray-500 mt-1">
-                            Submitted {request.submittedAt.toLocaleDateString()}
-                          </p>
+                              Submitted {request.submittedAt.toLocaleDateString()}
+                            </p>
+                            {request.category && (
+                              <p className="text-xs text-gray-400 mt-1 capitalize">
+                                {request.category.replace('_', ' ')}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex flex-col items-end space-y-2">
+                          <span className={`text-xs px-3 py-1 rounded-full font-semibold ${
+                            request.priority === 'emergency' ? 'bg-red-100 text-red-700 border border-red-200' :
+                            request.priority === 'high' ? 'bg-orange-100 text-orange-700 border border-orange-200' :
+                            request.priority === 'medium' ? 'bg-yellow-100 text-yellow-700 border border-yellow-200' :
+                            'bg-gray-100 text-gray-700 border border-gray-200'
+                          }`}>
+                            {request.priority}
+                          </span>
+                          <span className={`text-xs px-3 py-1 rounded-full font-semibold ${
+                            request.status === 'submitted' ? 'bg-yellow-100 text-yellow-700 border border-yellow-200' :
+                            request.status === 'in_progress' ? 'bg-blue-100 text-blue-700 border border-blue-200' : 
+                            request.status === 'completed' ? 'bg-green-100 text-green-700 border border-green-200' :
+                            request.status === 'cancelled' ? 'bg-red-100 text-red-700 border border-red-200' :
+                            'bg-gray-100 text-gray-700 border border-gray-200'
+                          }`}>
+                            {request.status.replace('_', ' ')}
+                          </span>
                         </div>
                       </div>
-                        <span className={`text-xs px-3 py-1 rounded-full font-semibold ${
-                        request.priority === 'urgent' ? 'bg-red-100 text-red-700 border border-red-200' :
-                        request.priority === 'high' ? 'bg-orange-100 text-orange-700 border border-orange-200' :
-                        request.priority === 'medium' ? 'bg-yellow-100 text-yellow-700 border border-yellow-200' :
-                        'bg-gray-100 text-gray-700 border border-gray-200'
-                      }`}>
-                        {request.priority}
-                      </span>
+                      {request.description && (
+                        <p className="text-xs text-gray-600 mt-2 line-clamp-2">
+                          {request.description}
+                        </p>
+                      )}
                     </div>
-                      <span className={`inline-block text-xs px-3 py-1 rounded-full font-semibold ${
-                      request.status === 'in_progress' ? 'bg-blue-100 text-blue-700 border border-blue-200' : 
-                        request.status === 'completed' ? 'bg-green-100 text-green-700 border border-green-200' :
-                      'bg-gray-100 text-gray-700 border border-gray-200'
-                    }`}>
-                      {request.status.replace('_', ' ')}
-                    </span>
-                  </div>
                   ))
                 ) : (
-                  <p className="text-sm text-gray-500 text-center py-4">No maintenance requests</p>
+                  <div className="text-center py-8">
+                    <Wrench className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+                    <p className="text-sm text-gray-500 mb-2">No maintenance requests</p>
+                    <p className="text-xs text-gray-400">Submit a request when you need help</p>
+                  </div>
                 )}
               </div>
 
-              <button className="w-full mt-4 py-3 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-red-400 hover:text-red-600 hover:bg-red-50 transition-all duration-200 font-medium">
+              <button
+              onClick={() => navigate('/maintenance')}
+              className="w-full mt-4 py-3 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-red-400 hover:text-red-600 hover:bg-red-50 transition-all duration-200 font-medium">
                 + New Maintenance Request
               </button>
             </div>
@@ -728,44 +859,158 @@ export function UserPortal() {
 
             {/* Applications Summary */}
             <div className="bg-gradient-to-br from-green-600 to-emerald-600 rounded-2xl shadow-lg p-6 text-white">
-              <div className="flex items-center mb-5">
-                <FileText className="h-5 w-5 mr-2" />
-                <h3 className="text-lg font-bold">Applications</h3>
+              <div className="flex items-center justify-between mb-5">
+                <div className="flex items-center">
+                  <FileText className="h-5 w-5 mr-2" />
+                  <h3 className="text-lg font-bold">Applications</h3>
+                  {applicationsLoading && (
+                    <Loader2 className="h-4 w-4 animate-spin text-white/70 ml-2" />
+                  )}
+                </div>
+                <div className="flex items-center space-x-2">
+                  {applications.length > 0 && (
+                    <span className="px-2 py-1 bg-white/20 rounded-full text-xs font-semibold">
+                      {applications.length} total
+                    </span>
+                  )}
+                  <button 
+                    onClick={refreshApplications}
+                    disabled={applicationsLoading}
+                    className="text-white/70 hover:text-white text-xs font-semibold disabled:opacity-50"
+                  >
+                    Refresh
+                  </button>
+                </div>
               </div>
               
               <div className="space-y-4 mb-5">
-                <div className="flex justify-between items-center">
-                  <span className="text-green-50 text-sm">Total Submitted</span>
-                  <span className="text-3xl font-bold">{stats.totalApplications}</span>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="text-center">
+                    <span className="text-green-50 text-xs block mb-1">Total Submitted</span>
+                    <span className="text-2xl font-bold">{stats.totalApplications}</span>
+                  </div>
+                  <div className="text-center">
+                    <span className="text-green-50 text-xs block mb-1">This Month</span>
+                    <span className="text-2xl font-bold">{stats.recentApplications}</span>
+                  </div>
                 </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-green-50 text-sm">This Month</span>
-                  <span className="text-3xl font-bold">{stats.recentApplications}</span>
-                </div>
-                {applications.length > 0 && (
+                
+                {applications.length > 0 ? (
                   <div className="pt-4 border-t border-white/20">
-                    <p className="text-green-50 text-xs mb-2">Recent Applications:</p>
-                    <div className="space-y-2">
-                      {applications.slice(0, 2).map((app) => (
-                        <div key={app.id} className="flex justify-between items-center text-xs">
-                          <span className="text-green-50 truncate">{app.propertyName}</span>
-                          <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
-                            app.status === 'approved' ? 'bg-green-500 text-white' :
-                            app.status === 'pending' ? 'bg-yellow-500 text-white' :
-                            app.status === 'rejected' ? 'bg-red-500 text-white' :
-                            'bg-gray-500 text-white'
-                          }`}>
-                            {app.status.replace('_', ' ')}
-                          </span>
-                        </div>
-                      ))}
+                    <p className="text-green-50 text-xs mb-3 font-medium">Recent Applications:</p>
+                    <div className="space-y-3">
+                      {applications.slice(0, 3).map((app) => {
+                        const getStatusIcon = (status: string) => {
+                          switch (status) {
+                            case 'approved': return <CheckCircle2 className="h-4 w-4" />;
+                            case 'under_review': return <Clock3 className="h-4 w-4" />;
+                            case 'pending': return <Clock className="h-4 w-4" />;
+                            case 'rejected': return <XCircle className="h-4 w-4" />;
+                            case 'withdrawn': return <RotateCcw className="h-4 w-4" />;
+                            default: return <AlertCircle className="h-4 w-4" />;
+                          }
+                        };
+
+                        const getStatusColor = (status: string) => {
+                          switch (status) {
+                            case 'approved': return 'bg-green-500 text-white';
+                            case 'under_review': return 'bg-blue-500 text-white';
+                            case 'pending': return 'bg-yellow-500 text-white';
+                            case 'rejected': return 'bg-red-500 text-white';
+                            case 'withdrawn': return 'bg-gray-500 text-white';
+                            default: return 'bg-gray-500 text-white';
+                          }
+                        };
+
+                        const getDaysAgo = (date: Date | string) => {
+                          const now = new Date();
+                          // Handle both Date objects and ISO string dates
+                          const submittedDate = typeof date === 'string' ? new Date(date) : date;
+                          const diffTime = Math.abs(now.getTime() - submittedDate.getTime());
+                          
+                          // Calculate different time units
+                          const diffMinutes = Math.floor(diffTime / (1000 * 60));
+                          const diffHours = Math.floor(diffTime / (1000 * 60 * 60));
+                          const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+                          
+                          
+                          
+                          // Return appropriate time format
+                          if (diffMinutes < 1) {
+                            return 'Just now';
+                          } else if (diffMinutes < 60) {
+                            return diffMinutes === 1 ? '1 minute ago' : `${diffMinutes} minutes ago`;
+                          } else if (diffHours < 24) {
+                            return diffHours === 1 ? '1 hour ago' : `${diffHours} hours ago`;
+                          } else if (diffDays < 7) {
+                            return diffDays === 1 ? '1 day ago' : `${diffDays} days ago`;
+                          } else {
+                            const diffWeeks = Math.floor(diffDays / 7);
+                            return diffWeeks === 1 ? '1 week ago' : `${diffWeeks} weeks ago`;
+                          }
+                        };
+
+                        return (
+                          <div key={app.id} className="bg-white/10 rounded-lg p-3 hover:bg-white/15 transition-colors">
+                            <div className="flex justify-between items-start mb-2">
+                              <div className="flex-1 min-w-0">
+                                <p className="text-white text-sm font-semibold truncate">
+                                  {app.propertyName}
+                                </p>
+                                {app.unitNumber && (
+                                  <p className="text-green-100 text-xs">
+                                    Unit {app.unitNumber}
+                                  </p>
+                                )}
+                              </div>
+                              <span className={`px-2 py-1 rounded-full text-xs font-semibold ml-2 flex items-center gap-1 ${getStatusColor(app.status)}`}>
+                                {getStatusIcon(app.status)}
+                                {app.status.replace('_', ' ')}
+                              </span>
+                            </div>
+                            <div className="flex justify-between items-center text-xs text-green-100">
+                              <span>{getDaysAgo(app.submittedAt)}</span>
+                              <span className="font-medium">${(app.appFeeCents / 100).toFixed(2)} fee</span>
+                            </div>
+                            {app.status === 'approved' && (
+                              <div className="mt-2 pt-2 border-t border-white/20">
+                                <div className="flex items-center gap-2">
+                                  <CheckCircle2 className="h-4 w-4 text-green-200" />
+                                  <p className="text-green-200 text-xs font-medium">
+                                    Congratulations! Your application was approved.
+                                  </p>
+                                </div>
+                              </div>
+                            )}
+                            {app.status === 'rejected' && (
+                              <div className="mt-2 pt-2 border-t border-white/20">
+                                <div className="flex items-center gap-2">
+                                  <XCircle className="h-4 w-4 text-red-200" />
+                                  <p className="text-red-200 text-xs">
+                                    Application was not approved. Contact property management for details.
+                                  </p>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
+                  </div>
+                ) : (
+                  <div className="pt-4 border-t border-white/20 text-center">
+                    <FileText className="h-8 w-8 text-white/50 mx-auto mb-2" />
+                    <p className="text-green-100 text-sm">No applications yet</p>
+                    <p className="text-green-200 text-xs">Start your rental journey today</p>
                   </div>
                 )}
               </div>
               
-              <button className="w-full py-2.5 bg-white/20 backdrop-blur-sm hover:bg-white/30 rounded-lg text-sm font-semibold transition-colors">
-                View Applications
+              <button 
+                onClick={() => navigate('/my-applications')}
+                className="w-full py-2.5 bg-white/20 backdrop-blur-sm hover:bg-white/30 rounded-lg text-sm font-semibold transition-colors"
+              >
+                {applications.length > 0 ? 'View All Applications' : 'Start Application'}
               </button>
             </div>
           </div>

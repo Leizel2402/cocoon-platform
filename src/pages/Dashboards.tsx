@@ -748,7 +748,7 @@ const Dashboards = () => {
         const transformedProperties = querySnapshot.docs.map((doc: any) => {
           const prop = doc.data();
           console.log("prop", prop);
-          
+
           // Handle different data structures from listings vs properties
           if (collectionName === "listings") {
             // Data from listings collection (migrated data)
@@ -776,7 +776,7 @@ const Dashboards = () => {
               description: prop.description,
               pet_friendly: prop.pet_friendly || false,
               available_date: prop.availableDate,
-              lease_term_options: prop.lease_term_options || [], 
+              lease_term_options: prop.lease_term_options || [],
               lease_term_months: prop.lease_term_months,
               security_deposit_months: prop.security_deposit_months,
               first_month_rent_required: prop.first_month_rent_required,
@@ -840,7 +840,7 @@ const Dashboards = () => {
               }
             }
             console.log("doc", doc.id);
-            
+
             return {
               id: doc.id,
               name: prop.name || prop.title || "",
@@ -908,7 +908,10 @@ const Dashboards = () => {
           }
         });
 
-        console.log("Transformed properties count:", transformedProperties.length);
+        console.log(
+          "Transformed properties count:",
+          transformedProperties.length
+        );
         console.log("Transformed properties:", transformedProperties);
         setDatabaseProperties(transformedProperties);
       } catch (error) {
@@ -1124,14 +1127,13 @@ const Dashboards = () => {
                 concession: null,
               },
             ],
-            lease_term_options: unit.lease_term_options || ['12 Months'],
+            lease_term_options: unit.lease_term_options || ["12 Months"],
             lease_term_months: unit.lease_term_months,
             security_deposit_months: unit.security_deposit_months,
             first_month_rent_required: unit.first_month_rent_required,
             last_month_rent_required: unit.last_month_rent_required,
             pet_deposit: unit.pet_deposit,
             application_fee: unit.application_fee,
-            
           };
         });
 
@@ -1151,6 +1153,7 @@ const Dashboards = () => {
 
   // Use only database properties - no static fallbacks
   const featuredProperties = databaseProperties;
+  console.log("featuredProperties", featuredProperties);
 
   // Real-time filter updates and search summary
   useEffect(() => {
@@ -1457,7 +1460,9 @@ const Dashboards = () => {
     // Home type filter using the actual propertyType field
     const typeMatch =
       selectedHomeTypes.length === 0 ||
-      selectedHomeTypes.includes(property.propertyType || property.property_type || "Apartment");
+      selectedHomeTypes.includes(
+        property.propertyType || property.property_type || "Apartment"
+      );
 
     // Amenities filter
     const amenitiesMatch =
@@ -1572,6 +1577,24 @@ const Dashboards = () => {
           )
       );
 
+    // Move-in date filter - check if property is available by the selected move-in date
+    const moveInDateMatch = (() => {
+      // If no move-in date is selected, show all properties
+      if (!moveInDate) return true;
+
+      // If property has no available_date or it's undefined/null/empty, show it (assume available)
+      if (!property.available_date) return false;
+
+      // Try to parse the date and compare
+      try {
+        const availableDate = new Date(property.available_date);
+        return availableDate <= moveInDate;
+      } catch (error) {
+        // If date parsing fails, show the property (assume it's available)
+        return true;
+      }
+    })();
+
     // RentWise Network filter
     const rentwiseMatch =
       !showOnlyRentWise || property.isRentWiseNetwork === true;
@@ -1593,6 +1616,7 @@ const Dashboards = () => {
       laundryMatch &&
       ratingMatch &&
       propertyFeaturesMatch &&
+      moveInDateMatch &&
       rentwiseMatch;
 
     // Debug logging for failed filters (simplified)
@@ -2393,8 +2417,7 @@ const Dashboards = () => {
                             onViewUnits={async (property) => {
                               setSelectedProperty(property);
                               // Load units for this specific property
-                            
-                              
+
                               await loadUnitsForProperty(
                                 property.id.toString()
                               );

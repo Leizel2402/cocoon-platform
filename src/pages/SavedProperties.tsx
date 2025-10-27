@@ -419,18 +419,18 @@ export function SavedProperties() {
                     <Button
                       variant="outline"
                       size="sm"
-                      className="flex-1 hover:text-white border-green-200 text-green-700 hover:bg-green-700"
+                      className="flex-1 text-white border-green-200  bg-green-700"
                       onClick={() => handleViewDetails(property)}
                     >
                       View Details
                     </Button>
-                    <Button
+                    {/* <Button
                       size="sm"
                       className="flex-1 text-white bg-gradient-to-r from-blue-600 to-blue-600 hover:from-blue-700 hover:to-blue-700"
                       onClick={() => handleViewUnits(property)}
                     >
                       See Available Units
-                    </Button>
+                    </Button> */}
                   </div>
                 </div>
               </motion.div>

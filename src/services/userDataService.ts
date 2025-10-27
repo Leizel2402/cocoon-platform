@@ -1,6 +1,43 @@
 import { collection, query, where, getDocs, orderBy, limit } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 
+// Debug function to inspect Firebase collections
+export const debugFirebaseCollections = async (userId: string) => {
+  
+  const collections = ['applications', 'user_applications', 'rent_payments', 'user_subscriptions', 'maintenance_requests', 'user_messages', 'user_leases'];
+  
+  for (const collectionName of collections) {
+    try {
+      const q = query(collection(db, collectionName), limit(5));
+      const snapshot = await getDocs(q);
+      
+      
+      if (snapshot.docs.length > 0) {
+        
+        
+        // Check if any document contains our user ID
+        const userFound = snapshot.docs.some(doc => {
+          const data = doc.data();
+          return JSON.stringify(data).includes(userId);
+        });
+        
+        if (userFound) {
+          snapshot.docs.forEach((doc, index) => {
+            const data = doc.data();
+            if (JSON.stringify(data).includes(userId)) {
+              console.log(`   📄 Document ${index + 1} with user data:`, data);
+            }
+          });
+        } else {
+          console.log(`   ❌ No documents found containing user ID: ${userId}`);
+        }
+      }
+    } catch (error) {
+      console.log(`   ❌ Error accessing collection ${collectionName}:`, error);
+    }
+  }
+};
+
 // User-specific data interfaces
 export interface RentPayment {
   id: string;
@@ -54,7 +91,7 @@ export interface UserApplication {
   unitId?: string;
   unitNumber?: string;
   status: 'pending' | 'under_review' | 'approved' | 'rejected' | 'withdrawn';
-  submittedAt: Date;
+  submittedAt: Date | string;
   appFeeCents: number;
   landlordId?: string;
 }
@@ -195,27 +232,80 @@ export const getUserMessages = async (userId: string): Promise<UserMessage[]> =>
 // Fetch user's applications
 export const getUserApplications = async (userId: string): Promise<UserApplication[]> => {
   try {
-    const q = query(
-      collection(db, 'applications'),
-      where('submittedBy', '==', userId),
-      orderBy('submittedAt', 'desc'),
-      limit(10)
-    );
     
-    const querySnapshot = await getDocs(q);
-    return querySnapshot.docs.map(doc => {
-      const data = doc.data();
-      return {
-        id: doc.id,
-        propertyId: data.propertyId || '',
-        propertyName: data.propertyName || 'Unknown Property',
-        unitId: data.unitId,
-        unitNumber: data.unitNumber,
-        status: data.status || 'pending',
-        submittedAt: data.submittedAt?.toDate() || new Date(),
-        appFeeCents: data.appFeeCents || 0
-      };
-    });
+    const queries = [
+    
+      query(
+        collection(db, 'applications'),
+        where('applicationMetadata.submittedBy', '==', userId),
+        orderBy('submittedAt', 'desc'),
+        limit(10)
+      ),
+      
+    ];
+
+    let applications: UserApplication[] = [];
+    
+    for (let i = 0; i < queries.length; i++) {
+      try {
+        const querySnapshot = await getDocs(queries[i]);
+        
+        if (querySnapshot.docs.length > 0) {
+          
+          applications = querySnapshot.docs.map(doc => {
+            const data = doc.data();
+            
+            // Handle different data structures
+            const isNested = data.applicationMetadata;
+            const baseData = isNested ? data.applicationMetadata : data;
+            
+            // Handle submittedAt - could be Firestore Timestamp, Date, or string
+            let submittedAt: Date | string;
+            if (data.submittedAt?.toDate) {
+              // Firestore Timestamp
+              submittedAt = data.submittedAt.toDate();
+            } else if (baseData.submittedAt?.toDate) {
+              // Nested Firestore Timestamp
+              submittedAt = baseData.submittedAt.toDate();
+            } else if (data.submittedAt instanceof Date) {
+              // Already a Date object
+              submittedAt = data.submittedAt;
+            } else if (baseData.submittedAt instanceof Date) {
+              // Nested Date object
+              submittedAt = baseData.submittedAt;
+            } else if (typeof data.submittedAt === 'string') {
+              // ISO string
+              submittedAt = data.submittedAt;
+            } else if (typeof baseData.submittedAt === 'string') {
+              // Nested ISO string
+              submittedAt = baseData.submittedAt;
+            } else {
+              // Fallback to current date
+              submittedAt = new Date();
+            }
+
+            return {
+              id: doc.id,
+              propertyId: baseData.propertyId || data.propertyId || '',
+              propertyName: baseData.propertyName || data.propertyName || 'Unknown Property',
+              unitId: baseData.unitId || data.unitId,
+              unitNumber: baseData.unitNumber || data.unitNumber,
+              status: data.status || baseData.status || 'pending',
+              submittedAt: submittedAt,
+              appFeeCents: data.appFeeCents || baseData.appFeeCents || 0,
+              landlordId: baseData.landlordId || data.landlordId
+            };
+          });
+          
+          break; // Exit loop if we found data
+        }
+      } catch (queryError) {
+        console.log(`Query ${i + 1} failed:`, queryError);
+        continue; // Try next query
+      }
+    }
+    
+    return applications;
   } catch (error) {
     console.error('Error fetching applications:', error);
     return [];
@@ -234,7 +324,6 @@ export const getUserApprovedApplications = async (userId: string): Promise<UserA
     const querySnapshot = await getDocs(q);
     return querySnapshot.docs.map(doc => {
       const data = doc.data();
-      console.log("data",data);
       
       return {
         id: doc.id,

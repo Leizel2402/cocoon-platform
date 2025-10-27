@@ -1,5 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '../components/ui/dialog';
 import { 
   Wrench, 
   Plus, 
@@ -21,7 +27,8 @@ import {
   Home,
   Building,
   Settings,
-  FileText
+  FileText,
+  Shield
 } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/input';
@@ -30,6 +37,7 @@ import { useToast } from '../hooks/use-toast';
 import { useAuth } from '../hooks/useAuth';
 import { maintenanceService, MaintenanceRequest } from '../services/maintenanceService';
 import { getUserApprovedApplications, UserApplication } from '../services/userDataService';
+import { landlordService, LandlordContactInfo } from '../services/landlordService';
 
 // Using MaintenanceRequest interface from maintenanceService
 
@@ -48,6 +56,7 @@ export function MaintenanceRequests() {
   const [approvedApplications, setApprovedApplications] = useState<UserApplication[]>([]);
   const [selectedProperty, setSelectedProperty] = useState<UserApplication | null>(null);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [landlordContactInfo, setLandlordContactInfo] = useState<LandlordContactInfo | null>(null);
 // console.log("uploadedImages",uploadedImages);
 
   // Form state
@@ -84,6 +93,38 @@ export function MaintenanceRequests() {
     };
   }, [isDropdownOpen]);
 
+  // Fetch landlord contact info when a request is selected
+  const fetchLandlordContactInfo = useCallback(async (landlordId: string) => {
+    try {
+      const contactInfo = await landlordService.getLandlordContactInfo(landlordId);
+      setLandlordContactInfo(contactInfo);
+    } catch (error) {
+      console.error('Error fetching landlord contact info:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load landlord contact information.",
+        variant: "destructive"
+      });
+    }
+  }, [toast]);
+
+  // Handle Contact Manager button click
+  const handleContactManager = () => {
+    if (landlordContactInfo?.phone) {
+      // Open phone dialer
+      window.open(`tel:${landlordContactInfo.phone}`, '_self');
+    } else if (landlordContactInfo?.email) {
+      // Open email client
+      window.open(`mailto:${landlordContactInfo.email}`, '_self');
+    } else {
+      toast({
+        title: "Contact Information Unavailable",
+        description: "Landlord contact information is not available for this property.",
+        variant: "destructive"
+      });
+    }
+  };
+
   // Fetch maintenance requests from Firebase
   useEffect(() => {
     const fetchRequests = async () => {
@@ -96,6 +137,9 @@ export function MaintenanceRequests() {
         setLoading(true);
         const userRequests = await maintenanceService.getMaintenanceRequestsByTenant(user.uid);
         setRequests(userRequests);
+        
+        console.log("userRequests",userRequests);
+        
       } catch (error) {
         console.error('Error fetching maintenance requests:', error);
         toast({
@@ -136,6 +180,13 @@ export function MaintenanceRequests() {
 
     loadApprovedApplications();
   }, [user, toast]);
+
+  // Fetch landlord contact info when a request is selected
+  useEffect(() => {
+    if (selectedRequest?.landlordId) {
+      fetchLandlordContactInfo(selectedRequest.landlordId);
+    }
+  }, [selectedRequest, fetchLandlordContactInfo]);
 
   const filteredRequests = requests.filter(request => {
     const matchesSearch = request.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -890,14 +941,7 @@ console.log("selectedProperty",selectedProperty);
                           <Eye className="h-4 w-4 mr-1" />
                           View Details
                         </Button>
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        className="text-gray-600 hover:text-gray-900"
-                      >
-                          <MessageSquare className="h-4 w-4 mr-1" />
-                          Add Note
-                        </Button>
+                    
                       </div>
                     </div>
                 </div>
@@ -909,23 +953,27 @@ console.log("selectedProperty",selectedProperty);
 
       {/* Request Detail Modal */}
       {selectedRequest && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="flex justify-between items-center p-6 border-b">
-              <h2 className="text-xl font-semibold">Request Details</h2>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setSelectedRequest(null)}
-              >
-                <XCircle className="h-4 w-4" />
-              </Button>
-            </div>
-            
-            <div className="p-6 space-y-6">
-              <div>
-                <h3 className="text-lg font-bold text-gray-900 mb-2">{selectedRequest.title}</h3>
-                <div className="flex items-center gap-2 mb-4">
+        <Dialog open={!!selectedRequest} onOpenChange={() => {
+          setSelectedRequest(null);
+          setLandlordContactInfo(null);
+        }}>
+          <DialogContent className="max-w-4xl max-h-[95vh] flex flex-col p-0 bg-gradient-to-br from-green-50 to-blue-50">
+            <DialogHeader className="flex-shrink-0 bg-gradient-to-r from-green-600 via-emerald-600 to-green-600 px-6 py-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center">
+                  <div className="bg-white/20 backdrop-blur-sm p-2 rounded-xl mr-4">
+                    <Wrench className="h-8 w-8 text-white" />
+                  </div>
+                  <div>
+                    <DialogTitle className="text-3xl font-bold text-white">
+                      {selectedRequest.title}
+                    </DialogTitle>
+                    <p className="text-green-100 text-lg">
+                      Maintenance Request Details
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center mr-8 space-x-3">
                   <span className={`px-3 py-1 rounded-full text-xs flex gap-1 font-semibold ${getStatusColor(selectedRequest.status)}`}>
                     {getStatusIcon(selectedRequest.status)}
                     <span className="ml-1 capitalize">{selectedRequest.status.replace('_', ' ')}</span>
@@ -935,67 +983,178 @@ console.log("selectedProperty",selectedProperty);
                   </span>
                 </div>
               </div>
+            </DialogHeader>
 
-              <div>
-                <h4 className="font-semibold text-gray-900 mb-2">Description</h4>
-                <p className="text-gray-700">{selectedRequest.description}</p>
+            {/* Security Banner */}
+            <div className="flex-shrink-0 px-6 py-3 bg-white/90 backdrop-blur-md border-b border-green-200">
+              <div className="flex items-center space-x-2">
+                <Shield className="h-4 w-4 text-emerald-600" />
+                <span className="text-sm font-medium text-emerald-800">
+                  All maintenance request information is secure and verified
+                </span>
               </div>
+            </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <h4 className="font-semibold text-gray-900 mb-2">Category</h4>
-                  <span className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm">
-                    {selectedRequest.category}
-                  </span>
-                </div>
-                <div>
-                  <h4 className="font-semibold text-gray-900 mb-2">Property</h4>
-                  <div className="flex items-center text-sm text-gray-600">
-                    <MapPin className="h-4 w-4 mr-1" />
-                    <span>{selectedRequest.propertyAddress} {selectedRequest.unitNumber}</span>
+            {/* Main Content Area */}
+            <div className="flex-1 overflow-y-auto p-6 bg-gradient-to-br from-green-50 to-blue-50">
+              <div className="space-y-6">
+                {/* Request Overview */}
+                <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
+                  <h3 className="font-bold text-gray-900 mb-4 text-xl flex items-center ">
+                    <FileText className="h-5 w-5 mr-2 text-blue-600" />
+                    Request Details
+                  </h3>
+                  <div className="space-y-4">
+                    <div>
+                      <h4 className="font-semibold text-gray-700 mb-2">Description</h4>
+                      <div className="p-4 bg-gray-50 rounded-lg">
+                        <p className="text-sm text-gray-600 leading-relaxed">
+                          {selectedRequest.description}
+                        </p>
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <h4 className="font-semibold text-gray-900 mb-2">Submitted</h4>
-                  <div className="flex items-center text-sm text-gray-600">
-                    <Calendar className="h-4 w-4 mr-1" />
-                    <span>{selectedRequest.submittedAt.toLocaleDateString()}</span>
+                {/* Request Information Grid */}
+                <div className="grid md:grid-cols-2 gap-6">
+                  {/* Category & Priority */}
+                  <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
+                    <h4 className="font-bold text-gray-900 mb-4 text-xl flex items-center">
+                      <Settings className="h-5 w-5 mr-2 text-green-600" />
+                      Request Information
+                    </h4>
+                    <div className="space-y-4">
+                      <div className="flex justify-between items-center p-3 bg-blue-50 rounded-lg">
+                        <span className="text-sm font-medium text-gray-600">Category</span>
+                        <span className="text-sm font-bold text-blue-800 capitalize">
+                          {selectedRequest.category}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center p-3 bg-yellow-50 rounded-lg">
+                        <span className="text-sm font-medium text-gray-600">Priority</span>
+                        <span className="text-sm font-bold text-yellow-800 capitalize">
+                          {selectedRequest.priority}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center p-3 bg-green-50 rounded-lg">
+                        <span className="text-sm font-medium text-gray-600">Status</span>
+                        <span className={`text-sm font-bold capitalize ${getStatusColor(selectedRequest.status)}`}>
+                          {selectedRequest.status.replace('_', ' ')}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Property & Timeline */}
+                  <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
+                    <h4 className="font-bold text-gray-900 mb-4 text-xl flex items-center">
+                      <Home className="h-5 w-5 mr-2 text-blue-600" />
+                      Property & Timeline
+                    </h4>
+                    <div className="space-y-4">
+                      <div className="flex justify-between items-center p-3 bg-blue-50 rounded-lg">
+                        <span className="text-sm font-medium text-gray-600">Property</span>
+                        <div className="flex items-center text-sm font-bold text-blue-800">
+                          <MapPin className="h-4 w-4 mr-1" />
+                          <span>{selectedRequest.propertyAddress}</span>
+                        </div>
+                      </div>
+                      <div className="flex justify-between items-center p-3 bg-green-50 rounded-lg">
+                        <span className="text-sm font-medium text-gray-600">Unit</span>
+                        <span className="text-sm font-bold text-green-800">
+                          {selectedRequest.unitNumber}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center p-3 bg-purple-50 rounded-lg">
+                        <span className="text-sm font-medium text-gray-600">Submitted</span>
+                        <div className="flex items-center text-sm font-bold text-purple-800">
+                          <Calendar className="h-4 w-4 mr-1" />
+                          <span>{selectedRequest.submittedAt.toLocaleDateString()}</span>
+                        </div>
+                      </div>
+                      {selectedRequest.scheduledDate && (
+                        <div className="flex justify-between items-center p-3 bg-orange-50 rounded-lg">
+                          <span className="text-sm font-medium text-gray-600">Scheduled</span>
+                          <div className="flex items-center text-sm font-bold text-orange-800">
+                            <Clock className="h-4 w-4 mr-1" />
+                            <span>{selectedRequest.scheduledDate.toLocaleDateString()}</span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
-                {selectedRequest.scheduledDate && (
-                  <div>
-                    <h4 className="font-semibold text-gray-900 mb-2">Scheduled</h4>
-                    <div className="flex items-center text-sm text-gray-600">
-                      <Clock className="h-4 w-4 mr-1" />
-                      <span>{selectedRequest.scheduledDate.toLocaleDateString()}</span>
+
+                {/* Notes Section */}
+                {selectedRequest.notes && (
+                  <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
+                    <h4 className="font-bold text-gray-800 mb-4 text-xl flex items-center">
+                      <MessageSquare className="h-5 w-5 mr-2 text-blue-600" />
+                      Additional Notes
+                    </h4>
+                    <div className="p-4 bg-gray-50 rounded-lg">
+                      <p className="text-sm text-gray-600 leading-relaxed">
+                        {selectedRequest.notes}
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Images Section */}
+                {selectedRequest.images && selectedRequest.images.length > 0 && (
+                  <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
+                    <h4 className="font-bold text-gray-800 mb-4 text-xl flex items-center">
+                      <Eye className="h-5 w-5 mr-2 text-blue-600" />
+                      Attached Images
+                    </h4>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                      {selectedRequest.images.map((image, index) => (
+                        <div
+                          key={index}
+                          className="relative group cursor-pointer hover:scale-105 transition-transform duration-200"
+                        >
+                          <img
+                            src={image}
+                            alt={`Maintenance issue ${index + 1}`}
+                            className="w-full h-32 object-cover rounded-lg border border-gray-200 hover:border-blue-300 transition-all duration-200"
+                          />
+                          <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-200 rounded-lg flex items-center justify-center">
+                            <Eye className="h-6 w-6 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 )}
               </div>
+            </div>
 
-              {selectedRequest.notes && (
-                <div>
-                  <h4 className="font-semibold text-gray-900 mb-2">Notes</h4>
-                  <p className="text-gray-700">{selectedRequest.notes}</p>
+            {/* Modern Action Buttons */}
+            <div className="flex-shrink-0 bg-white border-t border-gray-200 p-4">
+              <div className="flex space-x-4">
+                {/* <div className="flex-1">
+                  <Button 
+                    variant="outline"
+                    className="w-full h-12 text-base font-semibold border-2 border-gray-300 hover:border-blue-500 hover:bg-blue-50 rounded-lg transition-all duration-200 hover:scale-105"
+                  >
+                    <MessageSquare className="h-4 w-4 mr-2" />
+                    Add Note
+                  </Button>
+                </div> */}
+                <div className="flex-1">
+                  <Button 
+                    onClick={handleContactManager}
+                    className="w-full h-12 text-base font-semibold bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105"
+                  >
+                    <Phone className="h-4 w-4 mr-2" />
+                    {landlordContactInfo?.phone ? `Call ${landlordContactInfo.name || 'Manager'}` : 'Contact Manager'}
+                  </Button>
                 </div>
-              )}
-
-              <div className="flex gap-3 pt-4 border-t">
-                <Button variant="outline" className="flex-1">
-                  <MessageSquare className="h-4 w-4 mr-2" />
-                  Add Note
-                </Button>
-                <Button variant="outline" className="flex-1">
-                  <Phone className="h-4 w-4 mr-2" />
-                  Contact Manager
-                </Button>
               </div>
             </div>
-          </div>
-        </div>
+          </DialogContent>
+        </Dialog>
       )}
 
       {/* Mobile Floating Action Button */}
@@ -1007,6 +1166,7 @@ console.log("selectedProperty",selectedProperty);
           <Plus className="h-6 w-6" />
         </Button>
       </div>
+
     </div>
   );
 }

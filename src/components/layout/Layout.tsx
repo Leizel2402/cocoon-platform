@@ -7,7 +7,6 @@ import {
   BarChart3,
   LogOut,
   UserCircle,
-  Clock,
   Menu,
   X,
   MessageCircle,
@@ -15,11 +14,19 @@ import {
   Heart,
   DollarSign,
   Search,
+  Building,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { Button } from "../ui/Button";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 import { Toaster } from "../ui/toaster";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../ui/select";
 
 import { useTranslation } from "../../hooks/useTranslations";
 interface LayoutProps {
@@ -27,6 +34,7 @@ interface LayoutProps {
 }
 export function Layout({ children }: LayoutProps) {
   const { user, logout } = useAuth();
+  console.log("users", user?.role);
   const navigate = useNavigate();
   const location = useLocation();
   const [selectedLanguage, setSelectedLanguage] = useState<
@@ -102,31 +110,66 @@ export function Layout({ children }: LayoutProps) {
               <div className="hidden xl:flex items-center space-x-4">
                 <Button
                   variant="ghost"
-                  className="text-gray-700 hover:bg-muted"
+                  className={`px-4 py-2 rounded-lg transition-all ${
+                    isActive("/")
+                      ? "bg-gradient-to-r from-green-600 to-emerald-600 text-white shadow-md"
+                      : "text-gray-700 hover:bg-muted"
+                  }`}
+                  onClick={() => navigate("/")}
+                >
+                  Home
+                </Button>
+                <Button
+                  variant="ghost"
+                  className={`px-4 py-2 rounded-lg transition-all ${
+                    isActive("/property")
+                      ? "bg-gradient-to-r from-green-600 to-emerald-600 text-white shadow-md"
+                      : "text-gray-700 hover:bg-muted"
+                  }`}
                   onClick={() => navigate("/property")}
                 >
                   Find Properties
                 </Button>
 
                 {/* Get Prequalified button */}
-                {(user?.role === "renter" ||
-                  user?.role === "prospect" ||
-                  !user) && (
-                    <>
+                {(user?.role === "renter" || user?.role === "prospect") && (
+                  <>
+                    <Button
+                      className={`px-4 py-2 rounded-lg transition-all ${
+                        isActive("/prequalify")
+                          ? "bg-gradient-to-r from-green-700 to-emerald-700 text-white shadow-lg"
+                          : "text-gray-700 hover:bg-muted"
+                      }`}
+                      onClick={() => navigate("/prequalify")}
+                    >
+                      Get Prequalified
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      className={`px-4 py-2 rounded-lg transition-all ${
+                        isActive("/my-applications")
+                          ? "bg-gradient-to-r from-green-600 to-emerald-600 text-white shadow-md"
+                          : "text-gray-700 hover:bg-muted"
+                      }`}
+                      onClick={() => navigate("/my-applications")}
+                    >
+                      My Applications
+                    </Button>
+                  </>
+                )}
+                {(user?.role === "landlord_admin" ||
+                  user?.role === "landlord_employee") && (
                   <Button
-                    className="bg-green-600 hover:bg-green-700 text-white px-4 rounded-[8px] sm:px-6 py-2 font-semibold text-sm sm:text-base"
-                    onClick={() => navigate("/prequalify")}
+                    variant="ghost"
+                    className={`px-4 py-2 rounded-lg transition-all ${
+                      isActive("/property-management")
+                        ? "bg-gradient-to-r from-green-600 to-emerald-600 text-white shadow-md"
+                        : "text-gray-700 hover:bg-muted"
+                    }`}
+                    onClick={() => navigate("/property-management")}
                   >
-                    Get Prequalified
+                    Property Management
                   </Button>
-                   {/* <Button
-                   variant="ghost"
-                   className="text-gray-700 hover:bg-muted"
-                   onClick={() => navigate("/my-applications")}
-                 >
-                   My Applications
-                 </Button> */}
-                 </>
                 )}
 
                 {/* Renter specific navigation items */}
@@ -141,17 +184,36 @@ export function Layout({ children }: LayoutProps) {
                     </Button> */}
                     <Button
                       variant="ghost"
-                      className="text-gray-700 hover:bg-muted"
+                      className={`px-4 py-2 rounded-lg transition-all ${
+                        isActive("/portal")
+                          ? "bg-gradient-to-r from-green-600 to-emerald-600 text-white shadow-md"
+                          : "text-gray-700 hover:bg-muted"
+                      }`}
                       onClick={() => navigate("/portal")}
                     >
                       Rental Portal
                     </Button>
                     <Button
                       variant="ghost"
-                      className="text-gray-700 hover:bg-muted"
+                      className={`px-4 py-2 rounded-lg transition-all ${
+                        isActive("/maintenance")
+                          ? "bg-gradient-to-r from-green-600 to-emerald-600 text-white shadow-md"
+                          : "text-gray-700 hover:bg-muted"
+                      }`}
                       onClick={() => navigate("/maintenance")}
                     >
                       Maintenance
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      className={`px-4 py-2 rounded-lg transition-all ${
+                        isActive("/subscriptions")
+                          ? "bg-gradient-to-r from-green-600 to-emerald-600 text-white shadow-md"
+                          : "text-gray-700 hover:bg-muted"
+                      }`}
+                      onClick={() => navigate("/subscriptions")}
+                    >
+                      Subscriptions
                     </Button>
                   </>
                 )}
@@ -256,7 +318,7 @@ export function Layout({ children }: LayoutProps) {
                                 <Heart className="h-4 w-4 mr-3 text-green-600" />
                                 Saved Properties
                               </button>
-                              
+
                               <button
                                 onClick={() => navigate("/saved-searches")}
                                 className="w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-green-50 hover:text-green-700 transition-colors flex items-center"
@@ -272,10 +334,14 @@ export function Layout({ children }: LayoutProps) {
                                 <FileText className="h-4 w-4 mr-3 text-green-600" />
                                 Learning Center
                               </button>
-                          
+
                               <button
                                 onClick={() => navigate("/prequalify")}
-                                className="w-full text-left px-4 py-3 rounded-[8px] text-sm text-gray-700 hover:bg-green-50 hover:text-green-700 transition-colors flex items-center"
+                                className={`w-full text-left px-4 py-3 rounded-[8px] text-sm transition-colors flex items-center ${
+                                  isActive("/prequalify")
+                                    ? "bg-gradient-to-r from-green-600 to-emerald-600 text-white shadow-md"
+                                    : "text-gray-700 hover:bg-green-50 hover:text-green-700"
+                                }`}
                               >
                                 <FileText className="h-4 w-4 mr-3 text-green-600" />
                                 Get Prequalified
@@ -292,7 +358,7 @@ export function Layout({ children }: LayoutProps) {
                                 <Heart className="h-4 w-4 mr-3 text-green-600" />
                                 Saved Properties
                               </button>
-                              
+
                               <button
                                 onClick={() => navigate("/saved-searches")}
                                 className="w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-green-50 hover:text-green-700 transition-colors flex items-center"
@@ -307,26 +373,19 @@ export function Layout({ children }: LayoutProps) {
                                 <FileText className="h-4 w-4 mr-3 text-green-600" />
                                 Learning Center
                               </button>
-                              <button
-                                onClick={() => navigate("/subscriptions")}
-                                className="w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-green-50 hover:text-green-700 transition-colors flex items-center"
-                              >
-                                <DollarSign className="h-4 w-4 mr-3 text-green-600" />
-                                Subscriptions
-                              </button>
                             </>
                           )}
 
-                          {(user.role === "landlord_admin" ||
-                            user.role === "landlord_employee") && (
+                          {(user?.role === "landlord_admin" ||
+                            user?.role === "landlord_employee") && (
                             <>
-                              <button
+                              {/* <button
                                 onClick={() => navigate("/property-management")}
                                 className="w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-green-50 hover:text-green-700 transition-colors flex items-center"
                               >
                                 <BarChart3 className="h-4 w-4 mr-3 text-green-600" />
-                                Dashboard
-                              </button>
+                                Dashboards
+                              </button> */}
                               {/* <button
                                 onClick={() => navigate("/properties")}
                                 className="w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-green-50 hover:text-green-700 transition-colors flex items-center"
@@ -436,7 +495,7 @@ export function Layout({ children }: LayoutProps) {
             </div>
 
             {/* Menu Items */}
-            <nav className="flex flex-col p-4 space-y-3 flex-1">
+            <nav className="flex flex-col p-4 space-y-3 flex-1 overflow-auto">
               {/* Home button - always visible */}
               {/* <motion.div whileTap={{ scale: 0.95 }}>
               <button
@@ -456,6 +515,39 @@ export function Layout({ children }: LayoutProps) {
             </motion.div> */}
 
               {/* Non-authenticated user menu items */}
+              <motion.div whileTap={{ scale: 0.95 }}>
+                <button
+                  onClick={() => {
+                    navigate("/");
+                    setIsMobileMenuOpen(false);
+                  }}
+                  className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all w-full ${
+                    isActive("/")
+                      ? "bg-gradient-to-r from-green-600 to-emerald-600 text-white shadow-md"
+                      : "text-gray-700 hover:bg-gray-100"
+                  }`}
+                >
+                  <Home className="h-5 w-5" />
+                  Home
+                </button>
+              </motion.div>
+              <motion.div whileTap={{ scale: 0.95 }}>
+                <button
+                  onClick={() => {
+                    navigate("/property");
+                    setIsMobileMenuOpen(false);
+                  }}
+                  className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all w-full ${
+                    isActive("/property")
+                      ? "bg-gradient-to-r from-green-600 to-emerald-600 text-white shadow-md"
+                      : "text-gray-700 hover:bg-gray-100"
+                  }`}
+                >
+                  <Building className="h-5 w-5" />
+                  Find Properties
+                </button>
+              </motion.div>
+
               {!user && (
                 <>
                   <motion.div whileTap={{ scale: 0.95 }}>
@@ -464,7 +556,11 @@ export function Layout({ children }: LayoutProps) {
                         navigate("/property");
                         setIsMobileMenuOpen(false);
                       }}
-                      className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all w-full text-gray-700 hover:bg-gray-100"
+                      className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all w-full ${
+                        isActive("/property")
+                          ? "bg-gradient-to-r from-green-600 to-emerald-600 text-white shadow-md"
+                          : "text-gray-700 hover:bg-gray-100"
+                      }`}
                     >
                       <Home className="h-5 w-5" />
                       Property Search
@@ -505,7 +601,11 @@ export function Layout({ children }: LayoutProps) {
                         navigate("/faq");
                         setIsMobileMenuOpen(false);
                       }}
-                      className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all w-full text-gray-700 hover:bg-gray-100"
+                      className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all w-full ${
+                        isActive("/faq")
+                          ? "bg-gradient-to-r from-green-600 to-emerald-600 text-white shadow-md"
+                          : "text-gray-700 hover:bg-gray-100"
+                      }`}
                     >
                       <MessageCircle className="h-5 w-5" />
                       FAQs
@@ -513,94 +613,66 @@ export function Layout({ children }: LayoutProps) {
                   </motion.div>
 
                   {/* Language selector for mobile */}
-                  <div className="px-4 py-3">
-                    <div className="space-y-2">
-                      <span className="text-sm font-medium text-gray-700">
-                        Language
-                      </span>
-                      <div className="grid grid-cols-2 gap-2">
-                        {(["EN", "ES", "FR", "DE"] as const).map((lang) => (
-                          <motion.button
-                            key={lang}
-                            whileTap={{ scale: 0.95 }}
-                            onClick={() => {
-                              setSelectedLanguage(lang);
-                            }}
-                            className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${
-                              selectedLanguage === lang
-                                ? "bg-gradient-to-r from-green-600 to-emerald-600 text-white shadow-md"
-                                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                            }`}
-                          >
-                            {lang === "EN" && t("english")}
-                            {lang === "ES" && t("spanish")}
-                            {lang === "FR" && t("french")}
-                            {lang === "DE" && t("german")}
-                          </motion.button>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
                 </>
               )}
 
-              {user?.role === "prospect" && (
-                <>
-                  <motion.div whileTap={{ scale: 0.95 }}>
-                    <button
-                      onClick={() => {
-                        navigate("/saved-properties");
-                        setIsMobileMenuOpen(false);
-                      }}
-                      className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all w-full ${
-                        isActive("/saved-properties")
-                          ? "bg-gradient-to-r from-green-600 to-emerald-600 text-white shadow-md"
-                          : "text-gray-700 hover:bg-gray-100"
-                      }`}
-                    >
-                      <Heart className="h-5 w-5" />
-                      Saved Properties
-                    </button>
-                  </motion.div>
+              {user?.role === "prospect" ||
+                (user?.role === "renter" && (
+                  <>
+                    <motion.div whileTap={{ scale: 0.95 }}>
+                      <button
+                        onClick={() => {
+                          navigate("/saved-properties");
+                          setIsMobileMenuOpen(false);
+                        }}
+                        className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all w-full ${
+                          isActive("/saved-properties")
+                            ? "bg-gradient-to-r from-green-600 to-emerald-600 text-white shadow-md"
+                            : "text-gray-700 hover:bg-gray-100"
+                        }`}
+                      >
+                        <Heart className="h-5 w-5" />
+                        Saved Properties
+                      </button>
+                    </motion.div>
+                    <motion.div whileTap={{ scale: 0.95 }}>
+                      <button
+                        onClick={() => {
+                          navigate("/learning-center");
+                          setIsMobileMenuOpen(false);
+                        }}
+                        className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all w-full ${
+                          isActive("/learning-center")
+                            ? "bg-gradient-to-r from-green-600 to-emerald-600 text-white shadow-md"
+                            : "text-gray-700 hover:bg-gray-100"
+                        }`}
+                      >
+                        <FileText className="h-5 w-5" />
+                        Learning Center
+                      </button>
+                    </motion.div>
 
-                  <motion.div whileTap={{ scale: 0.95 }}>
-                    <button
-                      onClick={() => {
-                        navigate("/learning-center");
-                        setIsMobileMenuOpen(false);
-                      }}
-                      className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all w-full ${
-                        isActive("/learning-center")
-                          ? "bg-gradient-to-r from-green-600 to-emerald-600 text-white shadow-md"
-                          : "text-gray-700 hover:bg-gray-100"
-                      }`}
-                    >
-                      <FileText className="h-5 w-5" />
-                      Learning Center
-                    </button>
-                  </motion.div>
-                </>
-              )}
+                    <motion.div whileTap={{ scale: 0.95 }}>
+                      <button
+                        onClick={() => {
+                          navigate("/prequalify");
+                          setIsMobileMenuOpen(false);
+                        }}
+                        className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all w-full ${
+                          isActive("/prequalify")
+                            ? "bg-gradient-to-r from-green-600 to-emerald-600 text-white shadow-md"
+                            : "text-gray-700 hover:bg-gray-100"
+                        }`}
+                      >
+                        <FileText className="h-5 w-5" />
+                        Get Prequalified
+                      </button>
+                    </motion.div>
+                  </>
+                ))}
 
               {user?.role === "renter" && (
                 <>
-                  <motion.div whileTap={{ scale: 0.95 }}>
-                    <button
-                      onClick={() => {
-                        navigate("/my-applications");
-                        setIsMobileMenuOpen(false);
-                      }}
-                      className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all w-full ${
-                        isActive("/my-applications")
-                          ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-md"
-                          : "text-gray-700 hover:bg-gray-100"
-                      }`}
-                    >
-                      <Clock className="h-5 w-5" />
-                      My Applications
-                    </button>
-                  </motion.div>
-
                   <motion.div whileTap={{ scale: 0.95 }}>
                     <button
                       onClick={() => {
@@ -609,7 +681,7 @@ export function Layout({ children }: LayoutProps) {
                       }}
                       className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all w-full ${
                         isActive("/portal")
-                          ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-md"
+                          ? "bg-gradient-to-r from-green-600 to-emerald-600 text-white shadow-md"
                           : "text-gray-700 hover:bg-gray-100"
                       }`}
                     >
@@ -626,7 +698,7 @@ export function Layout({ children }: LayoutProps) {
                       }}
                       className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all w-full ${
                         isActive("/maintenance")
-                          ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-md"
+                          ? "bg-gradient-to-r from-green-600 to-emerald-600 text-white shadow-md"
                           : "text-gray-700 hover:bg-gray-100"
                       }`}
                     >
@@ -638,46 +710,12 @@ export function Layout({ children }: LayoutProps) {
                   <motion.div whileTap={{ scale: 0.95 }}>
                     <button
                       onClick={() => {
-                        navigate("/saved-properties");
-                        setIsMobileMenuOpen(false);
-                      }}
-                      className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all w-full ${
-                        isActive("/saved-properties")
-                          ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-md"
-                          : "text-gray-700 hover:bg-gray-100"
-                      }`}
-                    >
-                      <Heart className="h-5 w-5" />
-                      Saved Properties
-                    </button>
-                  </motion.div>
-
-                  <motion.div whileTap={{ scale: 0.95 }}>
-                    <button
-                      onClick={() => {
-                        navigate("/learning-center");
-                        setIsMobileMenuOpen(false);
-                      }}
-                      className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all w-full ${
-                        isActive("/learning-center")
-                          ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-md"
-                          : "text-gray-700 hover:bg-gray-100"
-                      }`}
-                    >
-                      <FileText className="h-5 w-5" />
-                      Learning Center
-                    </button>
-                  </motion.div>
-
-                  <motion.div whileTap={{ scale: 0.95 }}>
-                    <button
-                      onClick={() => {
                         navigate("/subscriptions");
                         setIsMobileMenuOpen(false);
                       }}
                       className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all w-full ${
                         isActive("/subscriptions")
-                          ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-md"
+                          ? "bg-gradient-to-r from-green-600 to-emerald-600 text-white shadow-md"
                           : "text-gray-700 hover:bg-gray-100"
                       }`}
                     >
@@ -699,31 +737,16 @@ export function Layout({ children }: LayoutProps) {
                       }}
                       className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all w-full ${
                         isActive("/property-management")
-                          ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-md"
+                          ? "bg-gradient-to-r from-green-600 to-emerald-600 text-white shadow-md"
                           : "text-gray-700 hover:bg-gray-100"
                       }`}
                     >
                       <BarChart3 className="h-5 w-5" />
-                      Dashboard
+                      Property Management
                     </button>
                   </motion.div>
 
-                  <motion.div whileTap={{ scale: 0.95 }}>
-                    <button
-                      onClick={() => {
-                        navigate("/properties");
-                        setIsMobileMenuOpen(false);
-                      }}
-                      className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all w-full ${
-                        isActive("/properties")
-                          ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-md"
-                          : "text-gray-700 hover:bg-gray-100"
-                      }`}
-                    >
-                      <Home className="h-5 w-5" />
-                      Properties
-                    </button>
-                  </motion.div>
+           
 
                   <motion.div whileTap={{ scale: 0.95 }}>
                     <button
@@ -733,7 +756,7 @@ export function Layout({ children }: LayoutProps) {
                       }}
                       className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all w-full ${
                         isActive("/learning-center")
-                          ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-md"
+                          ? "bg-gradient-to-r from-green-600 to-emerald-600 text-white shadow-md"
                           : "text-gray-700 hover:bg-gray-100"
                       }`}
                     >
@@ -755,7 +778,7 @@ export function Layout({ children }: LayoutProps) {
                       }}
                       className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all w-full ${
                         isActive("/cocoon-dashboard")
-                          ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-md"
+                          ? "bg-gradient-to-r from-green-600 to-emerald-600 text-white shadow-md"
                           : "text-gray-700 hover:bg-gray-100"
                       }`}
                     >
@@ -772,7 +795,7 @@ export function Layout({ children }: LayoutProps) {
                       }}
                       className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all w-full ${
                         isActive("/learning-center")
-                          ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-md"
+                          ? "bg-gradient-to-r from-green-600 to-emerald-600 text-white shadow-md"
                           : "text-gray-700 hover:bg-gray-100"
                       }`}
                     >
@@ -789,7 +812,7 @@ export function Layout({ children }: LayoutProps) {
                       }}
                       className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all w-full ${
                         isActive("/migrate")
-                          ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-md"
+                          ? "bg-gradient-to-r from-green-600 to-emerald-600 text-white shadow-md"
                           : "text-gray-700 hover:bg-gray-100"
                       }`}
                     >
@@ -799,6 +822,27 @@ export function Layout({ children }: LayoutProps) {
                   </motion.div>
                 </>
               )}
+               <div className="px-4 py-3">
+                 <div className="space-y-2">
+                   <span className="text-sm font-medium text-gray-700">
+                     Language
+                   </span>
+                   <Select
+                     value={selectedLanguage}
+                     onValueChange={(value: "EN" | "ES" | "FR" | "DE") => setSelectedLanguage(value)}
+                   >
+                     <SelectTrigger className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm font-medium bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all">
+                       <SelectValue placeholder="Select language" />
+                     </SelectTrigger>
+                     <SelectContent className="z-[9999] max-h-60 overflow-y-auto">
+                       <SelectItem value="EN">{t("english")}</SelectItem>
+                       <SelectItem value="ES">{t("spanish")}</SelectItem>
+                       <SelectItem value="FR">{t("french")}</SelectItem>
+                       <SelectItem value="DE">{t("german")}</SelectItem>
+                     </SelectContent>
+                   </Select>
+                 </div>
+               </div>
             </nav>
 
             {/* Footer */}
