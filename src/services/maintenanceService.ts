@@ -15,25 +15,10 @@ import {
   getDownloadURL 
 } from 'firebase/storage';
 import { db, storage } from '../lib/firebase';
+import { MaintenanceRequest } from '../types';
 
-export interface MaintenanceRequest {
-  id?: string;
-  title: string;
-  description: string;
-  category: 'plumbing' | 'electrical' | 'hvac' | 'appliance' | 'structural' | 'other';
-  priority: 'low' | 'medium' | 'high' | 'emergency';
-  status: 'submitted' | 'in_progress' | 'completed' | 'cancelled';
-  images: string[]; // URLs of uploaded images
-  submittedAt: Date;
-  scheduledDate?: Date;
-  completedDate?: Date;
-  notes?: string;
-  propertyAddress: string;
-  unitNumber?: string;
-  tenantId: string; // ID of the tenant who submitted the request
-  landlordId: string; // ID of the landlord who owns the property
-  propertyId?: string; // Reference to the property document
-}
+// Re-export the interface for backward compatibility
+export type { MaintenanceRequest };
 
 export interface MaintenanceActivity {
   id: string;
@@ -69,7 +54,7 @@ class MaintenanceService {
   }
 
   // Create a new maintenance request
-  async createMaintenanceRequest(requestData: Omit<MaintenanceRequest, 'id' | 'submittedAt'>, imageFiles?: File[]): Promise<string> {
+  async createMaintenanceRequest(requestData: Omit<MaintenanceRequest, 'id' | 'submittedAt' | 'updatedAt'>, imageFiles?: File[]): Promise<string> {
     try {
       let imageUrls: string[] = [];
       
@@ -175,6 +160,26 @@ class MaintenanceService {
     } catch (error) {
       console.error('Error updating maintenance request:', error);
       throw new Error('Failed to update maintenance request');
+    }
+  }
+
+  // Update maintenance request scheduled date
+  async updateMaintenanceRequestSchedule(requestId: string, scheduledDate: Date, notes?: string): Promise<void> {
+    try {
+      const requestRef = doc(db, this.collectionName, requestId);
+      const updateData: Record<string, string | { seconds: number; nanoseconds: number }> = {
+        scheduledDate: Timestamp.fromDate(scheduledDate),
+        updatedAt: Timestamp.fromDate(new Date())
+      };
+
+      if (notes) {
+        updateData.notes = notes;
+      }
+
+      await updateDoc(requestRef, updateData);
+    } catch (error) {
+      console.error('Error updating maintenance request schedule:', error);
+      throw new Error('Failed to update maintenance request schedule');
     }
   }
 

@@ -58,7 +58,6 @@ const ListingForm: React.FC<ListingFormProps> = ({
   const { user } = useAuth();
   const { toast } = useToast();
   const { FloatingScrollButton } = useScrollToTop();
-  console.log("users",user);
   
   // Generate unique IDs for this listing instance
   const listingId = data.title || `listing-${Math.random().toString(36).substr(2, 9)}`;

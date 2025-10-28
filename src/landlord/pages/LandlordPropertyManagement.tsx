@@ -1,11 +1,13 @@
 import React, { useState, useEffect, useCallback } from "react";
 import PropertyForm from "../components/PropertyForm/PropertyForm";
+import DeletePropertyModal from "../components/DeletePropertyModal";
+import ScheduleMaintenanceModal from "../components/ScheduleMaintenanceModal";
 import { Button } from "../../components/ui/Button";
 import { Badge } from "../../components/ui/badge";
 import { Popover, PopoverContent, PopoverTrigger } from "../../components/ui/popover";
 import { motion } from "framer-motion";
 import { useAuth } from "../../hooks/useAuth";
-import { collection, query, where, getDocs, orderBy } from "firebase/firestore";
+import { collection, query, where, getDocs, orderBy, doc, updateDoc } from "firebase/firestore";
 import { db } from "../../lib/firebase";
 import { maintenanceService, MaintenanceActivity, MaintenanceRequest } from "../../services/maintenanceService";
 import { updateApplicationStatus } from "../../services/submissionService";
@@ -42,6 +44,9 @@ import {
   Check,
   XCircle,
   MoreVertical,
+  Trash2,
+  Play,
+  CheckCircle,
 } from "lucide-react";
 import { Loader } from "../../components/ui/Loader";
 
@@ -481,6 +486,12 @@ const LandlordPropertyManagement: React.FC = () => {
   const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
   const [selectedMaintenanceRequest, setSelectedMaintenanceRequest] = useState<MaintenanceRequest | null>(null);
   const [showMaintenanceModal, setShowMaintenanceModal] = useState(false);
+  const [selectedPropertyForDelete, setSelectedPropertyForDelete] = useState<PropertyData | null>(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [showScheduleModal, setShowScheduleModal] = useState(false);
+  const [selectedRequestForSchedule, setSelectedRequestForSchedule] = useState<MaintenanceRequest | null>(null);
+
 console.log("maintenanceRequests", maintenanceRequests);
 
   // Fetch properties from Firebase
@@ -890,6 +901,194 @@ console.log("maintenanceRequests", maintenanceRequests);
     setShowPropertyViewModal(false);
   };
 
+  // Handle opening delete property modal
+  const handleDeleteProperty = (property: PropertyData) => {
+    setSelectedPropertyForDelete(property);
+    setShowDeleteModal(true);
+  };
+
+  // Handle closing delete property modal
+  const handleCloseDeleteModal = () => {
+    setSelectedPropertyForDelete(null);
+    setShowDeleteModal(false);
+  };
+
+  // Handle confirming property deletion
+  const handleConfirmDelete = async () => {
+    if (!selectedPropertyForDelete) return;
+
+    setIsDeleting(true);
+    try {
+      // TODO: Implement actual deletion logic
+      // This would include:
+      // 1. Delete property from Firestore
+      // 2. Delete all associated units
+      // 3. Delete all associated listings
+      // 4. Delete all associated applications
+      // 5. Delete all associated maintenance requests
+      // 6. Notify affected users (renters, prospects)
+      // 7. Update any saved properties/searches
+      
+      console.log("Deleting property:", selectedPropertyForDelete.id);
+      
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      // Remove from local state
+      setProperties(prev => prev.filter(p => p.id !== selectedPropertyForDelete.id));
+      
+      toast({
+        title: "Property Deleted",
+        description: "The property and all associated data have been permanently deleted.",
+        variant: "destructive",
+      });
+      
+      handleCloseDeleteModal();
+    } catch (error) {
+      console.error("Error deleting property:", error);
+      toast({
+        title: "Deletion Failed",
+        description: "There was an error deleting the property. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  // Maintenance request handlers
+  const handleStatusChange = async (requestId: string, newStatus: MaintenanceRequest['status']) => {
+    try {
+      await maintenanceService.updateMaintenanceRequestStatus(requestId, newStatus);
+      
+      // Update local state
+      setMaintenanceRequests(prev => 
+        prev.map(req => 
+          req.id === requestId 
+            ? { ...req, status: newStatus }
+            : req
+        )
+      );
+      
+      toast({
+        title: "Status Updated",
+        description: `Maintenance request status changed to ${newStatus.replace('_', ' ')}.`,
+      });
+    } catch (error) {
+      console.error("Error updating status:", error);
+      toast({
+        title: "Update Failed",
+        description: "Failed to update maintenance request status.",
+        variant: "destructive",
+      });
+    }
+  };
+
+
+  const handleScheduleMaintenance = (request: MaintenanceRequest) => {
+    handleScheduleRequest(request);
+  };
+
+
+  const handleCancelRequest = async (requestId: string) => {
+    try {
+      await maintenanceService.updateMaintenanceRequestStatus(requestId, 'cancelled');
+      
+      // Update local state
+      setMaintenanceRequests(prev => 
+        prev.map(req => 
+          req.id === requestId 
+            ? { ...req, status: 'cancelled' }
+            : req
+        )
+      );
+      
+      toast({
+        title: "Request Cancelled",
+        description: "The maintenance request has been cancelled.",
+        variant: "destructive",
+      });
+    } catch (error) {
+      console.error("Error cancelling request:", error);
+      toast({
+        title: "Cancellation Failed",
+        description: "Failed to cancel the maintenance request.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleScheduleRequest = (request: MaintenanceRequest) => {
+    setSelectedRequestForSchedule(request);
+    setShowScheduleModal(true);
+    setOpenDropdownId(null);
+  };
+
+  const handleScheduleComplete = () => {
+    // Refresh maintenance requests
+    fetchMaintenanceRequests();
+  };
+
+  // Inline editing handlers
+  const handleInlineStatusChange = async (requestId: string, newStatus: MaintenanceRequest['status']) => {
+    try {
+      await maintenanceService.updateMaintenanceRequestStatus(requestId, newStatus);
+      
+      // Update local state
+      setMaintenanceRequests(prev => 
+        prev.map(req => 
+          req.id === requestId 
+            ? { ...req, status: newStatus }
+            : req
+        )
+      );
+      
+      toast({
+        title: "Status Updated",
+        description: `Status changed to ${newStatus.replace('_', ' ')}.`,
+      });
+    } catch (error) {
+      console.error("Error updating status:", error);
+      toast({
+        title: "Update Failed",
+        description: "Failed to update status.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleInlinePriorityChange = async (requestId: string, newPriority: MaintenanceRequest['priority']) => {
+    try {
+      // Update the priority in Firestore
+      const requestRef = doc(db, 'maintenanceRequests', requestId);
+      await updateDoc(requestRef, {
+        priority: newPriority,
+        updatedAt: new Date()
+      });
+      
+      // Update local state
+      setMaintenanceRequests(prev => 
+        prev.map(req => 
+          req.id === requestId 
+            ? { ...req, priority: newPriority }
+            : req
+        )
+      );
+      
+      toast({
+        title: "Priority Updated",
+        description: `Priority changed to ${newPriority}.`,
+      });
+    } catch (error) {
+      console.error("Error updating priority:", error);
+      toast({
+        title: "Update Failed",
+        description: "Failed to update priority.",
+        variant: "destructive",
+      });
+    }
+  };
+
   if (showPropertyForm) {
     return <PropertyForm setPropertyFormOpen={(open: boolean) => setShowPropertyForm(open)} />;
   }
@@ -1040,7 +1239,7 @@ console.log("maintenanceRequests", maintenanceRequests);
                 { id: "properties", label: "Properties", icon: Building },
                 { id: "listings", label: "Listings", icon: List },
                 { id: "applications", label: "Applications", icon: Users },
-                { id: "maintenance", label: "Work Orders", icon: Wrench },
+                // { id: "maintenance", label: "Work Orders", icon: Wrench },
                 { id: "maintenance-requests", label: "Maintenance Requests", icon: Wrench },
                 { id: "reports", label: "Reports", icon: BarChart3 },
                 { id: "settings", label: "Settings", icon: Settings },
@@ -1517,9 +1716,11 @@ console.log("maintenanceRequests", maintenanceRequests);
                       <motion.button
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
-                            className="px-3 py-2 border border-gray-200 rounded-lg hover:bg-gray-50 font-medium text-gray-700 transition-all duration-200"
+                        onClick={() => handleDeleteProperty(property)}
+                        className="px-3 py-2 border border-red-200 rounded-lg hover:bg-red-50 font-medium text-red-600 hover:text-red-700 transition-all duration-200"
+                        title="Delete Property"
                       >
-                        <Settings className="h-4 w-4" />
+                        <Trash2 className="h-4 w-4" />
                       </motion.button>
                     </div>
                   </div>
@@ -2042,7 +2243,7 @@ console.log("maintenanceRequests", maintenanceRequests);
           </motion.div>
         )}
 
-        {/* Work Orders Tab */}
+        {/* Work Orders Tab
         {activeTab === "maintenance" && (
           <div className="space-y-6">
             <div className=" flex flex-col md:flex-row justify-between items-start md:items-center">
@@ -2094,7 +2295,7 @@ console.log("maintenanceRequests", maintenanceRequests);
               </div>
             </motion.div>
           </div>
-        )}
+        )} */}
 
         {/* Maintenance Requests Tab */}
         {activeTab === "maintenance-requests" && (
@@ -2110,7 +2311,7 @@ console.log("maintenanceRequests", maintenanceRequests);
                   Maintenance Requests
                 </h2>
                 <p className="text-gray-600 mt-1">
-                  Manage maintenance requests and work orders from tenants
+                  Manage maintenance requests and work orders from reter
                 </p>
               </div>
               <div className="flex items-center space-x-2 mt-2 md:mt-0 ">
@@ -2157,32 +2358,32 @@ console.log("maintenanceRequests", maintenanceRequests);
                 className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden"
               >
                 <div className="overflow-x-auto">
-                  <table className="w-full">
+                  <table className="w-full table-fixed">
                     <thead className="bg-gray-50 border-b border-gray-200">
                       <tr>
-                        <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <th className="px-4 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-48">
                           Issue
                         </th>
                        
-                        <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <th className="px-4 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-64">
                           Description
                         </th>
-                        <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <th className="px-4 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider  w-24 ">
                           Status
                         </th>
-                        <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <th className="px-4 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-24">
                           Priority
                         </th>
-                        <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <th className="px-4 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-24">
                           Category
                         </th>
-                        <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <th className="px-4 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-20">
                           Unit
                         </th>
-                        <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <th className="px-4 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-28">
                           Submitted
                         </th>
-                        <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <th className="px-4 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-20">
                           Actions
                         </th>
                       </tr>
@@ -2196,7 +2397,7 @@ console.log("maintenanceRequests", maintenanceRequests);
                           transition={{ duration: 0.6, delay: index * 0.1 }}
                           className="hover:bg-gray-50 transition-colors duration-200"
                         >
-                          <td className="px-6 py-4 whitespace-nowrap">
+                          <td className="px-4 py-4 whitespace-nowrap w-48">
                             <div className="flex items-center">
                               <div className={`w-10 h-10 rounded-lg flex items-center justify-center mr-3 ${
                                 request.priority === 'emergency' ? 'bg-red-100' :
@@ -2211,53 +2412,175 @@ console.log("maintenanceRequests", maintenanceRequests);
                                   'text-green-600'
                                 }`} />
                               </div>
-                              <div>
-                                <div className="text-sm font-medium text-gray-900">
+                              <div className="min-w-0 flex-1">
+                                <div className="text-sm font-medium text-gray-900 truncate">
                                   {request.title}
                                 </div>
-                                <div className="text-sm text-gray-500">
+                                <div className="text-sm text-gray-500 truncate">
                                   {request.propertyAddress || 'N/A'}
                                 </div>
                               </div>
                             </div>
                           </td>
                          
-                          <td className="px-6 py-4">
-                            <div className="text-sm text-gray-900 max-w-xs truncate">
+                          <td className="px-4 py-4 w-64">
+                            <div className="text-sm text-gray-900 max-w-full truncate">
                               {request.description}
                             </div>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                              request.status === 'submitted' ? "bg-yellow-100 text-yellow-700" :
-                              request.status === 'in_progress' ? "bg-blue-100 text-blue-700" :
-                              request.status === 'completed' ? "bg-green-100 text-green-700" :
-                              "bg-gray-100 text-gray-700"
-                            }`}>
-                              {request.status.charAt(0).toUpperCase() + request.status.slice(1)}
-                            </span>
+                          <td className="px-4 py-4 whitespace-nowrap">
+                            <Popover>
+                              <PopoverTrigger asChild>
+                                <div className="cursor-pointer transition-all hover:scale-105 transform duration-200">
+                                  <span className={`px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1 ${
+                                    request.status === 'submitted' ? "bg-yellow-100 text-yellow-700" :
+                                    request.status === 'in_progress' ? "bg-blue-100 text-blue-700" :
+                                    request.status === 'completed' ? "bg-green-100 text-green-700" :
+                                    "bg-gray-100 text-gray-700"
+                                  }`}>
+                                    {request.status.charAt(0).toUpperCase() + request.status.slice(1)}
+                                    <ChevronRight className="w-3 h-3 rotate-90" />
+                                  </span>
+                                </div>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-auto p-0 rounded-lg shadow-lg border-0 overflow-hidden">
+                                <div className="py-2">
+                                  <div className="px-4 py-3 text-sm font-medium bg-gray-50 border-b">
+                                    <span className="text-gray-700">Change Status</span>
+                                  </div>
+                                  <div className="p-1">
+                                    {[
+                                      { value: 'submitted', label: 'Submitted' },
+                                      { value: 'in_progress', label: 'In Progress' },
+                                      { value: 'completed', label: 'Completed' },
+                                      { value: 'cancelled', label: 'Cancelled' },
+                                    ].map((status) => (
+                                      <div
+                                        key={status.value}
+                                        className={`px-3 py-2 text-sm cursor-pointer rounded m-1 flex items-center transition-all ${
+                                          request.status === status.value
+                                            ? "bg-gray-100"
+                                            : "hover:bg-gray-100"
+                                        }`}
+                                        onClick={() => {
+                                          if (request.id && request.status !== status.value) {
+                                            handleInlineStatusChange(request.id, status.value as MaintenanceRequest['status']);
+                                          }
+                                        }}
+                                      >
+                                        <span className="mr-2"></span>
+                                        <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                                          status.value === 'submitted' ? "bg-yellow-100 text-yellow-700" :
+                                          status.value === 'in_progress' ? "bg-blue-100 text-blue-700" :
+                                          status.value === 'completed' ? "bg-green-100 text-green-700" :
+                                          "bg-gray-100 text-gray-700"
+                                        }`}>
+                                          {status.label}
+                                        </span>
+                                        {request.status === status.value && (
+                                          <svg
+                                            className="ml-auto h-4 w-4 text-blue-500"
+                                            fill="none"
+                                            viewBox="0 0 24 24"
+                                            stroke="currentColor"
+                                          >
+                                            <path
+                                              strokeLinecap="round"
+                                              strokeLinejoin="round"
+                                              strokeWidth={2}
+                                              d="M5 13l4 4L19 7"
+                                            />
+                                          </svg>
+                                        )}
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              </PopoverContent>
+                            </Popover>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                              request.priority === 'emergency' ? 'bg-red-100 text-red-700' :
-                              request.priority === 'high' ? 'bg-orange-100 text-orange-700' :
-                              request.priority === 'medium' ? 'bg-yellow-100 text-yellow-700' :
-                              'bg-green-100 text-green-700'
-                            }`}>
-                              {request.priority.charAt(0).toUpperCase() + request.priority.slice(1)}
-                            </span>
+                          <td className="px-4 py-4 whitespace-nowrap ">
+                            <Popover>
+                              <PopoverTrigger asChild>
+                                <div className="cursor-pointer transition-all hover:scale-105 transform duration-200">
+                                  <span className={`px-2 py-1 rounded-full text-xs font-medium flex items-center gap-1 ${
+                                    request.priority === 'emergency' ? 'bg-red-100 text-red-700' :
+                                    request.priority === 'high' ? 'bg-orange-100 text-orange-700' :
+                                    request.priority === 'medium' ? 'bg-yellow-100 text-yellow-700' :
+                                    'bg-green-100 text-green-700'
+                                  }`}>
+                                    {request.priority.charAt(0).toUpperCase() + request.priority.slice(1)}
+                                    <ChevronRight className="w-3 h-3 rotate-90" />
+                                  </span>
+                                </div>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-auto p-0 rounded-lg shadow-lg border-0 overflow-hidden">
+                                <div className="py-2">
+                                  <div className="px-4 py-3 text-sm font-medium bg-gray-50 border-b">
+                                    <span className="text-gray-700">Change Priority</span>
+                                  </div>
+                                  <div className="p-1">
+                                    {[
+                                      { value: 'low', label: 'Low' },
+                                      { value: 'medium', label: 'Medium' },
+                                      { value: 'high', label: 'High' },
+                                      { value: 'emergency', label: 'Emergency' },
+                                    ].map((priority) => (
+                                      <div
+                                        key={priority.value}
+                                        className={`px-3 py-2 text-sm cursor-pointer rounded m-1 flex items-center transition-all ${
+                                          request.priority === priority.value
+                                            ? "bg-gray-100"
+                                            : "hover:bg-gray-100"
+                                        }`}
+                                        onClick={() => {
+                                          if (request.id && request.priority !== priority.value) {
+                                            handleInlinePriorityChange(request.id, priority.value as MaintenanceRequest['priority']);
+                                          }
+                                        }}
+                                      >
+                                        <span className="mr-2"></span>
+                                        <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                                          priority.value === 'low' ? "bg-green-100 text-green-700" :
+                                          priority.value === 'medium' ? "bg-yellow-100 text-yellow-700" :
+                                          priority.value === 'high' ? "bg-orange-100 text-orange-700" :
+                                          "bg-red-100 text-red-700"
+                                        }`}>
+                                          {priority.label}
+                                        </span>
+                                        {request.priority === priority.value && (
+                                          <svg
+                                            className="ml-auto h-4 w-4 text-blue-500"
+                                            fill="none"
+                                            viewBox="0 0 24 24"
+                                            stroke="currentColor"
+                                          >
+                                            <path
+                                              strokeLinecap="round"
+                                              strokeLinejoin="round"
+                                              strokeWidth={2}
+                                              d="M5 13l4 4L19 7"
+                                            />
+                                          </svg>
+                                        )}
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              </PopoverContent>
+                            </Popover>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
+                          <td className="px-4 py-4 whitespace-nowrap w-24">
                             <span className="px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-700">
                               {request.category.charAt(0).toUpperCase() + request.category.slice(1)}
                             </span>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
+                          <td className="px-4 py-4 whitespace-nowrap w-20">
                             <div className="text-sm text-gray-900">
                               {request.unitNumber || 'N/A'}
                             </div>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
+                          <td className="px-4 py-4 whitespace-nowrap w-28">
                             <div className="text-sm text-gray-900">
                               {new Date(request.submittedAt).toLocaleDateString()}
                             </div>
@@ -2267,7 +2590,7 @@ console.log("maintenanceRequests", maintenanceRequests);
                               </div>
                             )}
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                          <td className="px-4 py-4 whitespace-nowrap text-sm font-medium w-20">
                             <Popover 
                               open={openDropdownId === request.id} 
                               onOpenChange={(open) => setOpenDropdownId(open ? request.id || null : null)}
@@ -2281,35 +2604,100 @@ console.log("maintenanceRequests", maintenanceRequests);
                                   <MoreVertical className="h-4 w-4" />
                                 </Button>
                               </PopoverTrigger>
-                              <PopoverContent className="w-40 p-1" align="end">
+                              <PopoverContent className="w-48 p-1" align="end">
                                 <div className="space-y-1">
                                   <Button
                                     variant="ghost"
                                     size="sm"
                                     className="w-full justify-start text-blue-600 hover:text-blue-900 hover:bg-blue-50"
                                     onClick={() => {
-                                      // Handle view action
                                       setSelectedMaintenanceRequest(request);
                                       setShowMaintenanceModal(true);
                                       setOpenDropdownId(null);
                                     }}
                                   >
                                     <Eye className="h-4 w-4 mr-2" />
-                                    View
+                                    View Details
                                   </Button>
+                                  
+                                  {/* {request.status === 'submitted' && (
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="w-full justify-start text-orange-600 hover:text-orange-900 hover:bg-orange-50"
+                                      onClick={() => {
+                                        if (request.id) {
+                                          handleStatusChange(request.id, 'in_progress');
+                                        }
+                                        setOpenDropdownId(null);
+                                      }}
+                                    >
+                                      <Play className="h-4 w-4 mr-2" />
+                                      Start Work
+                                    </Button>
+                                  )}
+                                    
+                                  {request.status === 'in_progress' && (
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="w-full justify-start text-green-600 hover:text-green-900 hover:bg-green-50"
+                                      onClick={() => {
+                                        if (request.id) {
+                                          handleStatusChange(request.id, 'completed');
+                                        }
+                                        setOpenDropdownId(null);
+                                      }}
+                                    >
+                                      <CheckCircle className="h-4 w-4 mr-2" />
+                                      Mark Complete
+                                    </Button>
+                                  )}
+                                   */}
+                                
+                                  
                                   <Button
                                     variant="ghost"
                                     size="sm"
-                                    className="w-full justify-start text-green-600 hover:text-green-900 hover:bg-green-50"
+                                    className="w-full justify-start text-indigo-600 hover:text-indigo-900 hover:bg-indigo-50"
                                     onClick={() => {
-                                      // Handle update action
-                                      console.log('Update request:', request.id);
+                                      handleScheduleMaintenance(request);
                                       setOpenDropdownId(null);
                                     }}
                                   >
-                                    <Edit className="h-4 w-4 mr-2" />
-                                    Update
+                                    <Calendar className="h-4 w-4 mr-2" />
+                                    Schedule
                                   </Button>
+                                  
+                                  {/* <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="w-full justify-start text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+                                    onClick={() => {
+                                      handleAddNotes(request);
+                                      setOpenDropdownId(null);
+                                    }}
+                                  >
+                                    <MessageSquare className="h-4 w-4 mr-2" />
+                                    Add Notes
+                                  </Button> */}
+                                  
+                                  {request.status !== 'cancelled' && (
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="w-full justify-start text-red-600 hover:text-red-900 hover:bg-red-50"
+                                      onClick={() => {
+                                        if (request.id) {
+                                          handleCancelRequest(request.id);
+                                        }
+                                        setOpenDropdownId(null);
+                                      }}
+                                    >
+                                      <XCircle className="h-4 w-4 mr-2" />
+                                      Cancel Request
+                                    </Button>
+                                  )}
                                 </div>
                               </PopoverContent>
                             </Popover>
@@ -3555,13 +3943,13 @@ console.log("maintenanceRequests", maintenanceRequests);
                           </span>
                         </div>
                         <div className="flex items-center justify-between">
-                          <div className="flex items-center">
+                          {/* <div className="flex items-center">
                             <User className="h-4 w-4 mr-2 text-gray-500" />
                             <span className="text-sm font-medium text-gray-600">Tenant ID</span>
                           </div>
                           <span className="text-sm text-gray-900 font-mono text-xs">
                             {selectedMaintenanceRequest.tenantId.slice(0, 8)}...
-                          </span>
+                          </span> */}
                         </div>
                       </div>
                     </div>
@@ -3647,7 +4035,7 @@ console.log("maintenanceRequests", maintenanceRequests);
                       <div className="bg-white border border-gray-200 rounded-xl p-6">
                         <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
                           <FileText className="h-5 w-5 mr-2 text-gray-600" />
-                          Notes
+                          Your Notes
                         </h3>
                         <p className="text-gray-700 leading-relaxed text-sm">
                           {selectedMaintenanceRequest.notes}
@@ -3682,6 +4070,23 @@ console.log("maintenanceRequests", maintenanceRequests);
             </motion.div>
           </div>
         )}
+
+        {/* Delete Property Modal */}
+        <DeletePropertyModal
+          isOpen={showDeleteModal}
+          onClose={handleCloseDeleteModal}
+          onConfirm={handleConfirmDelete}
+          property={selectedPropertyForDelete}
+          isLoading={isDeleting}
+        />
+
+        {/* Schedule Maintenance Modal */}
+        <ScheduleMaintenanceModal
+          open={showScheduleModal}
+          onClose={() => setShowScheduleModal(false)}
+          maintenanceRequest={selectedRequestForSchedule}
+          onSchedule={handleScheduleComplete}
+        />
       </div>
     );
   };

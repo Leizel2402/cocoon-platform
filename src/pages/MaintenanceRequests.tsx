@@ -127,34 +127,34 @@ export function MaintenanceRequests() {
   };
 
   // Fetch maintenance requests from Firebase
-  useEffect(() => {
-    const fetchRequests = async () => {
-      if (!user?.uid) {
-        setLoading(false);
-        return;
-      }
-
-      try {
-        setLoading(true);
-        const userRequests = await maintenanceService.getMaintenanceRequestsByTenant(user.uid);
-        setRequests(userRequests);
-        
-        console.log("userRequests",userRequests);
-        
-      } catch (error) {
-        console.error('Error fetching maintenance requests:', error);
-        toast({
-          title: "Error",
-          description: "Failed to load maintenance requests. Please try again.",
-          variant: "destructive"
-        });
-      } finally {
+  const fetchRequests = useCallback(async () => {
+    if (!user?.uid) {
       setLoading(false);
-      }
-    };
+      return;
+    }
 
-    fetchRequests();
+    try {
+      setLoading(true);
+      const userRequests = await maintenanceService.getMaintenanceRequestsByTenant(user.uid);
+      setRequests(userRequests);
+      
+      console.log("userRequests",userRequests);
+      
+    } catch (error) {
+      console.error('Error fetching maintenance requests:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load maintenance requests. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+    setLoading(false);
+    }
   }, [user, toast]);
+
+  useEffect(() => {
+    fetchRequests();
+  }, [fetchRequests]);
 
   // Fetch approved applications for property selection
   useEffect(() => {
@@ -327,6 +327,9 @@ console.log("selectedProperty",selectedProperty);
     setImagePreviewUrls([]);
     setShowNewRequestForm(false);
 
+    // Refresh the requests list to ensure we have the latest data
+    await fetchRequests();
+
     toast({
       title: "Request submitted",
       description: "Your maintenance request has been submitted successfully.",
@@ -437,13 +440,23 @@ console.log("selectedProperty",selectedProperty);
                 </p>
               </div>
             </div>
-            <Button
-              onClick={() => setShowNewRequestForm(true)}
-              className="bg-white text-green-600 hover:bg-green-50 font-semibold transition-all duration-200 shadow-lg"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              New Request
-            </Button>
+            <div className="flex gap-3">
+              <Button
+                onClick={fetchRequests}
+                variant="outline"
+                className="border-white text-white hover:bg-white/20 font-semibold transition-all duration-200"
+              >
+                <Search className="h-4 w-4 mr-2" />
+                Refresh
+              </Button>
+              <Button
+                onClick={() => setShowNewRequestForm(true)}
+                className="bg-white text-green-600 hover:bg-green-50 font-semibold transition-all duration-200 shadow-lg"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                New Request
+              </Button>
+            </div>
           </div>
         </div>
       </div>
@@ -1090,7 +1103,7 @@ console.log("selectedProperty",selectedProperty);
                   <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
                     <h4 className="font-bold text-gray-800 mb-4 text-xl flex items-center">
                       <MessageSquare className="h-5 w-5 mr-2 text-blue-600" />
-                      Additional Notes
+                      Landlord Notes
                     </h4>
                     <div className="p-4 bg-gray-50 rounded-lg">
                       <p className="text-sm text-gray-600 leading-relaxed">

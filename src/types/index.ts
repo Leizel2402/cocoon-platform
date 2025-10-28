@@ -229,7 +229,7 @@ export interface FavoriteProperty {
 // Maintenance request interface
 export interface MaintenanceRequest {
   id: string;
-  renterId: string;
+  tenantId: string; // Changed from renterId to tenantId for consistency
   landlordId: string;
   propertyId: string;
   unitId?: string;
@@ -242,8 +242,10 @@ export interface MaintenanceRequest {
   scheduledDate?: Date;
   completedDate?: Date;
   notes?: string;
-  createdAt: Date;
-  updatedAt: Date;
+  propertyAddress: string; // Added missing field
+  unitNumber?: string; // Added missing field
+  submittedAt: Date; // Changed from createdAt to submittedAt for consistency
+  updatedAt?: Date;
 }
 
 // Payment interface

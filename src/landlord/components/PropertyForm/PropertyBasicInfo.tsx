@@ -56,7 +56,6 @@ const PropertyBasicInfo: React.FC<PropertyBasicInfoProps> = ({
   const { toast } = useToast();
   const { user } = useAuth();
   const { FloatingScrollButton } = useScrollToTop();
-console.log("user",user);
 
   const handleAddressChange = (field: string, value: string) => {
     onChange({
