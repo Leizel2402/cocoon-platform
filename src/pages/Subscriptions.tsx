@@ -46,6 +46,7 @@ import { Switch } from '../components/ui/switch';
 import { useToast } from '../hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
 import { Textarea } from '../components/ui/textarea';
+import { Loader } from '../components/ui/Loader';
 
 interface Subscription {
   id: string;
@@ -449,12 +450,10 @@ export function Subscriptions() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin text-green-600 mx-auto mb-4" />
-          <p className="text-gray-600">Loading subscriptions...</p>
-        </div>
-      </div>
+      <Loader 
+        message="Loading Subscriptions" 
+        subMessage="Retrieving your subscription services..."
+      />
     );
   }
 

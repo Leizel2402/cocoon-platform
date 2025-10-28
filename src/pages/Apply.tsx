@@ -9,6 +9,7 @@ import { useAuth } from "../hooks/useAuth";
 import { Property } from "../types";
 import { motion } from "framer-motion";
 import { FileText, Check, AlertCircle, User, Home } from "lucide-react";
+import { Loader } from "../components/ui/Loader";
 
 const applicationSchema = z.object({
   name: z
@@ -137,7 +138,7 @@ export function Apply() {
 
   if (success) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 flex items-center justify-center">
         <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}

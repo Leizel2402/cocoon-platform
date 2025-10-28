@@ -44,6 +44,7 @@ import {
   SearchSuggestion,
 } from "../services/geocodingService";
 import AutoSuggest from "../components/AutoSuggest";
+import { Loader } from "../components/ui/Loader";
 
 // Helper function to determine if a search term is a country name
 const isCountryName = (searchTerm: string): boolean => {
@@ -1681,22 +1682,10 @@ const Dashboards = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100">
-        {/* Content skeleton */}
-        <div className="container mx-auto px-4 py-6">
-          <div className="space-y-6">
-            <div className="h-8 w-48 bg-muted animate-pulse rounded"></div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {Array.from({ length: 6 }).map((_, i) => (
-                <div
-                  key={i}
-                  className="h-64 bg-muted animate-pulse rounded-lg"
-                ></div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
+      <Loader 
+        message="Loading Dashboard" 
+        subMessage="Preparing your property search and filters..."
+      />
     );
   }
 

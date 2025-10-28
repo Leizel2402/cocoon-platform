@@ -1,6 +1,7 @@
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { UserRole } from '../types';
+import { Loader } from './ui/Loader';
  
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -19,12 +20,10 @@ export function ProtectedRoute({
  
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading...</p>
-        </div>
-      </div>
+      <Loader 
+        message="Authenticating" 
+        subMessage="Verifying your access permissions..."
+      />
     );
   }
  

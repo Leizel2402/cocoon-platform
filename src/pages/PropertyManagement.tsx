@@ -18,6 +18,7 @@ import { Property, Unit, Listing } from '../types';
 import { collection, query, where, getDocs, orderBy, addDoc, updateDoc, deleteDoc, doc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { PropertyForm } from '../components/forms';
+import { Loader } from '../components/ui/Loader';
 
 export function PropertyManagement() {
   const { user, isLandlord } = useAuth();
@@ -127,12 +128,10 @@ export function PropertyManagement() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading properties...</p>
-        </div>
-      </div>
+      <Loader 
+        message="Loading Properties" 
+        subMessage="Retrieving your property management data..."
+      />
     );
   }
 

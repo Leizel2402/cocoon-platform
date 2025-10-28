@@ -145,6 +145,12 @@ export interface PropertyFormErrors {
     lease_term_months?: string;
     security_deposit_months?: string;
     lease_term_options?: string;
+    userDetails?: {
+      name?: string;
+      phone?: string;
+      email?: string;
+    };
+    available_date?: string;
   };
   units?: {
     [key: number]: {
@@ -159,6 +165,11 @@ export interface PropertyFormErrors {
       security_deposit_months?: string;
       pet_deposit?: string;
       application_fee?: string;
+      userDetails?: {
+        name?: string;
+        phone?: string;
+        email?: string;
+      };
     };
   };
   listings?: {
@@ -174,6 +185,11 @@ export interface PropertyFormErrors {
       security_deposit_months?: string;
       pet_deposit?: string;
       application_fee?: string;
+      userDetails?: {
+        name?: string;
+        phone?: string;
+        email?: string;
+      };
     };
   };
 }

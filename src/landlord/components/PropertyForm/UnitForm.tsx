@@ -24,6 +24,11 @@ interface UnitFormProps {
     rent?: string;
     deposit?: string;
     description?: string;
+    userDetails?: {
+      name?: string;
+      phone?: string;
+      email?: string;
+    };
   };
   showRemoveButton?: boolean;
   propertyLeaseTerms?: {
@@ -459,7 +464,7 @@ const UnitForm: React.FC<UnitFormProps> = ({
                 htmlFor="availableDate"
                 className="block text-sm font-semibold text-gray-700 mb-2"
               >
-                Available Date
+                Available Date *
               </Label>
               <Input
                 id="availableDate"
@@ -469,7 +474,9 @@ const UnitForm: React.FC<UnitFormProps> = ({
                   ...data, 
                   availableDate: e.target.value ? new Date(e.target.value) : undefined 
                 })}
+                min={new Date().toISOString().split('T')[0]}
                 className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-green-200 bg-white/50 backdrop-blur-sm"
+                required
               />
             </div>
           )}
@@ -791,9 +798,7 @@ const UnitForm: React.FC<UnitFormProps> = ({
             onChange={(e) => {
               onChange({ ...data, description: e.target.value });
               // Trigger scroll when user completes the last field
-              if (e.target.value.trim() && onLastFieldComplete) {
-                setTimeout(() => onLastFieldComplete(), 100);
-              }
+           
             }}
             placeholder="Describe this unit, its features, and what makes it special..."
             rows={4}
@@ -840,9 +845,14 @@ const UnitForm: React.FC<UnitFormProps> = ({
                 value={data.userDetails.name}
                 onChange={(e) => handleUserDetailsChange('name', e.target.value)}
                 placeholder="John Doe"
-                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-green-200 bg-white/50 backdrop-blur-sm"
+                className={`w-full px-4 py-3 border rounded-lg focus:outline-none bg-white/50 backdrop-blur-sm ${
+                  errors?.userDetails?.name ? 'border-red-500 focus:ring-red-200' : 'border-gray-200 focus:ring-green-200'
+                }`}
                 required
               />
+              {errors?.userDetails?.name && (
+                <p className="text-red-500 text-sm mt-1">{errors.userDetails.name}</p>
+              )}
             </div>
 
             <div>
@@ -858,9 +868,14 @@ const UnitForm: React.FC<UnitFormProps> = ({
                 value={data.userDetails.phone}
                 onChange={(e) => handleUserDetailsChange('phone', e.target.value)}
                 placeholder="(555) 123-4567"
-                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-green-200 bg-white/50 backdrop-blur-sm"
+                className={`w-full px-4 py-3 border rounded-lg focus:outline-none bg-white/50 backdrop-blur-sm ${
+                  errors?.userDetails?.phone ? 'border-red-500 focus:ring-red-200' : 'border-gray-200 focus:ring-green-200'
+                }`}
                 required
               />
+              {errors?.userDetails?.phone && (
+                <p className="text-red-500 text-sm mt-1">{errors.userDetails.phone}</p>
+              )}
             </div>
 
             <div>
@@ -876,9 +891,14 @@ const UnitForm: React.FC<UnitFormProps> = ({
                 value={data.userDetails.email}
                 onChange={(e) => handleUserDetailsChange('email', e.target.value)}
                 placeholder="john@example.com"
-                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-green-200 bg-white/50 backdrop-blur-sm"
+                className={`w-full px-4 py-3 border rounded-lg focus:outline-none bg-white/50 backdrop-blur-sm ${
+                  errors?.userDetails?.email ? 'border-red-500 focus:ring-red-200' : 'border-gray-200 focus:ring-green-200'
+                }`}
                 required
               />
+              {errors?.userDetails?.email && (
+                <p className="text-red-500 text-sm mt-1">{errors.userDetails.email}</p>
+              )}
             </div>
           </div>
         </div>

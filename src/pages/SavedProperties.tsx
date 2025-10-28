@@ -25,6 +25,7 @@ import ScheduleTourModal from '../components/rentar/unitSelecttion/ScheduleTourM
 import { useNavigate } from 'react-router-dom';
 import { collection, query, getDocs } from 'firebase/firestore';
 import { db } from '../lib/firebase';
+import { Loader } from '../components/ui/Loader';
 
 export function SavedProperties() {
   const { user } = useAuth();
@@ -228,14 +229,10 @@ export function SavedProperties() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100 p-8">
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center py-16">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto mb-4"></div>
-            <p className="text-gray-600">Loading your saved properties...</p>
-          </div>
-        </div>
-      </div>
+      <Loader 
+        message="Loading Saved Properties" 
+        subMessage="Retrieving your favorite rental homes..."
+      />
     );
   }
 

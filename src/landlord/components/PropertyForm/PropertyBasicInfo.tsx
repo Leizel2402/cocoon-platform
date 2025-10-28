@@ -36,6 +36,12 @@ interface PropertyBasicInfoProps {
     property_type?: string;
     description?: string;
     rating?: string;
+    userDetails?: {
+      name?: string;
+      phone?: string;
+      email?: string;
+    };
+    available_date?: string;
   };
 }
 
@@ -50,6 +56,7 @@ const PropertyBasicInfo: React.FC<PropertyBasicInfoProps> = ({
   const { toast } = useToast();
   const { user } = useAuth();
   const { FloatingScrollButton } = useScrollToTop();
+console.log("user",user);
 
   const handleAddressChange = (field: string, value: string) => {
     onChange({
@@ -217,8 +224,14 @@ const PropertyBasicInfo: React.FC<PropertyBasicInfoProps> = ({
 
     navigator.geolocation.getCurrentPosition(
       (position) => {
-        handleLocationChange('lat', position.coords.latitude);
-        handleLocationChange('lng', position.coords.longitude);
+        // Update both coordinates in a single call to trigger validation properly
+        onChange({
+          ...data,
+          location: {
+            lat: position.coords.latitude,
+            lng: position.coords.longitude,
+          },
+        });
         setShowLocationInput(false);
         
         // Reset button
@@ -523,8 +536,24 @@ const PropertyBasicInfo: React.FC<PropertyBasicInfoProps> = ({
             <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
               <MapPin className="h-4 w-4 text-purple-600" />
             </div>
-            <h3 className="text-lg font-semibold text-gray-900">Location Coordinates</h3>
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900">Location Coordinates *</h3>
+              <p className="text-sm text-gray-600">Required for accurate property location on maps</p>
+            </div>
           </div>
+
+          {/* Show error message if coordinates are missing */}
+          {(errors?.location?.lat || errors?.location?.lng) && (
+            <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+              <div className="flex items-center gap-2">
+                <MapPin className="h-4 w-4 text-red-600" />
+                <p className="text-red-700 font-medium">Location coordinates are required</p>
+              </div>
+              <p className="text-red-600 text-sm mt-1">
+                Please use "Use Current Location" or enter coordinates manually to continue.
+              </p>
+            </div>
+          )}
 
           <div className="flex gap-3">
             <Button
@@ -547,62 +576,104 @@ const PropertyBasicInfo: React.FC<PropertyBasicInfoProps> = ({
           </div>
 
           {showLocationInput && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <Label
-                  htmlFor="latitude"
-                  className="block text-sm font-semibold text-gray-700 mb-2"
-                >
-                  Latitude *
-                </Label>
-                <Input
-                  id="latitude"
-                  type="number"
-                  step="any"
-                  value={data.location.lat || ''}
-                  onChange={(e) => handleLocationChange('lat', parseFloat(e.target.value) || 0)}
-                  placeholder="37.7749"
-                  className={`w-full px-4 py-3 border rounded-lg focus:outline-none bg-white/50 backdrop-blur-sm ${
-                    errors?.location?.lat ? 'border-red-500 focus:ring-red-200' : 'border-gray-200 focus:ring-green-200'
-                  }`}
-                  required
-                />
-                {errors?.location?.lat && (
-                  <p className="text-red-500 text-sm mt-1">{errors.location.lat}</p>
-                )}
+            <div className="space-y-4">
+              <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <div className="flex items-center gap-2 mb-2">
+                  <MapPin className="h-4 w-4 text-blue-600" />
+                  <p className="text-blue-700 font-medium">Manual Coordinate Entry</p>
+                </div>
+                <p className="text-blue-600 text-sm">
+                  Enter the exact latitude and longitude coordinates for your property. 
+                  You can find these using Google Maps or other mapping services.
+                </p>
               </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <Label
+                    htmlFor="latitude"
+                    className="block text-sm font-semibold text-gray-700 mb-2"
+                  >
+                    Latitude * <span className="text-gray-500 font-normal">(-90 to 90)</span>
+                  </Label>
+                  <Input
+                    id="latitude"
+                    type="number"
+                    step="any"
+                    min="-90"
+                    max="90"
+                    value={data.location.lat || ''}
+                    onChange={(e) => handleLocationChange('lat', parseFloat(e.target.value) || 0)}
+                    placeholder="37.7749"
+                    className={`w-full px-4 py-3 border rounded-lg focus:outline-none bg-white/50 backdrop-blur-sm ${
+                      errors?.location?.lat ? 'border-red-500 focus:ring-red-200' : 'border-gray-200 focus:ring-green-200'
+                    }`}
+                    required
+                  />
+                  {errors?.location?.lat && (
+                    <p className="text-red-500 text-sm mt-1">{errors.location.lat}</p>
+                  )}
+                </div>
 
-              <div>
-                <Label
-                  htmlFor="longitude"
-                  className="block text-sm font-semibold text-gray-700 mb-2"
-                >
-                  Longitude *
-                </Label>
-                <Input
-                  id="longitude"
-                  type="number"
-                  step="any"
-                  value={data.location.lng || ''}
-                  onChange={(e) => handleLocationChange('lng', parseFloat(e.target.value) || 0)}
-                  placeholder="-122.4194"
-                  className={`w-full px-4 py-3 border rounded-lg focus:outline-none bg-white/50 backdrop-blur-sm ${
-                    errors?.location?.lng ? 'border-red-500 focus:ring-red-200' : 'border-gray-200 focus:ring-green-200'
-                  }`}
-                  required
-                />
-                {errors?.location?.lng && (
-                  <p className="text-red-500 text-sm mt-1">{errors.location.lng}</p>
-                )}
+                <div>
+                  <Label
+                    htmlFor="longitude"
+                    className="block text-sm font-semibold text-gray-700 mb-2"
+                  >
+                    Longitude * <span className="text-gray-500 font-normal">(-180 to 180)</span>
+                  </Label>
+                  <Input
+                    id="longitude"
+                    type="number"
+                    step="any"
+                    min="-180"
+                    max="180"
+                    value={data.location.lng || ''}
+                    onChange={(e) => handleLocationChange('lng', parseFloat(e.target.value) || 0)}
+                    placeholder="-122.4194"
+                    className={`w-full px-4 py-3 border rounded-lg focus:outline-none bg-white/50 backdrop-blur-sm ${
+                      errors?.location?.lng ? 'border-red-500 focus:ring-red-200' : 'border-gray-200 focus:ring-green-200'
+                    }`}
+                    required
+                  />
+                  {errors?.location?.lng && (
+                    <p className="text-red-500 text-sm mt-1">{errors.location.lng}</p>
+                  )}
+                </div>
               </div>
             </div>
           )}
 
           {/* Display current coordinates */}
           {(data.location.lat && data.location.lng) && (
-            <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
-              <p className="text-sm text-gray-600">
-                <strong>Current Location:</strong> {data.location.lat.toFixed(6)}, {data.location.lng.toFixed(6)}
+            <div className={`p-4 rounded-lg border ${
+              errors?.location?.lat || errors?.location?.lng 
+                ? 'bg-red-50 border-red-200' 
+                : 'bg-green-50 border-green-200'
+            }`}>
+              <div className="flex items-center gap-2">
+                <MapPin className={`h-4 w-4 ${
+                  errors?.location?.lat || errors?.location?.lng 
+                    ? 'text-red-600' 
+                    : 'text-green-600'
+                }`} />
+                <p className={`text-sm font-medium ${
+                  errors?.location?.lat || errors?.location?.lng 
+                    ? 'text-red-700' 
+                    : 'text-green-700'
+                }`}>
+                  {errors?.location?.lat || errors?.location?.lng 
+                    ? 'Invalid Location Coordinates' 
+                    : 'Location Set Successfully'
+                  }
+                </p>
+              </div>
+              <p className={`text-sm mt-1 ${
+                errors?.location?.lat || errors?.location?.lng 
+                  ? 'text-red-600' 
+                  : 'text-green-600'
+              }`}>
+                <strong>Coordinates:</strong> {data.location.lat.toFixed(6)}, {data.location.lng.toFixed(6)}
               </p>
             </div>
           )}
@@ -800,15 +871,23 @@ const PropertyBasicInfo: React.FC<PropertyBasicInfoProps> = ({
                 htmlFor="availableDate"
                 className="block text-sm font-semibold text-gray-700 mb-2"
               >
-                Available Date
+                Available Date *
               </Label>
               <Input
+              
                 id="availableDate"
                 type="date"
                 value={data.available_date || ''}
                 onChange={(e) => onChange({ ...data, available_date: e.target.value || null })}
-                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-green-200 bg-white/50 backdrop-blur-sm"
+                min={new Date().toISOString().split('T')[0]}
+                className={`w-full px-4 py-3 border rounded-lg focus:outline-none bg-white/50 backdrop-blur-sm ${
+                  errors?.available_date ? 'border-red-500 focus:ring-red-200' : 'border-gray-200 focus:ring-green-200'
+                }`}
+                required
               />
+              {errors?.available_date && (
+                <p className="text-red-500 text-sm mt-1">{errors.available_date}</p>
+              )}
             </div>
           )}
         </div>
@@ -1168,9 +1247,14 @@ const PropertyBasicInfo: React.FC<PropertyBasicInfoProps> = ({
                 value={data.userDetails.name}
                 onChange={(e) => handleUserDetailsChange('name', e.target.value)}
                 placeholder="John Doe"
-                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-green-200 bg-white/50 backdrop-blur-sm"
+                className={`w-full px-4 py-3 border rounded-lg focus:outline-none bg-white/50 backdrop-blur-sm ${
+                  errors?.userDetails?.name ? 'border-red-500 focus:ring-red-200' : 'border-gray-200 focus:ring-green-200'
+                }`}
                 required
               />
+              {errors?.userDetails?.name && (
+                <p className="text-red-500 text-sm mt-1">{errors.userDetails.name}</p>
+              )}
             </div>
 
             <div>
@@ -1186,9 +1270,14 @@ const PropertyBasicInfo: React.FC<PropertyBasicInfoProps> = ({
                 value={data.userDetails.phone}
                 onChange={(e) => handleUserDetailsChange('phone', e.target.value)}
                 placeholder="(555) 123-4567"
-                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-green-200 bg-white/50 backdrop-blur-sm"
+                className={`w-full px-4 py-3 border rounded-lg focus:outline-none bg-white/50 backdrop-blur-sm ${
+                  errors?.userDetails?.phone ? 'border-red-500 focus:ring-red-200' : 'border-gray-200 focus:ring-green-200'
+                }`}
                 required
               />
+              {errors?.userDetails?.phone && (
+                <p className="text-red-500 text-sm mt-1">{errors.userDetails.phone}</p>
+              )}
             </div>
 
             <div>
@@ -1204,9 +1293,14 @@ const PropertyBasicInfo: React.FC<PropertyBasicInfoProps> = ({
                 value={data.userDetails.email}
                 onChange={(e) => handleUserDetailsChange('email', e.target.value)}
                 placeholder="john@example.com"
-                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-green-200 bg-white/50 backdrop-blur-sm"
+                className={`w-full px-4 py-3 border rounded-lg focus:outline-none bg-white/50 backdrop-blur-sm ${
+                  errors?.userDetails?.email ? 'border-red-500 focus:ring-red-200' : 'border-gray-200 focus:ring-green-200'
+                }`}
                 required
               />
+              {errors?.userDetails?.email && (
+                <p className="text-red-500 text-sm mt-1">{errors.userDetails.email}</p>
+              )}
             </div>
           </div>
         </div>

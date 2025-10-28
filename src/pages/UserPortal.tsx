@@ -40,6 +40,7 @@ import {
 } from "../services/userDataService";
 import { maintenanceService, type MaintenanceRequest } from "../services/maintenanceService";
 import { useNavigate } from "react-router-dom";
+import { Loader } from "../components/ui/Loader";
 
 // Dummy data for UI demonstration
 const dummyRentPayments: RentPayment[] = [
@@ -363,13 +364,11 @@ export function UserPortal() {
 
   // Show loading state while authentication or data is loading
   if (authLoading || dataLoading) {
-  return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin text-green-600 mx-auto mb-4" />
-          <p className="text-gray-600">Loading your portal...</p>
-                </div>
-              </div>
+    return (
+      <Loader 
+        message="Loading Portal" 
+        subMessage="Preparing your renter dashboard..."
+      />
     );
   }
 

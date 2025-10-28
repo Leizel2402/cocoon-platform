@@ -110,8 +110,59 @@ const PropertyForm: React.FC<{
         first_month_rent_required: true,
         last_month_rent_required: false,
       },
-      units: [],
-      listings: [],
+      units: [
+        {
+          unitNumber: '',
+          bedrooms: 1,
+          bathrooms: 1,
+          squareFeet: 0,
+          rent: 0,
+          deposit: 0,
+          available: true,
+          amenities: [],
+          images: [],
+          floorImage: '',
+          description: '',
+          userDetails: {
+            name: '',
+            phone: '',
+            email: '',
+          },
+          lease_term_months: 12,
+          lease_term_options: ['12 Months'],
+          security_deposit_months: 1,
+          first_month_rent_required: true,
+          last_month_rent_required: false,
+          pet_deposit: 0,
+          application_fee: 0,
+        }
+      ],
+      listings: [
+        {
+          title: '',
+          description: '',
+          rent: 0,
+          deposit: 0,
+          bedrooms: 1,
+          bathrooms: 1,
+          squareFeet: 0,
+          images: [],
+          amenities: [],
+          available: true,
+          userDetails: {
+            name: '',
+            phone: '',
+            email: '',
+          },
+          lease_term_months: 12,
+          lease_term_options: ['12 Months'],
+          security_deposit_months: 1,
+          first_month_rent_required: true,
+          last_month_rent_required: false,
+          pet_deposit: 0,
+          application_fee: 0,
+        }
+      ],
     },
     errors: {},
     isSubmitting: false,
@@ -170,8 +221,8 @@ const PropertyForm: React.FC<{
 
   const [steps, setSteps] = useState({
     property: { completed: false, valid: false },
-    units: { completed: false, valid: false },
-    listings: { completed: false, valid: false },
+    units: { completed: true, valid: false }, // Has default unit but not valid until filled
+    listings: { completed: true, valid: false }, // Has default listing but not valid until filled
     review: { completed: false, valid: false },
   });
 
@@ -213,8 +264,26 @@ const PropertyForm: React.FC<{
       errors.address = { ...errors.address, country: 'Country is required' };
     }
 
-    if (data.location.lat === 0 && data.location.lng === 0) {
-      errors.location = { lat: 'Location coordinates are required', lng: 'Location coordinates are required' };
+    // Validate location coordinates
+    if (!data.location.lat || !data.location.lng || data.location.lat === 0 || data.location.lng === 0) {
+      errors.location = { 
+        lat: 'Latitude is required', 
+        lng: 'Longitude is required' 
+      };
+    } else {
+      // Validate coordinate ranges
+      if (data.location.lat < -90 || data.location.lat > 90) {
+        errors.location = { 
+          ...errors.location, 
+          lat: 'Latitude must be between -90 and 90 degrees' 
+        };
+      }
+      if (data.location.lng < -180 || data.location.lng > 180) {
+        errors.location = { 
+          ...errors.location, 
+          lng: 'Longitude must be between -180 and 180 degrees' 
+        };
+      }
     }
 
     if (!data.property_type.trim()) {
@@ -259,11 +328,33 @@ const PropertyForm: React.FC<{
       errors.lease_term_options = 'At least one lease term option must be selected';
     }
 
+    // Validate Contact Information
+    if (!data.userDetails.name.trim()) {
+      errors.userDetails = { ...errors.userDetails, name: 'Contact name is required' };
+    }
+
+    if (!data.userDetails.phone.trim()) {
+      errors.userDetails = { ...errors.userDetails, phone: 'Contact phone number is required' };
+    } else if (!/^[+]?[1-9]\d{0,15}$/.test(data.userDetails.phone.replace(/[\s\-()]/g, ''))) {
+      errors.userDetails = { ...errors.userDetails, phone: 'Please enter a valid phone number' };
+    }
+
+    if (!data.userDetails.email.trim()) {
+      errors.userDetails = { ...errors.userDetails, email: 'Contact email is required' };
+    } else     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.userDetails.email)) {
+      errors.userDetails = { ...errors.userDetails, email: 'Please enter a valid email address' };
+    }
+
+    // Validate available date
+    if (data.is_available && !data.available_date) {
+      errors.available_date = 'Available date is required when property is marked as available';
+    }
+
     return errors;
   };
 
   const validateUnit = (data: UnitFormData) => {
-    const errors: Record<string, string> = {};
+    const errors: Record<string, string | { name?: string; phone?: string; email?: string }> = {};
     
     if (!data.unitNumber.trim()) {
       errors.unitNumber = 'Unit number is required';
@@ -311,11 +402,34 @@ const PropertyForm: React.FC<{
       errors.application_fee = 'Application fee must be between $0 and $1,000';
     }
 
+    // Validate Contact Information
+    const userDetailsErrors: { name?: string; phone?: string; email?: string } = {};
+    
+    if (!data.userDetails.name.trim()) {
+      userDetailsErrors.name = 'Contact name is required';
+    }
+
+    if (!data.userDetails.phone.trim()) {
+      userDetailsErrors.phone = 'Contact phone number is required';
+    } else if (!/^[+]?[1-9]\d{0,15}$/.test(data.userDetails.phone.replace(/[\s\-()]/g, ''))) {
+      userDetailsErrors.phone = 'Please enter a valid phone number';
+    }
+
+    if (!data.userDetails.email.trim()) {
+      userDetailsErrors.email = 'Contact email is required';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.userDetails.email)) {
+      userDetailsErrors.email = 'Please enter a valid email address';
+    }
+
+    if (Object.keys(userDetailsErrors).length > 0) {
+      errors.userDetails = userDetailsErrors;
+    }
+
     return errors;
   };
 
   const validateListing = (data: ListingFormData) => {
-    const errors: Record<string, string> = {};
+    const errors: Record<string, string | { name?: string; phone?: string; email?: string }> = {};
     
     if (!data.title.trim()) {
       errors.title = 'Listing title is required';
@@ -363,6 +477,29 @@ const PropertyForm: React.FC<{
 
     if (data.application_fee < 0 || data.application_fee > 1000) {
       errors.application_fee = 'Application fee must be between $0 and $1,000';
+    }
+
+    // Validate Contact Information
+    const userDetailsErrors: { name?: string; phone?: string; email?: string } = {};
+    
+    if (!data.userDetails.name.trim()) {
+      userDetailsErrors.name = 'Contact name is required';
+    }
+
+    if (!data.userDetails.phone.trim()) {
+      userDetailsErrors.phone = 'Contact phone number is required';
+    } else if (!/^[+]?[1-9]\d{0,15}$/.test(data.userDetails.phone.replace(/[\s\-()]/g, ''))) {
+      userDetailsErrors.phone = 'Please enter a valid phone number';
+    }
+
+    if (!data.userDetails.email.trim()) {
+      userDetailsErrors.email = 'Contact email is required';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.userDetails.email)) {
+      userDetailsErrors.email = 'Please enter a valid email address';
+    }
+
+    if (Object.keys(userDetailsErrors).length > 0) {
+      errors.userDetails = userDetailsErrors;
     }
 
     return errors;
@@ -430,9 +567,26 @@ const PropertyForm: React.FC<{
       errors: { ...formState.errors, property: errors },
     });
 
+    // Check if all required fields are filled
+    const isAllRequiredFieldsFilled = 
+      propertyData.name.trim() &&
+      propertyData.title.trim() &&
+      propertyData.address.line1.trim() &&
+      propertyData.address.city.trim() &&
+      propertyData.address.region.trim() &&
+      propertyData.address.postalCode.trim() &&
+      propertyData.address.country.trim() &&
+      propertyData.location.lat !== 0 &&
+      propertyData.location.lng !== 0 &&
+      propertyData.description.trim() &&
+      propertyData.userDetails.name.trim() &&
+      propertyData.userDetails.phone.trim() &&
+      propertyData.userDetails.email.trim() &&
+      (!propertyData.is_available || propertyData.available_date);
+
     setSteps(prev => ({
       ...prev,
-      property: { completed: isValid, valid: isValid }
+      property: { completed: Boolean(isValid && isAllRequiredFieldsFilled), valid: Boolean(isValid && isAllRequiredFieldsFilled) }
     }));
   };
 
@@ -454,9 +608,23 @@ const PropertyForm: React.FC<{
       },
     });
 
+    // Check if all units have all required fields filled
+    const allUnitsValid = updatedUnits.length > 0 && updatedUnits.every(unit => {
+      const unitErrors = validateUnit(unit);
+      const hasNoErrors = Object.keys(unitErrors || {}).length === 0;
+      const hasAllRequiredFields = 
+        unit.unitNumber.trim() &&
+        unit.description.trim() &&
+        unit.userDetails.name.trim() &&
+        unit.userDetails.phone.trim() &&
+        unit.userDetails.email.trim() &&
+        (!unit.available || unit.availableDate);
+      return hasNoErrors && hasAllRequiredFields;
+    });
+
     setSteps(prev => ({
       ...prev,
-      units: { completed: updatedUnits.length > 0 && updatedUnits.every(u => Object.keys(validateUnit(u) || {}).length === 0), valid: true }
+      units: { completed: allUnitsValid, valid: allUnitsValid }
     }));
   };
 
@@ -478,9 +646,23 @@ const PropertyForm: React.FC<{
       },
     });
 
+    // Check if all listings have all required fields filled
+    const allListingsValid = updatedListings.length > 0 && updatedListings.every(listing => {
+      const listingErrors = validateListing(listing);
+      const hasNoErrors = Object.keys(listingErrors || {}).length === 0;
+      const hasAllRequiredFields = 
+        listing.title.trim() &&
+        listing.description.trim() &&
+        listing.userDetails.name.trim() &&
+        listing.userDetails.phone.trim() &&
+        listing.userDetails.email.trim() &&
+        (!listing.available || listing.availableDate);
+      return hasNoErrors && hasAllRequiredFields;
+    });
+
     setSteps(prev => ({
       ...prev,
-      listings: { completed: updatedListings.length > 0 && updatedListings.every(l => Object.keys(validateListing(l) || {}).length === 0), valid: true }
+      listings: { completed: allListingsValid, valid: allListingsValid }
     }));
   };
 
@@ -748,9 +930,9 @@ const PropertyForm: React.FC<{
       case 'property':
         return steps.property.valid;
       case 'units':
-        return formState.data.units.length > 0;
+        return steps.units.valid;
       case 'listings':
-        return formState.data.listings.length > 0;
+        return steps.listings.valid;
       case 'review':
         return false;
       default:
@@ -794,38 +976,27 @@ const PropertyForm: React.FC<{
               </Button>
             </div>
             
-            {formState.data.units.length === 0 ? (
-              <div className="bg-gray-50 rounded-2xl border-2 border-dashed border-gray-300 p-12 text-center">
-                <Building className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-semibold mb-2 text-gray-900">No Units Added</h3>
-                <p className="text-gray-600 mb-6">Add at least one unit to your property to get started.</p>
-                <Button onClick={addUnit} className="bg-green-600 hover:bg-green-700 text-white">
-                  Add First Unit
-                </Button>
-              </div>
-            ) : (
-              <div className="space-y-6">
-                {formState.data.units.map((unit, index) => (
-                  <div key={index} className="bg-white rounded-2xl border border-gray-200 p-6">
-                    <UnitForm
-                      data={unit}
-                      onChange={(unitData) => handleUnitChange(index, unitData)}
-                      onRemove={() => removeUnit(index)}
-                      errors={formState.errors.units?.[index]}
-                      showRemoveButton={formState.data.units.length > 1}
-                      propertyLeaseTerms={{
-                        lease_term_months: formState.data.property.lease_term_months,
-                        security_deposit_months: formState.data.property.security_deposit_months,
-                        first_month_rent_required: formState.data.property.first_month_rent_required,
-                        last_month_rent_required: formState.data.property.last_month_rent_required,
-                      }}
-                      propertyAmenities={formState.data.property.amenities}
-                      onLastFieldComplete={scrollToNavigation}
-                    />
-                  </div>
-                ))}
-              </div>
-            )}
+            <div className="space-y-6">
+              {formState.data.units.map((unit, index) => (
+                <div key={index} className="bg-white rounded-2xl border border-gray-200 p-6">
+                  <UnitForm
+                    data={unit}
+                    onChange={(unitData) => handleUnitChange(index, unitData)}
+                    onRemove={() => removeUnit(index)}
+                    errors={formState.errors.units?.[index]}
+                    showRemoveButton={formState.data.units.length > 1}
+                    propertyLeaseTerms={{
+                      lease_term_months: formState.data.property.lease_term_months,
+                      security_deposit_months: formState.data.property.security_deposit_months,
+                      first_month_rent_required: formState.data.property.first_month_rent_required,
+                      last_month_rent_required: formState.data.property.last_month_rent_required,
+                    }}
+                    propertyAmenities={formState.data.property.amenities}
+                    onLastFieldComplete={scrollToNavigation}
+                  />
+                </div>
+              ))}
+            </div>
           </div>
         );
       
@@ -848,38 +1019,27 @@ const PropertyForm: React.FC<{
               </Button>
             </div>
             
-            {formState.data.listings.length === 0 ? (
-              <div className="bg-gray-50 rounded-2xl border-2 border-dashed border-gray-300 p-12 text-center">
-                <List className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-semibold mb-2 text-gray-900">No Listings Added</h3>
-                <p className="text-gray-600 mb-6">Create public listings to showcase your property to potential tenants.</p>
-                <Button onClick={addListing} className="bg-green-600 hover:bg-green-700 text-white">
-                  Create First Listing
-                </Button>
-              </div>
-            ) : (
-              <div className="space-y-6">
-                {formState.data.listings.map((listing, index) => (
-                  <div key={index} className="bg-white rounded-2xl border border-gray-200 p-6">
-                    <ListingForm
-                      data={listing}
-                      onChange={(listingData) => handleListingChange(index, listingData)}
-                      onRemove={() => removeListing(index)}
-                      errors={formState.errors.listings?.[index]}
-                      showRemoveButton={formState.data.listings.length > 1}
-                      propertyLeaseTerms={{
-                        lease_term_months: formState.data.property.lease_term_months,
-                        security_deposit_months: formState.data.property.security_deposit_months,
-                        first_month_rent_required: formState.data.property.first_month_rent_required,
-                        last_month_rent_required: formState.data.property.last_month_rent_required,
-                      }}
-                      propertyAmenities={formState.data.property.amenities}
-                      onLastFieldComplete={scrollToNavigation}
-                    />
-                  </div>
-                ))}
-              </div>
-            )}
+            <div className="space-y-6">
+              {formState.data.listings.map((listing, index) => (
+                <div key={index} className="bg-white rounded-2xl border border-gray-200 p-6">
+                  <ListingForm
+                    data={listing}
+                    onChange={(listingData) => handleListingChange(index, listingData)}
+                    onRemove={() => removeListing(index)}
+                    errors={formState.errors.listings?.[index]}
+                    showRemoveButton={formState.data.listings.length > 1}
+                    propertyLeaseTerms={{
+                      lease_term_months: formState.data.property.lease_term_months,
+                      security_deposit_months: formState.data.property.security_deposit_months,
+                      first_month_rent_required: formState.data.property.first_month_rent_required,
+                      last_month_rent_required: formState.data.property.last_month_rent_required,
+                    }}
+                    propertyAmenities={formState.data.property.amenities}
+                    onLastFieldComplete={scrollToNavigation}
+                  />
+                </div>
+              ))}
+            </div>
           </div>
         );
       

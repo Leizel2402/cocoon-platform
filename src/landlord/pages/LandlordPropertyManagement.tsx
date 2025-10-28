@@ -27,7 +27,6 @@ import {
   ChevronRight,
   Eye,
   Edit,
-  Loader2,
   BarChart3,
   Bath,
   Bed,
@@ -44,6 +43,7 @@ import {
   XCircle,
   MoreVertical,
 } from "lucide-react";
+import { Loader } from "../../components/ui/Loader";
 
 // Property interface based on the provided JSON format
 interface PropertyData {
@@ -897,12 +897,10 @@ console.log("maintenanceRequests", maintenanceRequests);
   // Show loading state
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin text-green-600 mx-auto mb-4" />
-          <p className="text-gray-600">Loading property management...</p>
-        </div>
-      </div>
+      <Loader 
+        message="Loading Property Management" 
+        subMessage="Retrieving your property data..."
+      />
     );
   }
 
@@ -1327,16 +1325,6 @@ console.log("maintenanceRequests", maintenanceRequests);
               </Button>
             </div>
 
-            {/* Loading State */}
-            {loading && (
-              <div className="flex items-center justify-center py-12">
-                <Loader2 className="h-8 w-8 animate-spin text-green-600" />
-                <span className="ml-2 text-gray-600">
-                  Loading properties...
-                </span>
-              </div>
-            )}
-
             {/* Error State */}
             {error && (
               <div className="bg-red-50 border border-red-200 rounded-lg p-4">
@@ -1354,7 +1342,6 @@ console.log("maintenanceRequests", maintenanceRequests);
             )}
 
             {/* Properties Grid */}
-            {!loading && !error && (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                 {properties.length === 0 ? (
                   <div className="col-span-full text-center py-12">
@@ -1540,7 +1527,6 @@ console.log("maintenanceRequests", maintenanceRequests);
                   ))
                 )}
             </div>
-            )}
           </motion.div>
         )}
 
@@ -1572,10 +1558,10 @@ console.log("maintenanceRequests", maintenanceRequests);
 
             {/* Loading State */}
             {listingsLoading && (
-              <div className="flex items-center justify-center py-12">
-                <Loader2 className="h-8 w-8 animate-spin text-green-600" />
-                <span className="ml-2 text-gray-600">Loading listings...</span>
-              </div>
+              <Loader 
+                message="Loading Listings" 
+                subMessage="Retrieving your property listings..."
+              />
             )}
 
             {/* Error State */}
@@ -1830,10 +1816,10 @@ console.log("maintenanceRequests", maintenanceRequests);
 
             {/* Loading State */}
             {applicationsLoading && (
-              <div className="flex items-center justify-center py-12">
-                <Loader2 className="h-8 w-8 animate-spin text-green-600" />
-                <span className="ml-2 text-gray-600">Loading applications...</span>
-              </div>
+              <Loader 
+                message="Loading Applications" 
+                subMessage="Retrieving your application data..."
+              />
             )}
 
             {/* Error State */}
@@ -2139,10 +2125,10 @@ console.log("maintenanceRequests", maintenanceRequests);
 
             {/* Loading State */}
             {maintenanceLoading && (
-              <div className="flex items-center justify-center py-12">
-                <Loader2 className="h-8 w-8 animate-spin text-green-600" />
-                <span className="ml-2 text-gray-600">Loading maintenance requests...</span>
-              </div>
+              <Loader 
+                message="Loading Maintenance Requests" 
+                subMessage="Retrieving your property maintenance requests..."
+              />
             )}
 
             {/* Maintenance Requests Table */}

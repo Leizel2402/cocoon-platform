@@ -35,6 +35,7 @@ import { Badge } from '../components/ui/badge';
 import { Progress } from '../components/ui/progress';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog';
 import { useToast } from '../hooks/use-toast';
+import { Loader } from '../components/ui/Loader';
 
 interface LearningModule {
   id: string;
@@ -795,16 +796,10 @@ export function LearningCenter() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50">
-        <div className="flex items-center justify-center min-h-[400px]">
-          <div className="bg-white/80 backdrop-blur-md rounded-2xl shadow-xl p-12 border border-white/20">
-            <div className="flex items-center space-x-4">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
-              <div className="text-lg font-semibold text-gray-700">Loading learning center...</div>
-            </div>
-          </div>
-        </div>
-      </div>
+      <Loader 
+        message="Loading Learning Center" 
+        subMessage="Preparing your educational content..."
+      />
     );
   }
 

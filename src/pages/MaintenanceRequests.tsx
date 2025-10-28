@@ -38,6 +38,7 @@ import { useAuth } from '../hooks/useAuth';
 import { maintenanceService, MaintenanceRequest } from '../services/maintenanceService';
 import { getUserApprovedApplications, UserApplication } from '../services/userDataService';
 import { landlordService, LandlordContactInfo } from '../services/landlordService';
+import { Loader } from '../components/ui/Loader';
 
 // Using MaintenanceRequest interface from maintenanceService
 
@@ -397,12 +398,10 @@ console.log("selectedProperty",selectedProperty);
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin text-green-600 mx-auto mb-4" />
-            <p className="text-gray-600">Loading maintenance requests...</p>
-        </div>
-      </div>
+      <Loader 
+        message="Loading Maintenance Requests" 
+        subMessage="Retrieving your maintenance requests..."
+      />
     );
   }
 

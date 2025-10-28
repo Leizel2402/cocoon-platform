@@ -12,6 +12,7 @@ import { db } from "../lib/firebase";
 import { useAuth } from "../hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import { Application, Property } from "../types";
+import { Loader } from "../components/ui/Loader";
 
 // Extended Property interface to include unit-specific details
 interface ExtendedProperty extends Property {
@@ -1016,18 +1017,10 @@ export function MyApplications() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50">
-        <div className="flex items-center justify-center min-h-[400px]">
-          <div className="bg-white/80 backdrop-blur-md rounded-2xl shadow-xl p-12 border border-white/20">
-            <div className="flex items-center space-x-4">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
-              <div className="text-lg font-semibold text-gray-700">
-                Loading your applications...
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+      <Loader 
+        message="Loading Applications" 
+        subMessage="Retrieving your rental applications..."
+      />
     );
   }
 

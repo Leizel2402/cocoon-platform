@@ -24,6 +24,11 @@ interface ListingFormProps {
     bedrooms?: string;
     bathrooms?: string;
     squareFeet?: string;
+    userDetails?: {
+      name?: string;
+      phone?: string;
+      email?: string;
+    };
   };
   showRemoveButton?: boolean;
   propertyLeaseTerms?: {
@@ -53,6 +58,7 @@ const ListingForm: React.FC<ListingFormProps> = ({
   const { user } = useAuth();
   const { toast } = useToast();
   const { FloatingScrollButton } = useScrollToTop();
+  console.log("users",user);
   
   // Generate unique IDs for this listing instance
   const listingId = data.title || `listing-${Math.random().toString(36).substr(2, 9)}`;
@@ -456,7 +462,7 @@ const ListingForm: React.FC<ListingFormProps> = ({
                 htmlFor="listingAvailableDate"
                 className="block text-sm font-semibold text-gray-700 mb-2"
               >
-                Available Date
+                Available Date *
               </Label>
               <Input
                 id="listingAvailableDate"
@@ -466,7 +472,9 @@ const ListingForm: React.FC<ListingFormProps> = ({
                   ...data, 
                   availableDate: e.target.value ? new Date(e.target.value) : undefined 
                 })}
+                min={new Date().toISOString().split('T')[0]}
                 className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-green-200 bg-white/50 backdrop-blur-sm"
+                required
               />
             </div>
           )}
@@ -842,9 +850,14 @@ const ListingForm: React.FC<ListingFormProps> = ({
                 value={data.userDetails.name}
                 onChange={(e) => handleUserDetailsChange('name', e.target.value)}
                 placeholder="John Doe"
-                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-green-200 bg-white/50 backdrop-blur-sm"
+                className={`w-full px-4 py-3 border rounded-lg focus:outline-none bg-white/50 backdrop-blur-sm ${
+                  errors?.userDetails?.name ? 'border-red-500 focus:ring-red-200' : 'border-gray-200 focus:ring-green-200'
+                }`}
                 required
               />
+              {errors?.userDetails?.name && (
+                <p className="text-red-500 text-sm mt-1">{errors.userDetails.name}</p>
+              )}
             </div>
 
             <div>
@@ -860,9 +873,14 @@ const ListingForm: React.FC<ListingFormProps> = ({
                 value={data.userDetails.phone}
                 onChange={(e) => handleUserDetailsChange('phone', e.target.value)}
                 placeholder="(555) 123-4567"
-                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-green-200 bg-white/50 backdrop-blur-sm"
+                className={`w-full px-4 py-3 border rounded-lg focus:outline-none bg-white/50 backdrop-blur-sm ${
+                  errors?.userDetails?.phone ? 'border-red-500 focus:ring-red-200' : 'border-gray-200 focus:ring-green-200'
+                }`}
                 required
               />
+              {errors?.userDetails?.phone && (
+                <p className="text-red-500 text-sm mt-1">{errors.userDetails.phone}</p>
+              )}
             </div>
 
             <div>
@@ -878,9 +896,14 @@ const ListingForm: React.FC<ListingFormProps> = ({
                 value={data.userDetails.email}
                 onChange={(e) => handleUserDetailsChange('email', e.target.value)}
                 placeholder="john@example.com"
-                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-green-200 bg-white/50 backdrop-blur-sm"
+                className={`w-full px-4 py-3 border rounded-lg focus:outline-none bg-white/50 backdrop-blur-sm ${
+                  errors?.userDetails?.email ? 'border-red-500 focus:ring-red-200' : 'border-gray-200 focus:ring-green-200'
+                }`}
                 required
               />
+              {errors?.userDetails?.email && (
+                <p className="text-red-500 text-sm mt-1">{errors.userDetails.email}</p>
+              )}
             </div>
           </div>
         </div>

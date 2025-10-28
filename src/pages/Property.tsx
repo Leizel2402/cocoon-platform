@@ -39,6 +39,7 @@ import { Properties, Listing } from '../types';
 import { collection, query, where, getDocs, orderBy, limit } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { PropertyMap } from '../components/maps';
+import { Loader } from '../components/ui/Loader';
 
 export function Property() {
   const { user } = useAuth();
@@ -148,9 +149,10 @@ export function Property() {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center min-h-screen bg-gray-50">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
-      </div>
+      <Loader 
+        message="Loading Properties" 
+        subMessage="Finding the best rental homes for you..."
+      />
     );
   }
 
