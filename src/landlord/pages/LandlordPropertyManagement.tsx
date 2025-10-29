@@ -11,6 +11,8 @@ import { collection, query, where, getDocs, orderBy, doc, updateDoc } from "fire
 import { db } from "../../lib/firebase";
 import { maintenanceService, MaintenanceActivity, MaintenanceRequest } from "../../services/maintenanceService";
 import { updateApplicationStatus } from "../../services/submissionService";
+import { propertyDeletionService } from "../../services/propertyDeletionService";
+import { notificationService } from "../../services/notificationService";
 import { useToast } from "../../hooks/use-toast";
 import { 
   Building, 
@@ -45,8 +47,6 @@ import {
   XCircle,
   MoreVertical,
   Trash2,
-  Play,
-  CheckCircle,
 } from "lucide-react";
 import { Loader } from "../../components/ui/Loader";
 
@@ -460,6 +460,19 @@ interface ApplicationData {
   listing?: ListingData;
 }
 
+// Unit interface for property units
+interface UnitData {
+  id: string;
+  propertyId: string;
+  unitNumber: string;
+  bedrooms: number;
+  bathrooms: number;
+  squareFeet: number;
+  rent: number;
+  isAvailable: boolean;
+  landlordId: string;
+}
+
 const LandlordPropertyManagement: React.FC = () => {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -483,6 +496,8 @@ const LandlordPropertyManagement: React.FC = () => {
   const [maintenanceActivities, setMaintenanceActivities] = useState<MaintenanceActivity[]>([]);
   const [maintenanceRequests, setMaintenanceRequests] = useState<MaintenanceRequest[]>([]);
   const [maintenanceLoading, setMaintenanceLoading] = useState(false);
+  const [units, setUnits] = useState<UnitData[]>([]);
+  const [unitsLoading, setUnitsLoading] = useState(false);
   const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
   const [selectedMaintenanceRequest, setSelectedMaintenanceRequest] = useState<MaintenanceRequest | null>(null);
   const [showMaintenanceModal, setShowMaintenanceModal] = useState(false);
@@ -492,7 +507,6 @@ const LandlordPropertyManagement: React.FC = () => {
   const [showScheduleModal, setShowScheduleModal] = useState(false);
   const [selectedRequestForSchedule, setSelectedRequestForSchedule] = useState<MaintenanceRequest | null>(null);
 
-console.log("maintenanceRequests", maintenanceRequests);
 
   // Fetch properties from Firebase
   const fetchProperties = useCallback(async () => {
@@ -549,7 +563,6 @@ console.log("maintenanceRequests", maintenanceRequests);
         id: doc.id,
         ...doc.data(),
       })) as ListingData[];
-        console.log("listingsData", listingsData);
         
       // Fetch property details for each listing
       const listingsWithProperties = await Promise.all(
@@ -590,24 +603,12 @@ console.log("maintenanceRequests", maintenanceRequests);
     setApplicationsError(null);
 
     try {
-      console.log("Fetching applications for landlordId:", user.uid);
-      console.log("Current user object:", user);
       
       // First, let's try to get all applications to see what's in the collection
       const allApplicationsQuery = query(collection(db, "applications"));
       const allSnapshot = await getDocs(allApplicationsQuery);
-      console.log("Total applications in collection:", allSnapshot.docs.length);
       
-      if (allSnapshot.docs.length > 0) {
-        const sampleData = allSnapshot.docs[0].data();
-        console.log("Sample application data:", sampleData);
-        console.log("Sample application landlordId:", sampleData.landlordId);
-        console.log("Sample application applicationMetadata:", sampleData.applicationMetadata);
-        console.log("Sample application applicationMetadata.landlordId:", sampleData.applicationMetadata?.landlordId);
-        console.log("All available fields in sample application:", Object.keys(sampleData));
-      } else {
-        console.log("No applications found in the collection");
-      }
+     
       
       // Check if any applications match the current user ID in any field
       if (allSnapshot.docs.length > 0) {
@@ -617,7 +618,6 @@ console.log("maintenanceRequests", maintenanceRequests);
                  data.applicationMetadata?.landlordId === user.uid ||
                  data.submittedBy === user.uid;
         });
-        console.log("Applications matching current user ID:", matchingApps.length);
         if (matchingApps.length > 0) {
           console.log("Matching application data:", matchingApps[0].data());
         }
@@ -626,7 +626,6 @@ console.log("maintenanceRequests", maintenanceRequests);
       // Since the queries are not working, let's use manual filtering
       let applicationsData: ApplicationData[] = [];
       
-      console.log("Using manual filtering approach");
       const allDocs = allSnapshot.docs;
       applicationsData = allDocs
         .map((doc) => ({
@@ -638,21 +637,14 @@ console.log("maintenanceRequests", maintenanceRequests);
           const directLandlordId = app.landlordId as string;
           const submittedBy = app.submittedBy as string;
           
-          console.log(`Checking app ${app.id}:`, {
-            appLandlordId,
-            directLandlordId,
-            submittedBy,
-            userUid: user.uid
-          });
+        
           
           return appLandlordId === user.uid || 
                  directLandlordId === user.uid ||
                  submittedBy === user.uid;
         }) as ApplicationData[];
       
-      console.log("applicationsData from manual filtering:", applicationsData);
-      
-      console.log("Final applicationsData:", applicationsData);
+   
       
       // Fetch property and unit details for each application
       const applicationsWithDetails = await Promise.all(
@@ -731,7 +723,6 @@ console.log("maintenanceRequests", maintenanceRequests);
       
       const activities = await maintenanceService.getRecentMaintenanceActivities(user.uid, 7);
     
-      console.log("useriod",activities);
       setMaintenanceActivities(activities);
     } catch (error) {
       console.error('Error fetching maintenance activities:', error);
@@ -741,7 +732,10 @@ console.log("maintenanceRequests", maintenanceRequests);
   useEffect(() => {
     fetchProperties();
     fetchMaintenanceActivities();
-  }, [user, fetchProperties, fetchMaintenanceActivities]);
+    // Always fetch data needed for impact analysis
+    fetchApplications();
+    fetchListings();
+  }, [user, fetchProperties, fetchMaintenanceActivities, fetchApplications, fetchListings]);
 
   useEffect(() => {
     if (activeTab === "listings") {
@@ -780,6 +774,49 @@ console.log("maintenanceRequests", maintenanceRequests);
       fetchMaintenanceRequests();
     }
   }, [activeTab, fetchMaintenanceRequests]);
+
+  // Fetch maintenance requests on component mount for impact analysis
+  useEffect(() => {
+    if (user?.uid) {
+      fetchMaintenanceRequests();
+    }
+  }, [user, fetchMaintenanceRequests]);
+
+  // Fetch units from Firebase
+  const fetchUnits = useCallback(async () => {
+    if (!user?.uid) return;
+
+    setUnitsLoading(true);
+    try {
+      const unitsQuery = query(
+        collection(db, "units"),
+        where("landlordId", "==", user.uid)
+      );
+      const unitsSnapshot = await getDocs(unitsQuery);
+      const unitsData = unitsSnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      })) as UnitData[];
+      
+      setUnits(unitsData);
+    } catch (error) {
+      console.error('Error fetching units:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load units data.",
+        variant: "destructive"
+      });
+    } finally {
+      setUnitsLoading(false);
+    }
+  }, [user, toast]);
+
+  // Fetch units on component mount for impact analysis
+  useEffect(() => {
+    if (user?.uid) {
+      fetchUnits();
+    }
+  }, [user, fetchUnits]);
 
   // Combine maintenance activities with other activities
   const recentActivity = [
@@ -848,6 +885,12 @@ console.log("maintenanceRequests", maintenanceRequests);
   // Handle application status update
   const handleStatusUpdate = async (applicationId: string, newStatus: 'approved' | 'rejected') => {
     try {
+      // Find the application to get user and property info
+      const application = applications.find(app => app.id === applicationId);
+      if (!application) {
+        throw new Error('Application not found');
+      }
+
       const result = await updateApplicationStatus(applicationId, newStatus);
       
       if (result.success) {
@@ -859,6 +902,26 @@ console.log("maintenanceRequests", maintenanceRequests);
               : app
           )
         );
+
+        // Send notification to the applicant
+        try {
+          const userId = application.applicationMetadata?.submittedBy || application.id;
+          const propertyId = application.applicationMetadata?.propertyId || '';
+          const propertyName = application.applicationMetadata?.propertyName || 'Property';
+
+          if (userId && propertyId) {
+            await notificationService.notifyApplicationStatusChange(
+              userId,
+              applicationId,
+              newStatus,
+              propertyId,
+              propertyName
+            );
+          }
+        } catch (notificationError) {
+          console.error('Error sending notification:', notificationError);
+          // Don't fail the status update if notification fails
+        }
         
         toast({
           title: "Status Updated",
@@ -915,35 +978,52 @@ console.log("maintenanceRequests", maintenanceRequests);
 
   // Handle confirming property deletion
   const handleConfirmDelete = async () => {
-    if (!selectedPropertyForDelete) return;
+    if (!selectedPropertyForDelete || !user) return;
 
     setIsDeleting(true);
     try {
-      // TODO: Implement actual deletion logic
-      // This would include:
-      // 1. Delete property from Firestore
-      // 2. Delete all associated units
-      // 3. Delete all associated listings
-      // 4. Delete all associated applications
-      // 5. Delete all associated maintenance requests
-      // 6. Notify affected users (renters, prospects)
-      // 7. Update any saved properties/searches
-      
-      console.log("Deleting property:", selectedPropertyForDelete.id);
-      
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // Remove from local state
-      setProperties(prev => prev.filter(p => p.id !== selectedPropertyForDelete.id));
-      
-      toast({
-        title: "Property Deleted",
-        description: "The property and all associated data have been permanently deleted.",
-        variant: "destructive",
-      });
-      
-      handleCloseDeleteModal();
+      const propertyName = selectedPropertyForDelete.name || selectedPropertyForDelete.title;
+      const propertyAddress = `${selectedPropertyForDelete.address.line1}, ${selectedPropertyForDelete.address.city}, ${selectedPropertyForDelete.address.region}`;
+
+      // Use the property deletion service to delete everything
+      const deletionResult = await propertyDeletionService.deleteProperty(
+        selectedPropertyForDelete.id,
+        propertyName,
+        propertyAddress,
+        user.uid
+      );
+
+      if (deletionResult.success) {
+        // Remove from local state
+        setProperties(prev => prev.filter(p => p.id !== selectedPropertyForDelete.id));
+        
+        // Update other local states to remove deleted data
+        setApplications(prev => prev.filter(app => app.applicationMetadata.propertyId !== selectedPropertyForDelete.id));
+        setMaintenanceRequests(prev => prev.filter(req => req.propertyId !== selectedPropertyForDelete.id));
+        setListings(prev => prev.filter(listing => listing.propertyId !== selectedPropertyForDelete.id));
+        setUnits(prev => prev.filter(unit => unit.propertyId !== selectedPropertyForDelete.id));
+        
+        const totalAffectedUsers = deletionResult.affectedUsers.applications.length + deletionResult.affectedUsers.maintenanceRequests.length;
+        
+        toast({
+          title: "Property Deleted Successfully",
+          description: `Property and all associated data deleted. ${totalAffectedUsers} users notified. Deleted: ${deletionResult.deletedCounts.properties} property, ${deletionResult.deletedCounts.applications} applications, ${deletionResult.deletedCounts.maintenanceRequests} maintenance requests, ${deletionResult.deletedCounts.units} units, ${deletionResult.deletedCounts.listings} listings.`,
+          variant: "destructive",
+        });
+        
+        handleCloseDeleteModal();
+      } else {
+        // Handle deletion errors
+        const errorMessage = deletionResult.errors.length > 0 
+          ? deletionResult.errors.join(', ')
+          : 'Unknown error occurred during deletion';
+          
+        toast({
+          title: "Deletion Failed",
+          description: `Failed to delete property: ${errorMessage}`,
+          variant: "destructive",
+        });
+      }
     } catch (error) {
       console.error("Error deleting property:", error);
       toast({
@@ -4078,6 +4158,10 @@ console.log("maintenanceRequests", maintenanceRequests);
           onConfirm={handleConfirmDelete}
           property={selectedPropertyForDelete}
           isLoading={isDeleting}
+          applications={applications}
+          maintenanceRequests={maintenanceRequests}
+          listings={listings}
+          units={units}
         />
 
         {/* Schedule Maintenance Modal */}

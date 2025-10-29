@@ -15,6 +15,7 @@ import {
   DollarSign,
   Search,
   Building,
+  Bell,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { Button } from "../ui/Button";
@@ -29,6 +30,7 @@ import {
 } from "../ui/select";
 
 import { useTranslation } from "../../hooks/useTranslations";
+import NotificationBell from "../NotificationBell";
 interface LayoutProps {
   children: React.ReactNode;
 }
@@ -221,6 +223,11 @@ export function Layout({ children }: LayoutProps) {
 
               {/* Right side navigation */}
               <div className="flex items-center space-x-3">
+                {/* Notification Bell - for authenticated users */}
+                {user && (user.role === 'prospect' || user.role === 'renter') && (
+                  <NotificationBell />
+                )}
+                
                 {/* Language selector - always visible */}
                 <div className="hidden sm:block">
                   <Popover open={langOpen} onOpenChange={setLangOpen}>
@@ -336,6 +343,18 @@ export function Layout({ children }: LayoutProps) {
                               </button>
 
                               <button
+                                onClick={() => navigate("/notifications")}
+                                className={`w-full text-left px-4 py-3 text-sm transition-colors flex items-center ${
+                                  isActive("/notifications")
+                                    ? "bg-gradient-to-r from-green-600 to-emerald-600 text-white shadow-md"
+                                    : "text-gray-700 hover:bg-green-50 hover:text-green-700"
+                                }`}
+                              >
+                                <Bell className="h-4 w-4 mr-3 text-green-600" />
+                                Notifications
+                              </button>
+
+                              <button
                                 onClick={() => navigate("/prequalify")}
                                 className={`w-full text-left px-4 py-3 rounded-[8px] text-sm transition-colors flex items-center ${
                                   isActive("/prequalify")
@@ -372,6 +391,18 @@ export function Layout({ children }: LayoutProps) {
                               >
                                 <FileText className="h-4 w-4 mr-3 text-green-600" />
                                 Learning Center
+                              </button>
+
+                              <button
+                                onClick={() => navigate("/notifications")}
+                                className={`w-full text-left px-4 py-3 text-sm transition-colors flex items-center ${
+                                  isActive("/notifications")
+                                    ? "bg-gradient-to-r from-green-600 to-emerald-600 text-white shadow-md"
+                                    : "text-gray-700 hover:bg-green-50 hover:text-green-700"
+                                }`}
+                              >
+                                <Bell className="h-4 w-4 mr-3 text-green-600" />
+                                Notifications
                               </button>
                             </>
                           )}
@@ -655,6 +686,23 @@ export function Layout({ children }: LayoutProps) {
                     <motion.div whileTap={{ scale: 0.95 }}>
                       <button
                         onClick={() => {
+                          navigate("/notifications");
+                          setIsMobileMenuOpen(false);
+                        }}
+                        className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all w-full ${
+                          isActive("/notifications")
+                            ? "bg-gradient-to-r from-green-600 to-emerald-600 text-white shadow-md"
+                            : "text-gray-700 hover:bg-gray-100"
+                        }`}
+                      >
+                        <Bell className="h-5 w-5" />
+                        Notifications
+                      </button>
+                    </motion.div>
+
+                    <motion.div whileTap={{ scale: 0.95 }}>
+                      <button
+                        onClick={() => {
                           navigate("/prequalify");
                           setIsMobileMenuOpen(false);
                         }}
@@ -721,6 +769,23 @@ export function Layout({ children }: LayoutProps) {
                     >
                       <DollarSign className="h-5 w-5" />
                       Subscriptions
+                    </button>
+                  </motion.div>
+
+                  <motion.div whileTap={{ scale: 0.95 }}>
+                    <button
+                      onClick={() => {
+                        navigate("/notifications");
+                        setIsMobileMenuOpen(false);
+                      }}
+                      className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all w-full ${
+                        isActive("/notifications")
+                          ? "bg-gradient-to-r from-green-600 to-emerald-600 text-white shadow-md"
+                          : "text-gray-700 hover:bg-gray-100"
+                      }`}
+                    >
+                      <Bell className="h-5 w-5" />
+                      Notifications
                     </button>
                   </motion.div>
                 </>

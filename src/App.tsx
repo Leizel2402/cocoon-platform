@@ -7,7 +7,6 @@ import { Home } from './pages/Home';
 import { SignIn, SignUp } from './pages/auth';
 import { MagicLinkHandler } from './components/MagicLinkHandler';
 import { Apply } from './pages/Apply';
-import { Dashboard } from './pages/Dashboard';
 import LandlordDashboard from './pages/LandlordDashboard';
 import Dashboards from './pages/Dashboards';
 import { MyApplications } from './pages/MyApplications';
@@ -20,6 +19,7 @@ import { SavedSearches } from './pages/SavedSearches';
 import { MaintenanceRequests } from './pages/MaintenanceRequests';
 import { LearningCenter } from './pages/LearningCenter';
 import { Subscriptions } from './pages/Subscriptions';
+import Notifications from './pages/Notifications';
 import { LandlordPropertyManagement } from './landlord';
 
 // Component to handle property details redirect
@@ -168,6 +168,14 @@ function App() {
             element={
               <ProtectedRoute requiredRole="renter">
                 <Subscriptions />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/notifications"
+            element={
+              <ProtectedRoute requiredRoles={['prospect', 'renter']}>
+                <Notifications />
               </ProtectedRoute>
             }
           />

@@ -1,4 +1,7 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { reauthenticateWithCredential, EmailAuthProvider } from "firebase/auth";
+import { auth } from "../../lib/firebase";
+import { useAuth } from "../../hooks/useAuth";
 import {
   Dialog,
   DialogContent,
@@ -14,12 +17,12 @@ import {
   FileText,
   Wrench,
   Home,
-  Calendar,
   DollarSign,
   Building,
   XCircle,
   Info,
-  X,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 
 interface PropertyData {
@@ -39,7 +42,7 @@ interface PropertyData {
   bathrooms: number;
   square_feet: number;
   property_type: string;
-  is_available: boolean;
+  available: boolean;
   images: string[];
   landlordId: string;
   createdAt: Date | { seconds: number; nanoseconds: number };
@@ -48,9 +51,53 @@ interface PropertyData {
 interface DeletePropertyModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onConfirm: () => void;
+  onConfirm: (password: string) => void;
   property: PropertyData | null;
   isLoading?: boolean;
+  // Real data for impact analysis
+  applications?: ApplicationData[];
+  maintenanceRequests?: MaintenanceRequest[];
+  listings?: ListingData[];
+  units?: UnitData[];
+}
+
+// Additional interfaces for real data
+interface ApplicationData {
+  id: string;
+  status: 'pending' | 'approved' | 'rejected' | 'withdrawn';
+  applicationMetadata: {
+    propertyId: string;
+    unitId: string;
+    landlordId: string;
+    unitRent: number;
+  };
+}
+
+interface MaintenanceRequest {
+  id: string;
+  propertyId: string;
+  status: 'pending' | 'in_progress' | 'completed' | 'cancelled';
+  priority: 'low' | 'medium' | 'high' | 'urgent';
+}
+
+interface ListingData {
+  id: string;
+  propertyId: string;
+  rent: number;
+  available: boolean;
+  landlordId: string;
+}
+
+interface UnitData {
+  id: string;
+  propertyId: string;
+  unitNumber: string;
+  bedrooms: number;
+  bathrooms: number;
+  squareFeet: number;
+  rent: number;
+  isAvailable: boolean;
+  landlordId: string;
 }
 
 interface ImpactAnalysis {
@@ -58,6 +105,8 @@ interface ImpactAnalysis {
   pendingApplications: number;
   maintenanceRequests: number;
   activeListings: number;
+  totalUnits: number;
+  availableUnits: number;
   totalRevenue: number;
   hasActiveLeases: boolean;
 }
@@ -68,36 +117,173 @@ const DeletePropertyModal: React.FC<DeletePropertyModalProps> = ({
   onConfirm,
   property,
   isLoading = false,
+  applications = [],
+  maintenanceRequests = [],
+  listings = [],
+  units = [],
 }) => {
-  const [confirmationText, setConfirmationText] = useState("");
+  const { user } = useAuth();
+  const [confirmationText, setConfirmationText] = useState("DELETE");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [showImpactAnalysis, setShowImpactAnalysis] = useState(false);
   const [acknowledgeRisks, setAcknowledgeRisks] = useState(false);
+  const [passwordError, setPasswordError] = useState("");
+  const [isVerifyingPassword, setIsVerifyingPassword] = useState(false);
 
-  // Mock data for impact analysis - in real implementation, this would come from API
-  const impactAnalysis: ImpactAnalysis = {
-    activeTenants: 2,
-    pendingApplications: 5,
-    maintenanceRequests: 3,
-    activeListings: 1,
-    totalRevenue: 4500,
-    hasActiveLeases: true,
+  // Calculate real impact analysis from provided data
+  const calculateImpactAnalysis = (): ImpactAnalysis => {
+    if (!property) {
+      return {
+        activeTenants: 0,
+        pendingApplications: 0,
+        maintenanceRequests: 0,
+        activeListings: 0,
+        totalUnits: 0,
+        availableUnits: 0,
+        totalRevenue: 0,
+        hasActiveLeases: false,
+      };
+    }
+
+    // Filter data for this specific property
+    const propertyApplications = applications.filter(app => 
+      app.applicationMetadata.propertyId === property.id
+    );
+    
+    const propertyMaintenanceRequests = maintenanceRequests.filter(req => 
+      req.propertyId === property.id
+    );
+    
+    const propertyListings = listings.filter(listing => 
+      listing.propertyId === property.id
+    );
+
+    const propertyUnits = units.filter(unit => 
+      unit.propertyId === property.id
+    );
+
+    // Calculate metrics
+    const activeTenants = propertyApplications.filter(app => 
+      app.status === 'approved'
+    ).length;
+
+    const pendingApplications = propertyApplications.filter(app => 
+      app.status === 'pending'
+    ).length;
+
+    const activeMaintenanceRequests = propertyMaintenanceRequests.filter(req => 
+      req.status === 'pending' || req.status === 'in_progress'
+    ).length;
+
+    const activeListings = propertyListings.filter(listing => 
+      listing.available
+    ).length;
+
+    // Calculate units metrics
+    const totalUnits = propertyUnits.length;
+    console.log("propertyUnits", propertyUnits);
+    const availableUnits = propertyUnits.filter(unit => 
+      unit.available
+    ).length;
+
+    // Calculate total revenue from approved applications
+    const totalRevenue = propertyApplications
+      .filter(app => app.status === 'approved')
+      .reduce((sum, app) => sum + app.applicationMetadata.unitRent, 0);
+
+    const hasActiveLeases = activeTenants > 0;
+
+    return {
+      activeTenants,
+      pendingApplications,
+      maintenanceRequests: activeMaintenanceRequests,
+      activeListings,
+      totalUnits,
+      availableUnits,
+      totalRevenue,
+      hasActiveLeases,
+    };
+  };
+
+  // Recalculate impact analysis when modal opens or data changes
+  const impactAnalysis = calculateImpactAnalysis();
+  
+
+  // Clear fields when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      setConfirmationText("");
+      setPassword("");
+      setShowPassword(false);
+      setAcknowledgeRisks(false);
+      setShowImpactAnalysis(false);
+      setPasswordError("");
+      
+    }
+  }, [isOpen, property, applications, maintenanceRequests, listings, units]);
+
+  // Verify password function
+  const verifyPassword = async (enteredPassword: string): Promise<boolean> => {
+    if (!user?.email) {
+      setPasswordError("User not authenticated");
+      return false;
+    }
+
+    try {
+      setIsVerifyingPassword(true);
+      setPasswordError("");
+
+      const credential = EmailAuthProvider.credential(user.email, enteredPassword);
+      await reauthenticateWithCredential(auth.currentUser!, credential);
+      
+      return true;
+    } catch (error: unknown) {
+      console.error("Password verification error:", error);
+      
+      const firebaseError = error as { code?: string; message?: string };
+      
+      if (firebaseError.code === "auth/wrong-password") {
+        setPasswordError("Incorrect password. Please try again.");
+      } else if (firebaseError.code === "auth/invalid-credential") {
+        setPasswordError("Invalid credentials. Please check your password.");
+      } else if (firebaseError.code === "auth/too-many-requests") {
+        setPasswordError("Too many failed attempts. Please try again later.");
+      } else {
+        setPasswordError("Password verification failed. Please try again.");
+      }
+      
+      return false;
+    } finally {
+      setIsVerifyingPassword(false);
+    }
   };
 
   const isConfirmationValid = confirmationText === "DELETE";
-  const canProceed = isConfirmationValid && acknowledgeRisks;
+  const isPasswordValid = password.length > 0; // Just check if password is entered
+  const canProceed = isConfirmationValid && isPasswordValid && acknowledgeRisks;
 
   const handleClose = () => {
     setConfirmationText("");
+    setPassword("");
+    setShowPassword(false);
     setAcknowledgeRisks(false);
     setShowImpactAnalysis(false);
     onClose();
   };
 
-  const handleConfirm = () => {
-    if (canProceed) {
-      onConfirm();
-      handleClose();
+  const handleConfirm = async () => {
+    if (!canProceed) return;
+
+    // Verify password before proceeding
+    const isPasswordCorrect = await verifyPassword(password);
+    if (!isPasswordCorrect) {
+      return; // Error is already set in verifyPassword function
     }
+
+    // Password is correct, proceed with deletion
+    onConfirm(password);
+    handleClose();
   };
 
   if (!property) return null;
@@ -185,7 +371,7 @@ const DeletePropertyModal: React.FC<DeletePropertyModalProps> = ({
 
             {showImpactAnalysis && (
               <div className="mt-4 space-y-4">
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
                   <div className="bg-red-50 p-3 rounded-lg">
                     <div className="flex items-center gap-2 mb-2">
                       <Users className="h-4 w-4 text-red-600" />
@@ -220,6 +406,24 @@ const DeletePropertyModal: React.FC<DeletePropertyModalProps> = ({
                     </div>
                     <p className="text-2xl font-bold text-blue-600">{impactAnalysis.activeListings}</p>
                     <p className="text-xs text-blue-700">Will be removed</p>
+                  </div>
+
+                  <div className="bg-purple-50 p-3 rounded-lg">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Home className="h-4 w-4 text-purple-600" />
+                      <span className="text-sm font-medium text-purple-900">Total Units</span>
+                    </div>
+                    <p className="text-2xl font-bold text-purple-600">{impactAnalysis.totalUnits}</p>
+                    <p className="text-xs text-purple-700">Will be deleted</p>
+                  </div>
+
+                  <div className="bg-indigo-50 p-3 rounded-lg">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Home className="h-4 w-4 text-indigo-600" />
+                      <span className="text-sm font-medium text-indigo-900">Available Units</span>
+                    </div>
+                    <p className="text-2xl font-bold text-indigo-600">{impactAnalysis.availableUnits}</p>
+                    <p className="text-xs text-indigo-700">Will be removed</p>
                   </div>
                 </div>
 
@@ -285,6 +489,7 @@ const DeletePropertyModal: React.FC<DeletePropertyModalProps> = ({
           </div>
 
           {/* Confirmation Input */}
+          <div className="space-y-4">
           <div className="space-y-3">
             <label className="block text-sm font-medium text-gray-700">
               To confirm deletion, type <span className="font-mono bg-gray-100 px-2 py-1 rounded">DELETE</span> below:
@@ -294,7 +499,47 @@ const DeletePropertyModal: React.FC<DeletePropertyModalProps> = ({
               onChange={(e) => setConfirmationText(e.target.value)}
               placeholder="Type DELETE to confirm"
               className="font-mono"
-            />
+                autoComplete="off"
+                autoCorrect="off"
+                autoCapitalize="off"
+                spellCheck="false"
+              />
+            </div>
+
+            <div className="space-y-3">
+              <label className="block text-sm font-medium text-gray-700">
+                Enter your password to confirm deletion:
+              </label>
+              <div className="relative">
+                <Input
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Enter your password"
+                  className="font-mono pr-10"
+                  autoComplete="new-password"
+                  autoCorrect="off"
+                  autoCapitalize="off"
+                  spellCheck="false"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 focus:outline-none"
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
+                </button>
+              </div>
+              {passwordError && (
+                <p className="text-sm text-red-600 mt-2">
+                  {passwordError}
+                </p>
+              )}
+            </div>
           </div>
 
           {/* Acknowledgment Checkbox */}
@@ -327,13 +572,18 @@ const DeletePropertyModal: React.FC<DeletePropertyModalProps> = ({
           </Button>
           <Button
             onClick={handleConfirm}
-            disabled={!canProceed || isLoading}
+            disabled={!canProceed || isLoading || isVerifyingPassword}
             className="bg-red-600 hover:bg-red-700 text-white disabled:opacity-50"
           >
             {isLoading ? (
               <>
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
                 Deleting...
+              </>
+            ) : isVerifyingPassword ? (
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                Verifying Password...
               </>
             ) : (
               <>

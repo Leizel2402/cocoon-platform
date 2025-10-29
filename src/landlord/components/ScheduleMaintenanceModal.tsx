@@ -47,6 +47,15 @@ const ScheduleMaintenanceModal: React.FC<ScheduleMaintenanceModalProps> = ({
   const [notes, setNotes] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
+  // Reset form to initial state
+  const resetForm = () => {
+    setScheduledDate('');
+    setScheduledTime('');
+    setStatus('submitted');
+    setNotes('');
+    setIsLoading(false);
+  };
+
   React.useEffect(() => {
     if (maintenanceRequest) {
       setStatus(maintenanceRequest.status);
@@ -58,8 +67,18 @@ const ScheduleMaintenanceModal: React.FC<ScheduleMaintenanceModalProps> = ({
         setScheduledDate(date.toISOString().split('T')[0]);
         setScheduledTime(date.toTimeString().slice(0, 5));
       }
+    } else {
+      // Reset form when no maintenance request is provided
+      resetForm();
     }
   }, [maintenanceRequest]);
+
+  // Reset form when modal is closed
+  React.useEffect(() => {
+    if (!open) {
+      resetForm();
+    }
+  }, [open]);
 
   const handleSchedule = async () => {
     if (!maintenanceRequest?.id) return;
@@ -98,6 +117,8 @@ const ScheduleMaintenanceModal: React.FC<ScheduleMaintenanceModalProps> = ({
         description: `Maintenance request scheduled for ${dateTime.toLocaleDateString()} at ${dateTime.toLocaleTimeString()}.`,
       });
 
+      // Reset form after successful submission
+      resetForm();
       onSchedule();
       onClose();
     } catch (error) {
@@ -129,6 +150,8 @@ const ScheduleMaintenanceModal: React.FC<ScheduleMaintenanceModalProps> = ({
         description: `Status changed to ${newStatus.replace('_', ' ')}.`,
       });
 
+      // Reset form after status change
+      resetForm();
       onSchedule();
     } catch (error) {
       console.error('Error updating status:', error);

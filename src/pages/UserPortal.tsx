@@ -363,7 +363,7 @@ export function UserPortal() {
   };
 
   // Show loading state while authentication or data is loading
-  if (authLoading || dataLoading) {
+  if (authLoading ) {
     return (
       <Loader 
         message="Loading Portal" 
