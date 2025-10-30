@@ -1,6 +1,25 @@
-import { collection, addDoc, serverTimestamp, query, getDocs, orderBy, limit } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, query, getDocs, orderBy, limit, getDoc, doc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { uploadDocuments, DocumentUpload } from './documentService';
+import { notificationService } from './notificationService';
+
+// Interface for the nested application data structure
+interface NestedApplicationData {
+  applicationMetadata?: {
+    propertyId?: string;
+    propertyName?: string;
+  };
+  personalInfo?: {
+    firstName?: string;
+    lastName?: string;
+    email?: string;
+  };
+  propertyId?: string;
+  propertyName?: string;
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+}
 
 // Tour Booking Submission
 export interface TourBookingData {
@@ -17,7 +36,7 @@ export interface TourBookingData {
   unitNumber?: string | null;
   status: 'pending' | 'confirmed' | 'completed' | 'cancelled';
   submittedBy: string; // user ID
-  submittedAt: any; // serverTimestamp
+  submittedAt: Date | { seconds: number; nanoseconds: number }; // serverTimestamp
 }
 
 // Application Submission
@@ -64,7 +83,7 @@ export interface ApplicationData {
   // Application Status
   status: 'pending' | 'under_review' | 'approved' | 'rejected' | 'withdrawn';
   submittedBy: string; // user ID
-  submittedAt: any; // serverTimestamp
+  submittedAt: Date | { seconds: number; nanoseconds: number }; // serverTimestamp
   
   // Additional fields
   notes?: string;
@@ -84,7 +103,7 @@ export const submitTourBooking = async (tourData: Omit<TourBookingData, 'status'
   try {
     // Filter out null/undefined values to prevent Firebase errors
     const cleanData = Object.fromEntries(
-      Object.entries(tourData).filter(([_, value]) => value !== null && value !== undefined)
+      Object.entries(tourData).filter(([, value]) => value !== null && value !== undefined)
     );
 
     const docRef = await addDoc(collection(db, 'tour_bookings'), {
@@ -102,20 +121,74 @@ export const submitTourBooking = async (tourData: Omit<TourBookingData, 'status'
 };
 
 // Submit Application
-export const submitApplication = async (applicationData: Omit<ApplicationData, 'status' | 'submittedBy' | 'submittedAt'>) => {
+export const submitApplication = async (applicationData: Omit<ApplicationData, 'status' | 'submittedBy' | 'submittedAt'>, userId: string) => {
   try {
     // Filter out null/undefined values to prevent Firebase errors
     const cleanData = Object.fromEntries(
-      Object.entries(applicationData).filter(([_, value]) => value !== null && value !== undefined)
+      Object.entries(applicationData).filter(([, value]) => value !== null && value !== undefined)
     );
 
     const docRef = await addDoc(collection(db, 'applications'), {
       ...cleanData,
       status: 'pending',
       submittedAt: serverTimestamp(),
+      submittedBy: userId,
     });
     
     console.log('Application submitted with ID:', docRef.id);
+
+    // Get landlord information from the property
+    try {
+      // Extract propertyId and propertyName from the nested structure
+      const nestedData = applicationData as NestedApplicationData;
+      const propertyId = nestedData.applicationMetadata?.propertyId || nestedData.propertyId;
+      const propertyName = nestedData.applicationMetadata?.propertyName || nestedData.propertyName;
+      const firstName = nestedData.personalInfo?.firstName || nestedData.firstName;
+      const lastName = nestedData.personalInfo?.lastName || nestedData.lastName;
+      const email = nestedData.personalInfo?.email || nestedData.email;
+
+      console.log('🔍 Extracted application data for landlord notification:', {
+        propertyId,
+        propertyName,
+        firstName,
+        lastName,
+        email,
+        hasApplicationMetadata: !!(applicationData as NestedApplicationData).applicationMetadata,
+        hasPersonalInfo: !!(applicationData as NestedApplicationData).personalInfo
+      });
+
+      // Add defensive checks for required fields
+      if (!propertyId || propertyId === 'general-application') {
+        console.warn('Property ID is missing or is general application, skipping landlord notification');
+        return { success: true, id: docRef.id };
+      }
+
+      const propertyDoc = await getDoc(doc(db, 'properties', propertyId));
+      if (propertyDoc.exists()) {
+        const propertyData = propertyDoc.data();
+        const landlordId = propertyData.landlordId;
+        
+        if (landlordId) {
+          // Notify the landlord about the new application
+          await notificationService.notifyLandlordNewApplication(
+            landlordId,
+            docRef.id,
+            propertyId,
+            propertyName || 'Property',
+            `${firstName || ''} ${lastName || ''}`.trim() || 'Applicant',
+            email || ''
+          );
+        } else {
+          console.warn('Landlord ID not found for property:', propertyId);
+        }
+      } else {
+        console.warn('Property not found:', propertyId);
+      }
+    } catch (notificationError) {
+      console.error('Error sending landlord notification:', notificationError);
+      // Don't fail the application submission if notification fails
+    }
+    
     return { success: true, id: docRef.id };
   } catch (error) {
     console.error('Error submitting application:', error);
@@ -134,7 +207,7 @@ export const submitApplicationWithDocuments = async (
   try {
     // First, create the application record
     const cleanData = Object.fromEntries(
-      Object.entries(applicationData).filter(([_, value]) => value !== null && value !== undefined)
+      Object.entries(applicationData).filter(([, value]) => value !== null && value !== undefined)
     );
 
     const docRef = await addDoc(collection(db, 'applications'), {
@@ -177,6 +250,63 @@ export const submitApplicationWithDocuments = async (
       console.log(`Successfully uploaded ${allDocuments.length} documents for application ${docRef.id}`);
     }
 
+    // Get landlord information from the property and notify them
+    try {
+      // Extract propertyId and propertyName from the nested structure
+      const nestedData = applicationData as NestedApplicationData;
+      const propertyId = nestedData.applicationMetadata?.propertyId || nestedData.propertyId;
+      const propertyName = nestedData.applicationMetadata?.propertyName || nestedData.propertyName;
+      const firstName = nestedData.personalInfo?.firstName || nestedData.firstName;
+      const lastName = nestedData.personalInfo?.lastName || nestedData.lastName;
+      const email = nestedData.personalInfo?.email || nestedData.email;
+
+      console.log('🔍 Extracted application data for landlord notification:', {
+        propertyId,
+        propertyName,
+        firstName,
+        lastName,
+        email,
+        hasApplicationMetadata: !!(applicationData as NestedApplicationData).applicationMetadata,
+        hasPersonalInfo: !!(applicationData as NestedApplicationData).personalInfo
+      });
+
+      // Add defensive checks for required fields
+      if (!propertyId || propertyId === 'general-application') {
+        console.warn('Property ID is missing or is general application, skipping landlord notification');
+        return { 
+          success: true, 
+          id: docRef.id, 
+          documentsUploaded: allDocuments.length,
+          documents: allDocuments
+        };
+      }
+
+      const propertyDoc = await getDoc(doc(db, 'properties', propertyId));
+      if (propertyDoc.exists()) {
+        const propertyData = propertyDoc.data();
+        const landlordId = propertyData.landlordId;
+        
+        if (landlordId) {
+          // Notify the landlord about the new application
+          await notificationService.notifyLandlordNewApplication(
+            landlordId,
+            docRef.id,
+            propertyId,
+            propertyName || 'Property',
+            `${firstName || ''} ${lastName || ''}`.trim() || 'Applicant',
+            email || ''
+          );
+        } else {
+          console.warn('Landlord ID not found for property:', propertyId);
+        }
+      } else {
+        console.warn('Property not found:', propertyId);
+      }
+    } catch (notificationError) {
+      console.error('Error sending landlord notification:', notificationError);
+      // Don't fail the application submission if notification fails
+    }
+
     return { 
       success: true, 
       id: docRef.id, 
@@ -192,7 +322,7 @@ export const submitApplicationWithDocuments = async (
 // Get Tour Bookings (for landlords/staff)
 export const getTourBookings = async (landlordId?: string) => {
   try {
-    let q = query(
+    const q = query(
       collection(db, 'tour_bookings'),
       orderBy('submittedAt', 'desc'),
       limit(50)
@@ -220,7 +350,7 @@ export const getTourBookings = async (landlordId?: string) => {
 // Get Applications (for landlords/staff)
 export const getApplications = async (landlordId?: string) => {
   try {
-    let q = query(
+    const q = query(
       collection(db, 'applications'),
       orderBy('submittedAt', 'desc'),
       limit(50)

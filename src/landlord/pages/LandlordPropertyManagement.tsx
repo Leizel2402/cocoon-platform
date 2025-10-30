@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import PropertyForm from "../components/PropertyForm/PropertyForm";
 import DeletePropertyModal from "../components/DeletePropertyModal";
 import ScheduleMaintenanceModal from "../components/ScheduleMaintenanceModal";
+// PropertyEditModal is now integrated into PropertyForm
 import { Button } from "../../components/ui/Button";
 import { Badge } from "../../components/ui/badge";
 import { Popover, PopoverContent, PopoverTrigger } from "../../components/ui/popover";
@@ -501,6 +502,8 @@ const LandlordPropertyManagement: React.FC = () => {
   const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
   const [selectedMaintenanceRequest, setSelectedMaintenanceRequest] = useState<MaintenanceRequest | null>(null);
   const [showMaintenanceModal, setShowMaintenanceModal] = useState(false);
+  const [editingProperty, setEditingProperty] = useState<PropertyData | null>(null);
+  const [editingListing, setEditingListing] = useState<ListingData | null>(null);
   const [selectedPropertyForDelete, setSelectedPropertyForDelete] = useState<PropertyData | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -818,6 +821,23 @@ const LandlordPropertyManagement: React.FC = () => {
     }
   }, [user, fetchUnits]);
 
+  // Comprehensive data refresh function
+  const refreshAllData = useCallback(async () => {
+    if (!user?.uid) return;
+    
+    try {
+      await Promise.all([
+        fetchProperties(),
+        fetchApplications(),
+        fetchMaintenanceRequests(),
+        fetchListings(),
+        fetchUnits()
+      ]);
+    } catch (error) {
+      console.error('Error refreshing data:', error);
+    }
+  }, [user, fetchProperties, fetchApplications, fetchMaintenanceRequests, fetchListings, fetchUnits]);
+
   // Combine maintenance activities with other activities
   const recentActivity = [
     // Static application activities (you can replace these with real data later)
@@ -958,6 +978,38 @@ const LandlordPropertyManagement: React.FC = () => {
     setShowPropertyViewModal(true);
   };
 
+  const handleEditProperty = (property: PropertyData) => {
+    setEditingProperty(property);
+    setShowPropertyForm(true);
+  };
+
+  const handlePropertyUpdate = (updatedProperty: any) => {
+    setProperties(prev => 
+      prev.map(property => 
+        property.id === editingProperty?.id 
+          ? { ...property, ...updatedProperty }
+          : property
+      )
+    );
+    setEditingProperty(null);
+  };
+
+  const handleEditListing = (listing: ListingData) => {
+    setEditingListing(listing);
+    setShowPropertyForm(true);
+  };
+
+  const handleListingUpdate = (updatedListing: any) => {
+    setListings(prev => 
+      prev.map(listing => 
+        listing.id === editingListing?.id 
+          ? { ...listing, ...updatedListing }
+          : listing
+      )
+    );
+    setEditingListing(null);
+  };
+
   // Handle closing property view modal
   const handleClosePropertyViewModal = () => {
     setSelectedPropertyForView(null);
@@ -980,55 +1032,77 @@ const LandlordPropertyManagement: React.FC = () => {
   const handleConfirmDelete = async () => {
     if (!selectedPropertyForDelete || !user) return;
 
-    setIsDeleting(true);
-    try {
-      const propertyName = selectedPropertyForDelete.name || selectedPropertyForDelete.title;
-      const propertyAddress = `${selectedPropertyForDelete.address.line1}, ${selectedPropertyForDelete.address.city}, ${selectedPropertyForDelete.address.region}`;
+    const propertyToDelete = selectedPropertyForDelete; // Store reference before async operation
+    const propertyName = propertyToDelete.name || propertyToDelete.title;
+    const propertyAddress = `${propertyToDelete.address.line1}, ${propertyToDelete.address.city}, ${propertyToDelete.address.region}`;
 
-      // Use the property deletion service to delete everything
+    // IMMEDIATE UI UPDATES - Update UI instantly
+    setIsDeleting(true);
+    
+    // Remove from local state immediately
+    setProperties(prev => prev.filter(p => p.id !== propertyToDelete.id));
+    
+    // Update other local states to remove deleted data immediately
+    setApplications(prev => prev.filter(app => app.applicationMetadata.propertyId !== propertyToDelete.id));
+    setMaintenanceRequests(prev => prev.filter(req => req.propertyId !== propertyToDelete.id));
+    setListings(prev => prev.filter(listing => listing.propertyId !== propertyToDelete.id));
+    setUnits(prev => prev.filter(unit => unit.propertyId !== propertyToDelete.id));
+    
+    // Close modal immediately
+    handleCloseDeleteModal();
+    
+    // Show immediate success toast
+    // toast({
+    //   title: "Property Deleted",
+    //   description: "Property is being deleted and users will be notified...",
+    //   variant: "destructive",
+    // });
+
+    // Perform actual deletion in background
+    try {
       const deletionResult = await propertyDeletionService.deleteProperty(
-        selectedPropertyForDelete.id,
+        propertyToDelete.id,
         propertyName,
         propertyAddress,
         user.uid
       );
 
       if (deletionResult.success) {
-        // Remove from local state
-        setProperties(prev => prev.filter(p => p.id !== selectedPropertyForDelete.id));
+        const totalAffectedUsers = deletionResult.affectedUsers.applications.length + 
+                                   deletionResult.affectedUsers.maintenanceRequests.length + 
+                                   deletionResult.affectedUsers.subscriptions.length + 
+                                   deletionResult.affectedUsers.savedProperties.length + 
+                                   deletionResult.affectedUsers.savedSearches.length;
         
-        // Update other local states to remove deleted data
-        setApplications(prev => prev.filter(app => app.applicationMetadata.propertyId !== selectedPropertyForDelete.id));
-        setMaintenanceRequests(prev => prev.filter(req => req.propertyId !== selectedPropertyForDelete.id));
-        setListings(prev => prev.filter(listing => listing.propertyId !== selectedPropertyForDelete.id));
-        setUnits(prev => prev.filter(unit => unit.propertyId !== selectedPropertyForDelete.id));
-        
-        const totalAffectedUsers = deletionResult.affectedUsers.applications.length + deletionResult.affectedUsers.maintenanceRequests.length;
-        
+        // Show detailed success message after deletion completes
         toast({
           title: "Property Deleted Successfully",
-          description: `Property and all associated data deleted. ${totalAffectedUsers} users notified. Deleted: ${deletionResult.deletedCounts.properties} property, ${deletionResult.deletedCounts.applications} applications, ${deletionResult.deletedCounts.maintenanceRequests} maintenance requests, ${deletionResult.deletedCounts.units} units, ${deletionResult.deletedCounts.listings} listings.`,
+          description: `Property and all associated data deleted. ${totalAffectedUsers} users notified. Deleted: ${deletionResult.deletedCounts.properties} property, ${deletionResult.deletedCounts.applications} applications, ${deletionResult.deletedCounts.maintenanceRequests} maintenance requests, ${deletionResult.deletedCounts.savedProperties} saved properties, ${deletionResult.deletedCounts.savedSearches} saved searches, ${deletionResult.deletedCounts.subscriptions} subscriptions, ${deletionResult.deletedCounts.units} units, ${deletionResult.deletedCounts.listings} listings.`,
           variant: "destructive",
         });
-        
-        handleCloseDeleteModal();
       } else {
-        // Handle deletion errors
+        // Handle deletion errors - restore the property in UI if deletion failed
+        setProperties(prev => [...prev, propertyToDelete]);
+        
         const errorMessage = deletionResult.errors.length > 0 
           ? deletionResult.errors.join(', ')
           : 'Unknown error occurred during deletion';
           
         toast({
           title: "Deletion Failed",
-          description: `Failed to delete property: ${errorMessage}`,
+          description: `Failed to delete property: ${errorMessage}. Property has been restored.`,
           variant: "destructive",
         });
       }
     } catch (error) {
       console.error("Error deleting property:", error);
+      
+      // Restore the property in UI if deletion failed
+      setProperties(prev => [...prev, propertyToDelete]);
+      
       toast({
         title: "Deletion Failed",
-        description: "There was an error deleting the property. Please try again.",
+        description: `An error occurred while deleting the property: ${error}. Property has been restored.`,
         variant: "destructive",
       });
     } finally {
@@ -1170,7 +1244,23 @@ const LandlordPropertyManagement: React.FC = () => {
   };
 
   if (showPropertyForm) {
-    return <PropertyForm setPropertyFormOpen={(open: boolean) => setShowPropertyForm(open)} />;
+    return (
+        <PropertyForm 
+          setPropertyFormOpen={(open: boolean) => {
+            setShowPropertyForm(open);
+            // If form is being closed, refresh all data and clear editing states
+            if (!open) {
+              refreshAllData();
+              setEditingProperty(null);
+              setEditingListing(null);
+            }
+          }}
+          editingProperty={editingProperty}
+          onPropertyUpdate={handlePropertyUpdate}
+          editingListing={editingListing}
+          onListingUpdate={handleListingUpdate}
+        />
+    );
   }
 
   // Show loading state
@@ -1210,6 +1300,14 @@ const LandlordPropertyManagement: React.FC = () => {
                   </span>
                 </div>
               )}
+              <Button
+                onClick={refreshAllData}
+                className="bg-white/20 text-white hover:bg-white/30 font-semibold transition-all duration-200 shadow-lg"
+                title="Refresh all data"
+              >
+                <Clock className="h-4 w-4 mr-2" />
+                Refresh
+              </Button>
               <Button
                 onClick={() => setShowPropertyForm(true)}
                 className="bg-white text-green-600 hover:bg-green-50 font-semibold transition-all duration-200 shadow-lg"
@@ -1788,6 +1886,7 @@ const LandlordPropertyManagement: React.FC = () => {
                       <motion.button
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
+                        onClick={() => handleEditProperty(property)}
                         className="flex-1 flex items-center justify-center px-3 py-2 border border-gray-200 rounded-lg hover:bg-gray-50 font-medium text-gray-700 transition-all duration-200"
                       >
                         <Edit className="h-4 w-4 mr-2" />
@@ -2046,6 +2145,7 @@ const LandlordPropertyManagement: React.FC = () => {
                           <motion.button
                             whileHover={{ scale: 1.02 }}
                             whileTap={{ scale: 0.98 }}
+                            onClick={() => handleEditListing(listing)}
                             className="flex-1 flex items-center justify-center px-3 py-2 border border-gray-200 rounded-lg hover:bg-gray-50 font-medium text-gray-700 transition-all duration-200"
                           >
                             <Edit className="h-4 w-4 mr-2" />
@@ -4171,6 +4271,8 @@ const LandlordPropertyManagement: React.FC = () => {
           maintenanceRequest={selectedRequestForSchedule}
           onSchedule={handleScheduleComplete}
         />
+
+        {/* Property Edit Modal is now integrated into PropertyForm */}
       </div>
     );
   };

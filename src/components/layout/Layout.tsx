@@ -224,7 +224,7 @@ export function Layout({ children }: LayoutProps) {
               {/* Right side navigation */}
               <div className="flex items-center space-x-3">
                 {/* Notification Bell - for authenticated users */}
-                {user && (user.role === 'prospect' || user.role === 'renter') && (
+                {user && (user.role === 'prospect' || user.role === 'renter' || user.role === 'landlord_admin' || user.role === 'landlord_employee') && (
                   <NotificationBell />
                 )}
                 
@@ -334,14 +334,8 @@ export function Layout({ children }: LayoutProps) {
                                 Saved Searches
                               </button>
 
-                              <button
-                                onClick={() => navigate("/learning-center")}
-                                className="w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-green-50 hover:text-green-700 transition-colors flex items-center"
-                              >
-                                <FileText className="h-4 w-4 mr-3 text-green-600" />
-                                Learning Center
-                              </button>
-
+                           
+{/* 
                               <button
                                 onClick={() => navigate("/notifications")}
                                 className={`w-full text-left px-4 py-3 text-sm transition-colors flex items-center ${
@@ -352,7 +346,7 @@ export function Layout({ children }: LayoutProps) {
                               >
                                 <Bell className="h-4 w-4 mr-3 text-green-600" />
                                 Notifications
-                              </button>
+                              </button> */}
 
                               <button
                                 onClick={() => navigate("/prequalify")}
@@ -385,15 +379,9 @@ export function Layout({ children }: LayoutProps) {
                                 <Search className="h-4 w-4 mr-3 text-green-600" />
                                 Saved Searches
                               </button>
-                              <button
-                                onClick={() => navigate("/learning-center")}
-                                className="w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-green-50 hover:text-green-700 transition-colors flex items-center"
-                              >
-                                <FileText className="h-4 w-4 mr-3 text-green-600" />
-                                Learning Center
-                              </button>
+                             
 
-                              <button
+                              {/* <button
                                 onClick={() => navigate("/notifications")}
                                 className={`w-full text-left px-4 py-3 text-sm transition-colors flex items-center ${
                                   isActive("/notifications")
@@ -403,7 +391,7 @@ export function Layout({ children }: LayoutProps) {
                               >
                                 <Bell className="h-4 w-4 mr-3 text-green-600" />
                                 Notifications
-                              </button>
+                              </button> */}
                             </>
                           )}
 
@@ -424,13 +412,13 @@ export function Layout({ children }: LayoutProps) {
                                 <Home className="h-4 w-4 mr-3 text-green-600" />
                                 Properties
                               </button> */}
-                              <button
+                              {/* <button
                                 onClick={() => navigate("/learning-center")}
                                 className="w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-green-50 hover:text-green-700 transition-colors flex items-center"
                               >
                                 <FileText className="h-4 w-4 mr-3 text-green-600" />
                                 Learning Center
-                              </button>
+                              </button> */}
                             </>
                           )}
 
@@ -444,13 +432,7 @@ export function Layout({ children }: LayoutProps) {
                                 <BarChart3 className="h-4 w-4 mr-3 text-green-600" />
                                 Dashboard
                               </button>
-                              <button
-                                onClick={() => navigate("/learning-center")}
-                                className="w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-green-50 hover:text-green-700 transition-colors flex items-center"
-                              >
-                                <FileText className="h-4 w-4 mr-3 text-green-600" />
-                                Learning Center
-                              </button>
+                            
                               <button
                                 onClick={() => navigate("/migrate")}
                                 className="w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-green-50 hover:text-green-700 transition-colors flex items-center"
@@ -461,7 +443,24 @@ export function Layout({ children }: LayoutProps) {
                             </>
                           )}
                         </div>
-
+                        <button
+                                onClick={() => navigate("/notifications")}
+                                className={`w-full text-left px-4 py-3 text-sm transition-colors flex items-center ${
+                                  isActive("/notifications")
+                                    ? "bg-gradient-to-r from-green-600 to-emerald-600 text-white shadow-md"
+                                    : "text-gray-700 hover:bg-green-50 hover:text-green-700"
+                                }`}
+                              >
+                                <Bell className="h-4 w-4 mr-3 text-green-600" />
+                                Notifications
+                              </button>
+                              <button
+                                onClick={() => navigate("/learning-center")}
+                                className="w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-green-50 hover:text-green-700 transition-colors flex items-center"
+                              >
+                                <FileText className="h-4 w-4 mr-3 text-green-600" />
+                                Learning Center
+                              </button>
                         {/* Footer with sign out */}
                         <div className="border-t border-gray-100 bg-gray-50">
                           <button

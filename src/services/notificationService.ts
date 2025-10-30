@@ -5,7 +5,7 @@ import { emailTemplates } from './emailTemplates';
 export interface NotificationData {
   id?: string;
   userId: string;
-  type: 'property_deleted' | 'application_cancelled' | 'application_approved' | 'application_rejected' | 'application_submitted' | 'maintenance_cancelled' | 'maintenance_created' | 'maintenance_resolved' | 'listing_removed';
+  type: 'property_deleted' | 'application_cancelled' | 'application_approved' | 'application_rejected' | 'application_submitted' | 'maintenance_cancelled' | 'maintenance_created' | 'maintenance_resolved' | 'listing_removed' | 'new_application' | 'new_maintenance_request' | 'new_subscription' | 'property_viewed' | 'application_withdrawn' | 'maintenance_updated' | 'payment_received' | 'payment_failed';
   title: string;
   message: string;
   propertyId: string;
@@ -128,7 +128,7 @@ class NotificationService {
     }
   }
 
-  // Get alternative properties for recommendations
+  // Get alternative property for recommendations
   async getAlternativeProperties(landlordId: string, excludePropertyId: string): Promise<Array<{
     id: string;
     name: string;
@@ -139,7 +139,7 @@ class NotificationService {
   }>> {
     try {
       const propertiesQuery = query(
-        collection(db, 'properties'),
+        collection(db, 'property'),
         where('landlordId', '==', landlordId),
         where('id', '!=', excludePropertyId)
       );
@@ -155,9 +155,9 @@ class NotificationService {
           bedrooms: data.bedrooms || 0,
           bathrooms: data.bathrooms || 0
         };
-      }).slice(0, 3); // Limit to 3 alternative properties
+      }).slice(0, 3); // Limit to 3 alternative property
     } catch (error) {
-      console.error('Error getting alternative properties:', error);
+      console.error('Error getting alternative property:', error);
       return [];
     }
   }
@@ -240,6 +240,14 @@ class NotificationService {
       id: string;
       userId: string;
       status: string;
+    }> = [],
+    affectedSavedProperties: Array<{
+      id: string;
+      userId: string;
+    }> = [],
+    affectedSavedSearches: Array<{
+      id: string;
+      userId: string;
     }> = []
   ): Promise<void> {
     console.log('Starting notification process:', {
@@ -247,7 +255,9 @@ class NotificationService {
       propertyName,
       affectedApplications: affectedApplications.length,
       affectedMaintenanceRequests: affectedMaintenanceRequests.length,
-      affectedSubscriptions: affectedSubscriptions.length
+      affectedSubscriptions: affectedSubscriptions.length,
+      affectedSavedProperties: affectedSavedProperties.length,
+      affectedSavedSearches: affectedSavedSearches.length
     });
     
     try {
@@ -264,18 +274,46 @@ class NotificationService {
         console.log('Using fallback landlord info:', landlordInfo);
       }
 
-      // Get alternative properties
+      // Get alternative property
       const alternativeProperties = await this.getAlternativeProperties(landlordId, propertyId);
 
       // Notify each affected application
       for (const application of affectedApplications) {
         console.log('Processing application:', application);
-        const userInfo = await this.getUserInfoFromApplication(application.id);
-        console.log('User info for application:', userInfo);
-        if (!userInfo) {
-          console.log('No user info found for application:', application.id);
-          continue;
+        
+        // Try to get user info from application first
+        let userInfo = await this.getUserInfoFromApplication(application.id);
+        
+        // If no user info found, try to get it from the user ID directly
+        if (!userInfo && application.userId) {
+          console.log('Trying to get user info directly from user ID:', application.userId);
+          try {
+            const userQuery = query(collection(db, 'users'), where('uid', '==', application.userId));
+            const userSnapshot = await getDocs(userQuery);
+            
+            if (!userSnapshot.empty) {
+              const userData = userSnapshot.docs[0].data();
+              userInfo = {
+                email: userData.email || '',
+                name: userData.displayName || `${userData.firstName || ''} ${userData.lastName || ''}`.trim() || 'User'
+              };
+              console.log('Found user info directly:', userInfo);
+            }
+          } catch (error) {
+            console.error('Error getting user info directly:', error);
+          }
         }
+        
+        // If still no user info, create a fallback
+        if (!userInfo) {
+          console.log('No user info found for application:', application.id, 'Using fallback');
+          userInfo = {
+            email: 'noreply@cocoon.com',
+            name: 'Property Applicant'
+          };
+        }
+        
+        console.log('Final user info for application:', userInfo);
 
         // Normalize status to lowercase for comparison
         const normalizedStatus = (application.status || 'pending').toLowerCase().trim();
@@ -287,7 +325,7 @@ class NotificationService {
         let title = 'Application Cancelled - Property Deleted';
         let message = `Your application for "${propertyName}" has been cancelled as the property has been deleted.`;
         let actionRequired = false;
-        let actionUrl = '/properties';
+        let actionUrl = '/property';
 
         if (normalizedStatus === 'approved') {
           // If application was approved, this is more urgent - tenant is affected
@@ -295,14 +333,14 @@ class NotificationService {
           title = 'URGENT: Property Deleted - Immediate Action Required';
           message = `The property "${propertyName}" you're renting has been deleted by the landlord. This is a serious situation that requires immediate attention.`;
           actionRequired = true;
-          actionUrl = '/contact-landlord';
+          actionUrl = '/property';
         } else if (normalizedStatus === 'pending' || normalizedStatus === 'submitted') {
           // If application was pending/submitted, notify about cancellation
           notificationType = 'application_cancelled';
           title = 'Application Cancelled - Property Deleted';
           message = `Your application for "${propertyName}" has been cancelled as the property has been deleted by the landlord.`;
           actionRequired = false;
-          actionUrl = '/properties';
+          actionUrl = '/property';
         } else if (normalizedStatus === 'rejected') {
           // Don't notify for already rejected applications
           console.log('Skipping notification for rejected application:', application.id);
@@ -313,7 +351,7 @@ class NotificationService {
           title = 'Application Cancelled - Property Deleted';
           message = `Your application for "${propertyName}" has been cancelled as the property has been deleted by the landlord.`;
           actionRequired = false;
-          actionUrl = '/properties';
+          actionUrl = '/property';
         }
 
         // CRITICAL: Safety check - ensure title doesn't accidentally contain "Application Approved"
@@ -326,7 +364,7 @@ class NotificationService {
           title = 'Application Cancelled - Property Deleted';
           message = `Your application for "${propertyName}" has been cancelled as the property has been deleted by the landlord.`;
           actionRequired = false;
-          actionUrl = '/properties';
+          actionUrl = '/property';
         }
 
         console.log(`Creating notification for application ${application.id}:`, {
@@ -370,10 +408,10 @@ class NotificationService {
                   'Review your lease agreement for termination clauses'
                 ]
               : [
-                  'Search for alternative properties',
-                  'Contact landlord for other available properties',
-                  'Reapply for different properties',
-                  'Check for similar properties in the area'
+                  'Search for alternative property',
+                  'Contact landlord for other available property',
+                  'Reapply for different property',
+                  'Check for similar property in the area'
                 ]
           }
         });
@@ -390,7 +428,8 @@ class NotificationService {
           message: `Your maintenance request for "${propertyName}" has been cancelled as the property has been deleted.`,
           propertyId,
           propertyName,
-          actionRequired: false
+          actionRequired: false,
+          actionUrl: '/maintenance'
         });
         console.log('Created notification for maintenance request:', maintenanceRequest.id);
       }
@@ -406,14 +445,275 @@ class NotificationService {
           message: `The property "${propertyName}" you were subscribed to has been deleted. Your subscription has been cancelled.`,
           propertyId,
           propertyName,
-          actionRequired: false
+          actionRequired: false,
+          actionUrl: '/subscriptions'
         });
         console.log('Created notification for subscription:', subscription.id);
       }
 
-      console.log(`Successfully notified ${affectedApplications.length} applications, ${affectedMaintenanceRequests.length} maintenance requests, and ${affectedSubscriptions.length} subscriptions`);
+      // Notify users with saved property
+      for (const savedProperty of affectedSavedProperties) {
+        console.log('Processing saved property:', savedProperty);
+        // Create in-app notification
+        await this.createNotification({
+          userId: savedProperty.userId,
+          type: 'listing_removed',
+          title: 'Saved Property No Longer Available',
+          message: `The property "${propertyName}" you saved is no longer available as it has been removed by the landlord.`,
+          propertyId,
+          propertyName,
+          actionRequired: false,
+          actionUrl: '/saved-properties'
+        });
+        console.log('Created notification for saved property:', savedProperty.id);
+      }
+
+      // Notify users with saved searches that included this property
+      for (const savedSearch of affectedSavedSearches) {
+        console.log('Processing saved search:', savedSearch);
+        // Create in-app notification
+        await this.createNotification({
+          userId: savedSearch.userId,
+          type: 'listing_removed',
+          title: 'Property Removed from Search Results',
+          message: `A property matching your saved search criteria has been removed. The property "${propertyName}" is no longer available.`,
+          propertyId,
+          propertyName,
+          actionRequired: false,
+          actionUrl: '/saved-searches'
+        });
+        console.log('Created notification for saved search:', savedSearch.id);
+      }
+
+      console.log(`Successfully notified ${affectedApplications.length} applications, ${affectedMaintenanceRequests.length} maintenance requests, ${affectedSubscriptions.length} subscriptions, ${affectedSavedProperties.length} saved property, and ${affectedSavedSearches.length} saved searches`);
     } catch (error) {
       console.error('Error notifying users of property deletion:', error);
+      throw error;
+    }
+  }
+
+  // LANDLORD NOTIFICATION METHODS
+
+  // Notify landlord when a new application is submitted
+  async notifyLandlordNewApplication(
+    landlordId: string,
+    applicationId: string,
+    propertyId: string,
+    propertyName: string,
+    applicantName: string,
+    applicantEmail: string
+  ): Promise<void> {
+    try {
+      await this.createNotification({
+        userId: landlordId,
+        type: 'new_application',
+        title: 'New Application Received! 📋',
+        message: `${applicantName} has submitted an application for "${propertyName}". Review and respond to the application.`,
+        propertyId,
+        propertyName,
+        actionRequired: true,
+        actionUrl: '/property-management'
+      });
+
+      console.log(`Landlord notification created for new application ${applicationId}`);
+    } catch (error) {
+      console.error('Error creating landlord application notification:', error);
+      throw error;
+    }
+  }
+
+  // Notify landlord when a new maintenance request is submitted
+  async notifyLandlordNewMaintenanceRequest(
+    landlordId: string,
+    maintenanceRequestId: string,
+    propertyId: string,
+    propertyName: string,
+    tenantName: string,
+    issueDescription: string
+  ): Promise<void> {
+    try {
+      await this.createNotification({
+        userId: landlordId,
+        type: 'new_maintenance_request',
+        title: 'New Maintenance Request 🔧',
+        message: `${tenantName} has submitted a maintenance request for "${propertyName}": ${issueDescription}`,
+        propertyId,
+        propertyName,
+        actionRequired: true,
+        actionUrl: '/property-management'
+      });
+
+      console.log(`Landlord notification created for new maintenance request ${maintenanceRequestId}`);
+    } catch (error) {
+      console.error('Error creating landlord maintenance notification:', error);
+      throw error;
+    }
+  }
+
+  // Notify landlord when someone subscribes to their property
+  async notifyLandlordNewSubscription(
+    landlordId: string,
+    propertyId: string,
+    propertyName: string,
+    subscriberName: string,
+    subscriberEmail: string
+  ): Promise<void> {
+    try {
+      await this.createNotification({
+        userId: landlordId,
+        type: 'new_subscription',
+        title: 'New Property Subscription 📧',
+        message: `${subscriberName} has subscribed to updates for "${propertyName}". They'll receive notifications about changes.`,
+        propertyId,
+        propertyName,
+        actionRequired: false,
+        actionUrl: '/property-management'
+      });
+
+      console.log(`Landlord notification created for new subscription to property ${propertyId}`);
+    } catch (error) {
+      console.error('Error creating landlord subscription notification:', error);
+      throw error;
+    }
+  }
+
+  // Notify landlord when their property is viewed
+  async notifyLandlordPropertyViewed(
+    landlordId: string,
+    propertyId: string,
+    propertyName: string,
+    viewerName?: string
+  ): Promise<void> {
+    try {
+      const message = viewerName 
+        ? `${viewerName} viewed your property "${propertyName}"`
+        : `Someone viewed your property "${propertyName}"`;
+
+      await this.createNotification({
+        userId: landlordId,
+        type: 'property_viewed',
+        title: 'Property Viewed 👀',
+        message,
+        propertyId,
+        propertyName,
+        actionRequired: false,
+        actionUrl: '/property-management'
+      });
+
+      console.log(`Landlord notification created for property view ${propertyId}`);
+    } catch (error) {
+      console.error('Error creating landlord property view notification:', error);
+      throw error;
+    }
+  }
+
+  // Notify landlord when an application is withdrawn
+  async notifyLandlordApplicationWithdrawn(
+    landlordId: string,
+    applicationId: string,
+    propertyId: string,
+    propertyName: string,
+    applicantName: string
+  ): Promise<void> {
+    try {
+      await this.createNotification({
+        userId: landlordId,
+        type: 'application_withdrawn',
+        title: 'Application Withdrawn 📝',
+        message: `${applicantName} has withdrawn their application for "${propertyName}".`,
+        propertyId,
+        propertyName,
+        actionRequired: false,
+        actionUrl: '/property-management'
+      });
+
+      console.log(`Landlord notification created for withdrawn application ${applicationId}`);
+    } catch (error) {
+      console.error('Error creating landlord application withdrawal notification:', error);
+      throw error;
+    }
+  }
+
+  // Notify landlord when a maintenance request is updated
+  async notifyLandlordMaintenanceUpdated(
+    landlordId: string,
+    maintenanceRequestId: string,
+    propertyId: string,
+    propertyName: string,
+    tenantName: string,
+    updateDescription: string
+  ): Promise<void> {
+    try {
+      await this.createNotification({
+        userId: landlordId,
+        type: 'maintenance_updated',
+        title: 'Maintenance Request Updated 🔄',
+        message: `${tenantName} has updated their maintenance request for "${propertyName}": ${updateDescription}`,
+        propertyId,
+        propertyName,
+        actionRequired: true,
+        actionUrl: '/property-management'
+      });
+
+      console.log(`Landlord notification created for updated maintenance request ${maintenanceRequestId}`);
+    } catch (error) {
+      console.error('Error creating landlord maintenance update notification:', error);
+      throw error;
+    }
+  }
+
+  // Notify landlord when payment is received
+  async notifyLandlordPaymentReceived(
+    landlordId: string,
+    propertyId: string,
+    propertyName: string,
+    tenantName: string,
+    amount: number,
+    paymentType: string
+  ): Promise<void> {
+    try {
+      await this.createNotification({
+        userId: landlordId,
+        type: 'payment_received',
+        title: 'Payment Received! 💰',
+        message: `Received $${amount} ${paymentType} payment from ${tenantName} for "${propertyName}".`,
+        propertyId,
+        propertyName,
+        actionRequired: false,
+        actionUrl: '/property-management'
+      });
+
+      console.log(`Landlord notification created for payment received for property ${propertyId}`);
+    } catch (error) {
+      console.error('Error creating landlord payment notification:', error);
+      throw error;
+    }
+  }
+
+  // Notify landlord when payment fails
+  async notifyLandlordPaymentFailed(
+    landlordId: string,
+    propertyId: string,
+    propertyName: string,
+    tenantName: string,
+    amount: number,
+    paymentType: string
+  ): Promise<void> {
+    try {
+      await this.createNotification({
+        userId: landlordId,
+        type: 'payment_failed',
+        title: 'Payment Failed ⚠️',
+        message: `Failed to receive $${amount} ${paymentType} payment from ${tenantName} for "${propertyName}". Please follow up.`,
+        propertyId,
+        propertyName,
+        actionRequired: true,
+        actionUrl: '/property-management'
+      });
+
+      console.log(`Landlord notification created for failed payment for property ${propertyId}`);
+    } catch (error) {
+      console.error('Error creating landlord payment failure notification:', error);
       throw error;
     }
   }

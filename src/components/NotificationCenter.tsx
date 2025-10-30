@@ -60,6 +60,23 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({ isOpen, onClose
         return <CheckCircle className="h-5 w-5 text-green-500" />;
       case 'listing_removed':
         return <Home className="h-5 w-5 text-blue-500" />;
+      // Landlord notification types
+      case 'new_application':
+        return <FileText className="h-5 w-5 text-green-600" />;
+      case 'new_maintenance_request':
+        return <Wrench className="h-5 w-5 text-orange-500" />;
+      case 'new_subscription':
+        return <Bell className="h-5 w-5 text-purple-500" />;
+      case 'property_viewed':
+        return <Home className="h-5 w-5 text-blue-600" />;
+      case 'application_withdrawn':
+        return <FileText className="h-5 w-5 text-gray-500" />;
+      case 'maintenance_updated':
+        return <Wrench className="h-5 w-5 text-yellow-500" />;
+      case 'payment_received':
+        return <CheckCircle className="h-5 w-5 text-green-600" />;
+      case 'payment_failed':
+        return <AlertTriangle className="h-5 w-5 text-red-600" />;
       default:
         return <Info className="h-5 w-5 text-gray-500" />;
     }
@@ -254,7 +271,7 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({ isOpen, onClose
                               </div>
                             </div>
                             
-                            {notification.actionRequired && notification.actionUrl && (
+                            {notification.actionRequired === true && notification.actionUrl && (
                               <div className="mt-2 pt-2 border-t border-gray-100">
                                 <Button
                                   variant="ghost"

@@ -7,7 +7,8 @@ import {
   doc, 
   updateDoc, 
   deleteDoc,
-  Timestamp 
+  Timestamp,
+  getDoc
 } from 'firebase/firestore';
 import { 
   ref, 
@@ -16,6 +17,7 @@ import {
 } from 'firebase/storage';
 import { db, storage } from '../lib/firebase';
 import { MaintenanceRequest } from '../types';
+import { notificationService } from './notificationService';
 
 // Re-export the interface for backward compatibility
 export type { MaintenanceRequest };
@@ -72,6 +74,30 @@ class MaintenanceService {
       });
       
       console.log('Maintenance request created with ID:', docRef.id);
+
+      // Notify the landlord about the new maintenance request
+      try {
+        const propertyDoc = await getDoc(doc(db, 'properties', requestData.propertyId));
+        if (propertyDoc.exists()) {
+          const propertyData = propertyDoc.data();
+          const landlordId = propertyData.landlordId;
+          
+          if (landlordId) {
+            await notificationService.notifyLandlordNewMaintenanceRequest(
+              landlordId,
+              docRef.id,
+              requestData.propertyId,
+              propertyData.name || propertyData.title || 'Property',
+              (requestData as any).tenantName || 'Tenant',
+              requestData.description || (requestData as any).issue
+            );
+          }
+        }
+      } catch (notificationError) {
+        console.error('Error sending landlord maintenance notification:', notificationError);
+        // Don't fail the maintenance request creation if notification fails
+      }
+
       return docRef.id;
     } catch (error) {
       console.error('Error creating maintenance request:', error);

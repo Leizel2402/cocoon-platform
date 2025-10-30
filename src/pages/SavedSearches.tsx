@@ -240,21 +240,26 @@ export function SavedSearches() {
   return (
     <div className="min-h-screen">
       {/* Header */}
-      <div className="bg-white shadow-sm border-b">
+      <div className="bg-gradient-to-r from-green-600 to-emerald-600 shadow-sm border-b">
         <div className="max-w-6xl mx-auto px-6 py-8">
           <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
-                Saved searches
-              </h1>
-              <p className="text-gray-600 mt-2">
-                {savedSearches.length} searches saved
-              </p>
+            <div className="flex items-center">
+              <div className="bg-green-100 rounded-lg p-3 mr-4">
+                <Search className="h-8 w-8 text-green-600" />
+              </div>
+              <div>
+                <h1 className="text-3xl font-bold text-white">
+                  Saved searches
+                </h1>
+                <p className="text-green-100 mt-2">
+                  {savedSearches.length} searches saved
+                </p>
+              </div>
             </div>
             <div className="flex items-center space-x-3">
               <Button
                 onClick={() => navigate('/')}
-                className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white"
+                className="bg-white text-green-600 "
               >
                 <Search className="h-4 w-4 mr-2" />
                 New search

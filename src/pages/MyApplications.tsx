@@ -818,12 +818,7 @@ export function MyApplications() {
 
         setApplications(enrichedApplications);
 
-        if (isRefresh) {
-          toast({
-            title: "Applications refreshed",
-            description: "Your applications have been updated.",
-          });
-        }
+        
       } catch (error) {
         console.error("Error loading applications:", error);
         setApplications([]);

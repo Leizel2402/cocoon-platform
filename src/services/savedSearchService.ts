@@ -8,9 +8,11 @@ import {
   where, 
   orderBy,
   updateDoc,
-  Timestamp 
+  Timestamp,
+  getDoc
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
+import { notificationService } from './notificationService';
 
 export interface SavedSearch {
   id: string;
@@ -99,6 +101,45 @@ export const saveSearch = async (
     };
 
     const docRef = await addDoc(collection(db, 'savedSearches'), searchDoc);
+    
+    // If subscriptions are enabled, notify landlords of properties that match this search
+    if (searchData.subscriptionsEnabled && searchData.filteredPropertyIds && searchData.filteredPropertyIds.length > 0) {
+      try {
+        // Get user information for the notification
+        const userQuery = query(collection(db, 'users'), where('uid', '==', userId));
+        const userSnapshot = await getDocs(userQuery);
+        const userData = userSnapshot.docs[0]?.data();
+        const userName = userData?.displayName || `${userData?.firstName || ''} ${userData?.lastName || ''}`.trim() || 'User';
+        const userEmail = userData?.email || '';
+
+        // Notify landlords for each property in the search
+        for (const propertyId of searchData.filteredPropertyIds) {
+          try {
+            const propertyDoc = await getDoc(doc(db, 'properties', propertyId));
+            if (propertyDoc.exists()) {
+              const propertyData = propertyDoc.data();
+              const landlordId = propertyData.landlordId;
+              
+              if (landlordId) {
+                await notificationService.notifyLandlordNewSubscription(
+                  landlordId,
+                  propertyId,
+                  propertyData.name || propertyData.title || 'Property',
+                  userName,
+                  userEmail
+                );
+              }
+            }
+          } catch (propertyError) {
+            console.error('Error notifying landlord for property:', propertyId, propertyError);
+            // Continue with other properties even if one fails
+          }
+        }
+      } catch (notificationError) {
+        console.error('Error sending landlord subscription notifications:', notificationError);
+        // Don't fail the search creation if notification fails
+      }
+    }
     
     return {
       success: true,

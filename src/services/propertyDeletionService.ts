@@ -41,6 +41,14 @@ export interface PropertyDeletionResult {
       userId: string;
       status: string;
     }>;
+    savedProperties: Array<{
+      id: string;
+      userId: string;
+    }>;
+    savedSearches: Array<{
+      id: string;
+      userId: string;
+    }>;
   };
   errors: string[];
 }
@@ -152,39 +160,29 @@ class PropertyDeletionService {
       }
     }
 
-    // Update saved properties individually
+    // Delete saved properties individually (individual documents, not arrays)
     for (const doc of savedPropertiesDocs) {
       try {
-        const data = doc.data();
-        const updatedPropertyIds = data.propertyIds.filter((id: string) => id !== propertyId);
-        
-        if (updatedPropertyIds.length === 0) {
-          await deleteDoc(doc.ref);
-          console.log('Deleted saved property:', doc.id);
-        } else {
-          await updateDoc(doc.ref, {
-            propertyIds: updatedPropertyIds,
-            updatedAt: new Date()
-          });
-          console.log('Updated saved property:', doc.id);
-        }
+        await deleteDoc(doc.ref);
+        console.log('Deleted saved property:', doc.id);
       } catch (error) {
-        console.error('Failed to update saved property:', doc.id, error);
+        console.error('Failed to delete saved property:', doc.id, error);
       }
     }
 
-    // Update saved searches individually
+    // Update saved searches individually (remove property from filteredPropertyIds array)
     for (const doc of savedSearchesDocs) {
       try {
         const data = doc.data();
-        const updatedPropertyIds = data.propertyIds.filter((id: string) => id !== propertyId);
+        const updatedPropertyIds = (data.filteredPropertyIds || []).filter((id: string) => id !== propertyId);
         
         if (updatedPropertyIds.length === 0) {
           await deleteDoc(doc.ref);
           console.log('Deleted saved search:', doc.id);
         } else {
           await updateDoc(doc.ref, {
-            propertyIds: updatedPropertyIds,
+            filteredPropertyIds: updatedPropertyIds,
+            filteredPropertiesCount: updatedPropertyIds.length,
             updatedAt: new Date()
           });
           console.log('Updated saved search:', doc.id);
@@ -237,7 +235,9 @@ class PropertyDeletionService {
       affectedUsers: {
         applications: [],
         maintenanceRequests: [],
-        subscriptions: []
+        subscriptions: [],
+        savedProperties: [],
+        savedSearches: []
       },
       errors: []
     };
@@ -296,6 +296,20 @@ class PropertyDeletionService {
             collection(db, 'applications'),
             where('listingId', '==', propertyId)
           )),
+          // Query by landlordId to catch any applications that might be associated differently
+          getDocs(query(
+            collection(db, 'applications'),
+            where('landlordId', '==', landlordId)
+          )).then(snapshot => {
+            // Filter by property name or address to catch applications that might not have propertyId
+            const filteredDocs = snapshot.docs.filter(doc => {
+              const data = doc.data();
+              return data.applicationMetadata?.propertyName?.toLowerCase().includes(propertyName.toLowerCase()) ||
+                     data.propertyName?.toLowerCase().includes(propertyName.toLowerCase()) ||
+                     data.applicationMetadata?.propertyAddress?.toLowerCase().includes(propertyAddress.toLowerCase());
+            });
+            return { docs: filteredDocs };
+          }),
           // Fallback: Get all applications and filter manually (in case queries don't work)
           getDocs(collection(db, 'applications')).then(snapshot => {
             const filteredDocs = snapshot.docs.filter(doc => {
@@ -304,18 +318,33 @@ class PropertyDeletionService {
                      data.propertyId === propertyId ||
                      data.listingId === propertyId ||
                      (data.applicationMetadata?.landlordId === landlordId && 
-                      (data.applicationMetadata?.propertyName?.includes(propertyName) ||
-                       data.propertyName?.includes(propertyName)));
+                      (data.applicationMetadata?.propertyName?.toLowerCase().includes(propertyName.toLowerCase()) ||
+                       data.propertyName?.toLowerCase().includes(propertyName.toLowerCase()) ||
+                       data.applicationMetadata?.propertyAddress?.toLowerCase().includes(propertyAddress.toLowerCase())));
             });
             return { docs: filteredDocs };
           })
         ]).then(results => {
           // Combine all results and remove duplicates
-          const allDocs = [...results[0].docs, ...results[1].docs, ...results[2].docs, ...results[3].docs];
+          const allDocs = [...results[0].docs, ...results[1].docs, ...results[2].docs, ...results[3].docs, ...results[4].docs];
           const uniqueDocs = allDocs.filter((doc, index, self) => 
             index === self.findIndex(d => d.id === doc.id)
           );
           console.log(`Found ${uniqueDocs.length} applications for property ${propertyId}`);
+          
+          // Log details about each application found
+          uniqueDocs.forEach(doc => {
+            const data = doc.data();
+            console.log(`Application ${doc.id}:`, {
+              applicationType: data.applicationMetadata?.applicationType || 'unknown',
+              status: data.status,
+              propertyId: data.applicationMetadata?.propertyId || data.propertyId,
+              propertyName: data.applicationMetadata?.propertyName || data.propertyName,
+              submittedBy: data.applicationMetadata?.submittedBy || data.submittedBy,
+              landlordId: data.applicationMetadata?.landlordId || data.landlordId
+            });
+          });
+          
           return { docs: uniqueDocs };
         }),
         // Get maintenance requests for this property (try both naming conventions)
@@ -335,13 +364,13 @@ class PropertyDeletionService {
         )),
         // Get saved properties that include this property
         getDocs(query(
-          collection(db, 'saved_properties'),
-          where('propertyIds', 'array-contains', propertyId)
+          collection(db, 'savedProperties'),
+          where('propertyId', '==', propertyId)
         )),
         // Get saved searches that might reference this property
         getDocs(query(
-          collection(db, 'saved_searches'),
-          where('propertyIds', 'array-contains', propertyId)
+          collection(db, 'savedSearches'),
+          where('filteredPropertyIds', 'array-contains', propertyId)
         )),
         // Get subscriptions for this property
         getDocs(query(
@@ -353,12 +382,42 @@ class PropertyDeletionService {
       // 2. Prepare affected users data for notifications
       result.affectedUsers.applications = applicationsSnapshot.docs.map(doc => {
         const data = doc.data();
-        // Try multiple ways to get the user ID
-        const userId = data.applicationMetadata?.submittedBy || 
-                      data.submittedBy || 
-                      data.prospectId || 
-                      data.userId || 
-                      doc.id;
+        
+        // Enhanced user ID extraction with better debugging
+        let userId = null;
+        const possibleUserIds = [
+          data.applicationMetadata?.submittedBy,
+          data.submittedBy,
+          data.prospectId,
+          data.userId,
+          data.personalInfo?.email, // Sometimes email is used as identifier
+          data.landlordId, // In case it's stored differently
+          doc.id // Fallback to document ID
+        ];
+        
+        // Find the first valid user ID
+        for (const possibleId of possibleUserIds) {
+          if (possibleId && typeof possibleId === 'string' && possibleId.length > 0) {
+            userId = possibleId;
+            break;
+          }
+        }
+        
+        // If still no user ID found, log the data structure for debugging
+        if (!userId) {
+          console.warn('No user ID found for application:', doc.id, 'Data structure:', {
+            applicationMetadata: data.applicationMetadata,
+            submittedBy: data.submittedBy,
+            prospectId: data.prospectId,
+            userId: data.userId,
+            personalInfo: data.personalInfo,
+            landlordId: data.landlordId
+          });
+          userId = doc.id; // Use document ID as fallback
+        }
+        
+        console.log(`Application ${doc.id} - User ID: ${userId}, Status: ${data.status}, Type: ${data.applicationMetadata?.applicationType || 'unknown'}`);
+        
         return {
           id: doc.id,
           status: data.status || 'pending',
@@ -384,9 +443,30 @@ class PropertyDeletionService {
         };
       });
 
+      // Add saved properties to affected users
+      result.affectedUsers.savedProperties = savedPropertiesSnapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          userId: data.userId
+        };
+      });
+
+      // Add saved searches to affected users
+      result.affectedUsers.savedSearches = savedSearchesSnapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          userId: data.userId
+        };
+      });
+
       console.log('Found affected data:', {
         applications: result.affectedUsers.applications.length,
         maintenanceRequests: result.affectedUsers.maintenanceRequests.length,
+        subscriptions: result.affectedUsers.subscriptions.length,
+        savedProperties: result.affectedUsers.savedProperties.length,
+        savedSearches: result.affectedUsers.savedSearches.length,
         units: unitsSnapshot.docs.length,
         listings: listingsSnapshot.docs.length
       });
@@ -417,28 +497,16 @@ class PropertyDeletionService {
       });
       result.deletedCounts.listings = listingsSnapshot.docs.length;
 
-      // Update saved properties (remove property from arrays)
+      // Delete saved properties (individual documents, not arrays)
       savedPropertiesSnapshot.docs.forEach(doc => {
-        const data = doc.data();
-        const updatedPropertyIds = data.propertyIds.filter((id: string) => id !== propertyId);
-        
-        if (updatedPropertyIds.length === 0) {
-          // If no properties left, delete the saved property entry
-          batch.delete(doc.ref);
-        } else {
-          // Update the array to remove the deleted property
-          batch.update(doc.ref, {
-            propertyIds: updatedPropertyIds,
-            updatedAt: new Date()
-          });
-        }
+        batch.delete(doc.ref);
       });
       result.deletedCounts.savedProperties = savedPropertiesSnapshot.docs.length;
 
-      // Update saved searches (remove property from arrays)
+      // Update saved searches (remove property from filteredPropertyIds array)
       savedSearchesSnapshot.docs.forEach(doc => {
         const data = doc.data();
-        const updatedPropertyIds = data.propertyIds.filter((id: string) => id !== propertyId);
+        const updatedPropertyIds = (data.filteredPropertyIds || []).filter((id: string) => id !== propertyId);
         
         if (updatedPropertyIds.length === 0) {
           // If no properties left, delete the saved search entry
@@ -446,7 +514,8 @@ class PropertyDeletionService {
         } else {
           // Update the array to remove the deleted property
           batch.update(doc.ref, {
-            propertyIds: updatedPropertyIds,
+            filteredPropertyIds: updatedPropertyIds,
+            filteredPropertiesCount: updatedPropertyIds.length,
             updatedAt: new Date()
           });
         }
@@ -517,7 +586,9 @@ class PropertyDeletionService {
           landlordId,
           result.affectedUsers.applications,
           result.affectedUsers.maintenanceRequests,
-          result.affectedUsers.subscriptions
+          result.affectedUsers.subscriptions,
+          result.affectedUsers.savedProperties,
+          result.affectedUsers.savedSearches
         );
       } catch (notificationError) {
         console.error('Error sending notifications:', notificationError);

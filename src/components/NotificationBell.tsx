@@ -59,7 +59,7 @@ const NotificationBell: React.FC = () => {
             >
               <Badge 
                 variant="destructive" 
-                className="h-5 w-5 flex items-center justify-center text-xs p-0 min-w-[20px] bg-red-500 hover:bg-red-600 shadow-lg"
+                className="h-5 w-5 flex items-center justify-center text-xs p-0 min-w-[20px] text-white bg-green-600 hover:bg-green-600 shadow-lg"
               >
                 {unreadCount > 99 ? '99+' : unreadCount}
               </Badge>

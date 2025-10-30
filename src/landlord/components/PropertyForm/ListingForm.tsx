@@ -466,7 +466,14 @@ const ListingForm: React.FC<ListingFormProps> = ({
               <Input
                 id="listingAvailableDate"
                 type="date"
-                value={data.availableDate ? data.availableDate.toISOString().split('T')[0] : ''}
+                value={data.availableDate ? (() => {
+                  try {
+                    const date = data.availableDate instanceof Date ? data.availableDate : new Date(data.availableDate);
+                    return isNaN(date.getTime()) ? '' : date.toISOString().split('T')[0];
+                  } catch {
+                    return '';
+                  }
+                })() : ''}
                 onChange={(e) => onChange({ 
                   ...data, 
                   availableDate: e.target.value ? new Date(e.target.value) : undefined 

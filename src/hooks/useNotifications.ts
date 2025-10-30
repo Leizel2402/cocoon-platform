@@ -1,12 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
-import { collection, query, where, orderBy, getDocs, doc, updateDoc, onSnapshot } from 'firebase/firestore';
+import { collection, query, where, orderBy, getDocs, doc, updateDoc, deleteDoc, onSnapshot } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from './useAuth';
 
 export interface UserNotification {
   id: string;
   userId: string;
-  type: 'property_deleted' | 'application_cancelled' | 'application_approved' | 'application_rejected' | 'application_submitted' | 'maintenance_cancelled' | 'maintenance_created' | 'maintenance_resolved' | 'listing_removed';
+  type: 'property_deleted' | 'application_cancelled' | 'application_approved' | 'application_rejected' | 'application_submitted' | 'maintenance_cancelled' | 'maintenance_created' | 'maintenance_resolved' | 'listing_removed' | 'new_application' | 'new_maintenance_request' | 'new_subscription' | 'property_viewed' | 'application_withdrawn' | 'maintenance_updated' | 'payment_received' | 'payment_failed';
   title: string;
   message: string;
   propertyId: string;
@@ -107,8 +107,10 @@ export function useNotifications() {
   // Delete notification
   const deleteNotification = useCallback(async (notificationId: string) => {
     try {
-      // Note: You might want to add a delete function to your notification service
-      // For now, we'll just remove it from local state
+      // Delete from Firebase
+      await deleteDoc(doc(db, 'notifications', notificationId));
+      
+      // Update local state
       setNotifications(prev => prev.filter(n => n.id !== notificationId));
       setUnreadCount(prev => {
         const notification = notifications.find(n => n.id === notificationId);
@@ -116,8 +118,41 @@ export function useNotifications() {
       });
     } catch (err) {
       console.error('Error deleting notification:', err);
+      setError('Failed to delete notification');
     }
   }, [notifications]);
+
+  // Delete multiple notifications
+  const deleteMultipleNotifications = useCallback(async (notificationIds: string[]) => {
+    try {
+      // Delete from Firebase in batch
+      const deletePromises = notificationIds.map(id => deleteDoc(doc(db, 'notifications', id)));
+      await Promise.all(deletePromises);
+      
+      // Update local state
+      setNotifications(prev => prev.filter(n => !notificationIds.includes(n.id)));
+      setUnreadCount(prev => {
+        const deletedUnreadCount = notifications.filter(n => 
+          notificationIds.includes(n.id) && !n.isRead
+        ).length;
+        return Math.max(0, prev - deletedUnreadCount);
+      });
+    } catch (err) {
+      console.error('Error deleting notifications:', err);
+      setError('Failed to delete notifications');
+    }
+  }, [notifications]);
+
+  // Delete all notifications
+  const deleteAllNotifications = useCallback(async () => {
+    try {
+      const allNotificationIds = notifications.map(n => n.id);
+      await deleteMultipleNotifications(allNotificationIds);
+    } catch (err) {
+      console.error('Error deleting all notifications:', err);
+      setError('Failed to delete all notifications');
+    }
+  }, [notifications, deleteMultipleNotifications]);
 
   // Set up real-time listener
   useEffect(() => {
@@ -158,6 +193,8 @@ export function useNotifications() {
     markAsRead,
     markAllAsRead,
     deleteNotification,
+    deleteMultipleNotifications,
+    deleteAllNotifications,
     refetch: fetchNotifications
   };
 }

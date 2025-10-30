@@ -1,6 +1,6 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../../../hooks/useAuth';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, doc, updateDoc, getDoc, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../../../lib/firebase';
 import { PropertyFormData, UnitFormData, ListingFormData, PropertyFormStep, PropertyFormState, PropertyFormErrors } from '../../types/propertyForm';
 import PropertyBasicInfo from './PropertyBasicInfo';
@@ -12,8 +12,49 @@ import { Button } from '../../../components/ui/Button';
 import { useToast } from '../../../hooks/use-toast';
 import { Building, Plus, ArrowLeft, List } from 'lucide-react';
 
-const PropertyForm: React.FC<{ 
+interface PropertyFormProps {
   setPropertyFormOpen: (open: boolean) => void;
+  // New props for edit mode
+  editingProperty?: {
+    id: string;
+    name: string;
+    title: string;
+    address: {
+      line1: string;
+      line2?: string;
+      city: string;
+      region: string;
+      postalCode: string;
+      country: string;
+    };
+    location: {
+      lat: number;
+      lng: number;
+    };
+    rent_amount: number;
+    bedrooms: number;
+    bathrooms: number;
+    square_feet: number;
+    property_type: string;
+    is_available: boolean;
+    available_date: string | null;
+    amenities: string[];
+    pet_friendly: boolean;
+    images: string[];
+    description: string;
+    rating: number;
+    userDetails: {
+      name: string;
+      phone: string;
+      email: string;
+    };
+    lease_term_months: number;
+    security_deposit_months: number;
+    first_month_rent_required: boolean;
+    last_month_rent_required: boolean;
+  };
+  onPropertyUpdate?: (updatedProperty: any) => void;
+  // New props for listing edit mode
   editingListing?: {
     id: string;
     title: string;
@@ -26,13 +67,60 @@ const PropertyForm: React.FC<{
     available: boolean;
     amenities: string[];
     images: string[];
+    availableDate?: Date;
+    propertyId: string;
+    unitId?: string;
+    landlordId: string;
+    userDetails: {
+      name: string;
+      phone: string;
+      email: string;
+    };
     lease_term_months?: number;
     application_fee?: number;
+    pet_deposit?: number;
+    security_deposit_months?: number;
+    first_month_rent_required?: boolean;
+    last_month_rent_required?: boolean;
   };
-}> = ({ setPropertyFormOpen, editingListing }) => {
+  onListingUpdate?: (updatedListing: any) => void;
+}
+
+const PropertyForm: React.FC<PropertyFormProps> = ({ 
+  setPropertyFormOpen, 
+  editingListing, 
+  editingProperty,
+  onPropertyUpdate,
+  onListingUpdate
+}) => {
   const { user } = useAuth();
   const { toast } = useToast();
   const stepperRef = useRef<HTMLDivElement>(null);
+  
+  // Determine if we're in edit mode
+  const isEditMode = !!editingProperty;
+  const isListingEditMode = !!editingListing;
+  const isAnyEditMode = isEditMode || isListingEditMode;
+
+  // Helper function to convert various date formats to Date object
+  const convertToDate = (date: any): Date | undefined => {
+    if (!date) return undefined;
+    
+    if (date instanceof Date) {
+      return date;
+    }
+    
+    if (date.seconds) {
+      // Firebase timestamp
+      return new Date(date.seconds * 1000);
+    }
+    
+    if (typeof date === 'string') {
+      return new Date(date);
+    }
+    
+    return new Date(date);
+  };
   
   // Function to scroll to navigation buttons with slower speed
   const scrollToNavigation = () => {
@@ -221,10 +309,296 @@ const PropertyForm: React.FC<{
 
   const [steps, setSteps] = useState({
     property: { completed: false, valid: false },
-    units: { completed: true, valid: false }, // Has default unit but not valid until filled
-    listings: { completed: true, valid: false }, // Has default listing but not valid until filled
+    units: { completed: false, valid: false }, // Will be valid when units are properly filled
+    listings: { completed: false, valid: false }, // Will be valid when listings are properly filled
     review: { completed: false, valid: false },
   });
+
+  // Load existing property data for edit mode
+  useEffect(() => {
+    if (editingProperty && isEditMode) {
+      loadPropertyData();
+    } else if (editingListing && isListingEditMode) {
+      loadListingData();
+    }
+  }, [editingProperty, isEditMode, editingListing, isListingEditMode]);
+
+  // Update review step completion status when other steps change
+  useEffect(() => {
+    const allStepsValid = steps.property.valid && steps.units.valid && steps.listings.valid;
+    setSteps(prev => ({
+      ...prev,
+      review: { completed: allStepsValid, valid: allStepsValid }
+    }));
+  }, [steps.property.valid, steps.units.valid, steps.listings.valid]);
+
+  const loadPropertyData = async () => {
+    if (!editingProperty) return;
+    
+    try {
+      // Load property data
+      const propertyData = {
+        name: editingProperty.name || '',
+        title: editingProperty.title || '',
+        address: {
+          line1: editingProperty.address?.line1 || '',
+          line2: editingProperty.address?.line2 || '',
+          city: editingProperty.address?.city || '',
+          region: editingProperty.address?.region || '',
+          postalCode: editingProperty.address?.postalCode || '',
+          country: editingProperty.address?.country || 'United States',
+        },
+        location: {
+          lat: editingProperty.location?.lat || 0,
+          lng: editingProperty.location?.lng || 0,
+        },
+        rent_amount: editingProperty.rent_amount || 0,
+        bedrooms: editingProperty.bedrooms || 0,
+        bathrooms: editingProperty.bathrooms || 0,
+        square_feet: editingProperty.square_feet || 0,
+        property_type: editingProperty.property_type || '',
+        propertyType: editingProperty.property_type || '',
+        is_available: editingProperty.is_available ?? true,
+        available_date: editingProperty.available_date ? (() => {
+          const date = convertToDate(editingProperty.available_date);
+          return date ? date.toISOString().split('T')[0] : null;
+        })() : null,
+        amenities: editingProperty.amenities || [],
+        pet_friendly: editingProperty.pet_friendly || false,
+        images: editingProperty.images || [],
+        description: editingProperty.description || '',
+        rating: editingProperty.rating || 0,
+        isRentWiseNetwork: false,
+        userDetails: {
+          name: editingProperty.userDetails?.name || '',
+          phone: editingProperty.userDetails?.phone || '',
+          email: editingProperty.userDetails?.email || '',
+        },
+        socialFeeds: {},
+        lease_term_months: editingProperty.lease_term_months || 12,
+        lease_term_options: ['12 Months'],
+        security_deposit_months: editingProperty.security_deposit_months || 1,
+        first_month_rent_required: editingProperty.first_month_rent_required ?? true,
+        last_month_rent_required: editingProperty.last_month_rent_required ?? false,
+      };
+
+      // Load units for this property
+      const unitsQuery = query(
+        collection(db, 'units'),
+        where('propertyId', '==', editingProperty.id)
+      );
+      const unitsSnapshot = await getDocs(unitsQuery);
+      const unitsData = unitsSnapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          unitNumber: data.unitNumber || '',
+          bedrooms: data.bedrooms || 1,
+          bathrooms: data.bathrooms || 1,
+          squareFeet: data.squareFeet || 0,
+          rent: data.rent || 0,
+          deposit: data.deposit || 0,
+          available: data.available ?? true,
+          amenities: data.amenities || [],
+          images: data.images || [],
+          floorImage: data.floorImage || '',
+          description: data.description || '',
+          userDetails: data.userDetails || { name: '', phone: '', email: '' },
+          lease_term_months: data.lease_term_months || 12,
+          lease_term_options: data.lease_term_options || ['12 Months'],
+          security_deposit_months: data.security_deposit_months || 1,
+          first_month_rent_required: data.first_month_rent_required ?? true,
+          last_month_rent_required: data.last_month_rent_required ?? false,
+          pet_deposit: data.pet_deposit || 0,
+          application_fee: data.application_fee || 0,
+          // Convert availableDate to Date object if it exists
+          availableDate: convertToDate(data.availableDate)
+        };
+      }) as UnitFormData[];
+
+      // Load listings for this property
+      const listingsQuery = query(
+        collection(db, 'listings'),
+        where('propertyId', '==', editingProperty.id)
+      );
+      const listingsSnapshot = await getDocs(listingsQuery);
+      const listingsData = listingsSnapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          title: data.title || '',
+          description: data.description || '',
+          rent: data.rent || 0,
+          deposit: data.deposit || 0,
+          bedrooms: data.bedrooms || 1,
+          bathrooms: data.bathrooms || 1,
+          squareFeet: data.squareFeet || 0,
+          images: data.images || [],
+          amenities: data.amenities || [],
+          available: data.available ?? true,
+          userDetails: data.userDetails || { name: '', phone: '', email: '' },
+          lease_term_months: data.lease_term_months || 12,
+          lease_term_options: data.lease_term_options || ['12 Months'],
+          security_deposit_months: data.security_deposit_months || 1,
+          first_month_rent_required: data.first_month_rent_required ?? true,
+          last_month_rent_required: data.last_month_rent_required ?? false,
+          pet_deposit: data.pet_deposit || 0,
+          application_fee: data.application_fee || 0,
+          // Convert availableDate to Date object if it exists
+          availableDate: convertToDate(data.availableDate)
+        };
+      }) as ListingFormData[];
+
+      console.log('Loaded property data for edit:', propertyData);
+      console.log('Loaded units data for edit:', unitsData);
+      console.log('Loaded listings data for edit:', listingsData);
+
+      setFormState(prev => ({
+        ...prev,
+        data: {
+          ...prev.data,
+          property: propertyData,
+          units: unitsData.length > 0 ? unitsData : prev.data.units,
+          listings: listingsData.length > 0 ? listingsData : prev.data.listings
+        }
+      }));
+
+      // Update step completion status
+      setSteps(prev => ({
+        ...prev,
+        property: { completed: true, valid: true },
+        units: { completed: unitsData.length > 0, valid: unitsData.length > 0 },
+        listings: { completed: listingsData.length > 0, valid: listingsData.length > 0 }
+      }));
+
+    } catch (error) {
+      console.error('Error loading property data:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load property data. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const loadListingData = async () => {
+    if (!editingListing) return;
+    
+    try {
+      // Load the property data for this listing
+      const propertyDoc = await getDoc(doc(db, 'properties', editingListing.propertyId));
+      const propertyData = propertyDoc.data();
+
+      if (!propertyData) {
+        throw new Error('Property not found for this listing');
+      }
+
+      // Map property data to form format
+      const mappedPropertyData = {
+        name: propertyData.name || '',
+        title: propertyData.title || '',
+        address: {
+          line1: propertyData.address?.line1 || '',
+          line2: propertyData.address?.line2 || '',
+          city: propertyData.address?.city || '',
+          region: propertyData.address?.region || '',
+          postalCode: propertyData.address?.postalCode || '',
+          country: propertyData.address?.country || 'United States',
+        },
+        location: {
+          lat: propertyData.location?.lat || 0,
+          lng: propertyData.location?.lng || 0,
+        },
+        rent_amount: propertyData.rent_amount || 0,
+        bedrooms: propertyData.bedrooms || 0,
+        bathrooms: propertyData.bathrooms || 0,
+        square_feet: propertyData.square_feet || 0,
+        property_type: propertyData.property_type || '',
+        propertyType: propertyData.property_type || '',
+        is_available: propertyData.is_available ?? true,
+        available_date: propertyData.available_date ? (() => {
+          const date = convertToDate(propertyData.available_date);
+          return date ? date.toISOString().split('T')[0] : null;
+        })() : null,
+        amenities: propertyData.amenities || [],
+        pet_friendly: propertyData.pet_friendly || false,
+        images: propertyData.images || [],
+        description: propertyData.description || '',
+        rating: propertyData.rating || 0,
+        isRentWiseNetwork: false,
+        userDetails: {
+          name: propertyData.userDetails?.name || '',
+          phone: propertyData.userDetails?.phone || '',
+          email: propertyData.userDetails?.email || '',
+        },
+        socialFeeds: {},
+        lease_term_months: propertyData.lease_term_months || 12,
+        lease_term_options: ['12 Months'],
+        security_deposit_months: propertyData.security_deposit_months || 1,
+        first_month_rent_required: propertyData.first_month_rent_required ?? true,
+        last_month_rent_required: propertyData.last_month_rent_required ?? false,
+      };
+
+      // Map listing data to form format
+      const mappedListingData = {
+        id: editingListing.id,
+        title: editingListing.title || '',
+        description: editingListing.description || '',
+        rent: editingListing.rent || 0,
+        deposit: editingListing.deposit || 0,
+        bedrooms: editingListing.bedrooms || 0,
+        bathrooms: editingListing.bathrooms || 0,
+        squareFeet: editingListing.squareFeet || 0,
+        images: editingListing.images || [],
+        amenities: editingListing.amenities || [],
+        available: editingListing.available ?? true,
+        availableDate: convertToDate((editingListing as any).availableDate),
+        userDetails: {
+          name: (editingListing as any).userDetails?.name || '',
+          phone: (editingListing as any).userDetails?.phone || '',
+          email: (editingListing as any).userDetails?.email || '',
+        },
+        lease_term_months: editingListing.lease_term_months || 12,
+        lease_term_options: ['12 Months'],
+        security_deposit_months: (editingListing as any).security_deposit_months || 1,
+        first_month_rent_required: (editingListing as any).first_month_rent_required ?? true,
+        last_month_rent_required: (editingListing as any).last_month_rent_required ?? false,
+        pet_deposit: (editingListing as any).pet_deposit || 0,
+        application_fee: editingListing.application_fee || 0,
+      };
+
+      console.log('Loaded listing data for edit:', mappedListingData);
+
+      setFormState(prev => ({
+        ...prev,
+        data: {
+          ...prev.data,
+          property: mappedPropertyData,
+          listings: [mappedListingData] // Replace with the single listing being edited
+        }
+      }));
+
+      // Update step completion status - start on listings step
+      setSteps(prev => ({
+        ...prev,
+        property: { completed: true, valid: true },
+        units: { completed: false, valid: false },
+        listings: { completed: true, valid: true },
+        review: { completed: false, valid: false }
+      }));
+
+      // Start on the listings step
+      updateFormState({ currentStep: 'listings' });
+
+    } catch (error) {
+      console.error('Error loading listing data:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load listing data. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
 
   // Validation functions
   const validateProperty = (data: PropertyFormData): PropertyFormErrors['property'] => {
@@ -609,7 +983,9 @@ const PropertyForm: React.FC<{
     });
 
     // Check if all units have all required fields filled
-    const allUnitsValid = updatedUnits.length > 0 && updatedUnits.every(unit => {
+    // Units are optional, so if there are no units, the step is valid
+    // If there are units, all must be valid
+    const allUnitsValid = updatedUnits.length === 0 || updatedUnits.every(unit => {
       const unitErrors = validateUnit(unit);
       const hasNoErrors = Object.keys(unitErrors || {}).length === 0;
       const hasAllRequiredFields = 
@@ -647,7 +1023,9 @@ const PropertyForm: React.FC<{
     });
 
     // Check if all listings have all required fields filled
-    const allListingsValid = updatedListings.length > 0 && updatedListings.every(listing => {
+    // Listings are optional, so if there are no listings, the step is valid
+    // If there are listings, all must be valid
+    const allListingsValid = updatedListings.length === 0 || updatedListings.every(listing => {
       const listingErrors = validateListing(listing);
       const hasNoErrors = Object.keys(listingErrors || {}).length === 0;
       const hasAllRequiredFields = 
@@ -695,9 +1073,29 @@ const PropertyForm: React.FC<{
       application_fee: 0,
     };
     
+    const updatedUnits = [...formState.data.units, newUnit];
     updateFormState({
-      data: { ...formState.data, units: [...formState.data.units, newUnit] }
+      data: { ...formState.data, units: updatedUnits }
     });
+
+    // Update step completion status
+    const allUnitsValid = updatedUnits.length === 0 || updatedUnits.every(unit => {
+      const unitErrors = validateUnit(unit);
+      const hasNoErrors = Object.keys(unitErrors || {}).length === 0;
+      const hasAllRequiredFields = 
+        unit.unitNumber.trim() &&
+        unit.description.trim() &&
+        unit.userDetails.name.trim() &&
+        unit.userDetails.phone.trim() &&
+        unit.userDetails.email.trim() &&
+        (!unit.available || unit.availableDate);
+      return hasNoErrors && hasAllRequiredFields;
+    });
+
+    setSteps(prev => ({
+      ...prev,
+      units: { completed: allUnitsValid, valid: allUnitsValid }
+    }));
   };
 
   // Remove unit
@@ -706,6 +1104,25 @@ const PropertyForm: React.FC<{
     updateFormState({
       data: { ...formState.data, units: updatedUnits }
     });
+
+    // Update step completion status
+    const allUnitsValid = updatedUnits.length === 0 || updatedUnits.every(unit => {
+      const unitErrors = validateUnit(unit);
+      const hasNoErrors = Object.keys(unitErrors || {}).length === 0;
+      const hasAllRequiredFields = 
+        unit.unitNumber.trim() &&
+        unit.description.trim() &&
+        unit.userDetails.name.trim() &&
+        unit.userDetails.phone.trim() &&
+        unit.userDetails.email.trim() &&
+        (!unit.available || unit.availableDate);
+      return hasNoErrors && hasAllRequiredFields;
+    });
+
+    setSteps(prev => ({
+      ...prev,
+      units: { completed: allUnitsValid, valid: allUnitsValid }
+    }));
   };
 
   // Add new listing
@@ -736,9 +1153,29 @@ const PropertyForm: React.FC<{
       application_fee: 0,
     };
     
+    const updatedListings = [...formState.data.listings, newListing];
     updateFormState({
-      data: { ...formState.data, listings: [...formState.data.listings, newListing] }
+      data: { ...formState.data, listings: updatedListings }
     });
+
+    // Update step completion status
+    const allListingsValid = updatedListings.length === 0 || updatedListings.every(listing => {
+      const listingErrors = validateListing(listing);
+      const hasNoErrors = Object.keys(listingErrors || {}).length === 0;
+      const hasAllRequiredFields = 
+        listing.title.trim() &&
+        listing.description.trim() &&
+        listing.userDetails.name.trim() &&
+        listing.userDetails.phone.trim() &&
+        listing.userDetails.email.trim() &&
+        (!listing.available || listing.availableDate);
+      return hasNoErrors && hasAllRequiredFields;
+    });
+
+    setSteps(prev => ({
+      ...prev,
+      listings: { completed: allListingsValid, valid: allListingsValid }
+    }));
   };
 
   // Remove listing
@@ -747,6 +1184,25 @@ const PropertyForm: React.FC<{
     updateFormState({
       data: { ...formState.data, listings: updatedListings }
     });
+
+    // Update step completion status
+    const allListingsValid = updatedListings.length === 0 || updatedListings.every(listing => {
+      const listingErrors = validateListing(listing);
+      const hasNoErrors = Object.keys(listingErrors || {}).length === 0;
+      const hasAllRequiredFields = 
+        listing.title.trim() &&
+        listing.description.trim() &&
+        listing.userDetails.name.trim() &&
+        listing.userDetails.phone.trim() &&
+        listing.userDetails.email.trim() &&
+        (!listing.available || listing.availableDate);
+      return hasNoErrors && hasAllRequiredFields;
+    });
+
+    setSteps(prev => ({
+      ...prev,
+      listings: { completed: allListingsValid, valid: allListingsValid }
+    }));
   };
 
   // Navigation functions
@@ -797,10 +1253,60 @@ const PropertyForm: React.FC<{
         const { doc, updateDoc } = await import('firebase/firestore');
         await updateDoc(doc(db, 'listings', editingListing.id), listingData);
         
+        // Notify parent component of update
+        if (onListingUpdate) {
+          onListingUpdate(listingData);
+        }
+        
         toast({
           title: 'Listing updated successfully!',
           description: 'Your listing has been updated.',
         });
+
+        setPropertyFormOpen(false);
+      } else if (isEditMode && editingProperty) {
+        // Update existing property
+        const propertyData = {
+          ...formState.data.property,
+          updatedAt: serverTimestamp(),
+        };
+        
+        propertyRef = { id: editingProperty.id };
+        await updateDoc(doc(db, 'properties', editingProperty.id), propertyData);
+
+        // Update units
+        for (const unit of formState.data.units) {
+          if ((unit as any).id) {
+            const unitData = {
+              ...unit,
+              updatedAt: serverTimestamp(),
+            };
+            await updateDoc(doc(db, 'units', (unit as any).id), unitData);
+          }
+        }
+
+        // Update listings
+        for (const listing of formState.data.listings) {
+          if ((listing as any).id) {
+            const listingData = {
+              ...listing,
+              updatedAt: serverTimestamp(),
+            };
+            await updateDoc(doc(db, 'listings', (listing as any).id), listingData);
+          }
+        }
+
+        // Notify parent component of update
+        if (onPropertyUpdate) {
+          onPropertyUpdate(propertyData);
+        }
+
+        toast({
+          title: 'Property updated successfully!',
+          description: 'Your property has been updated.',
+        });
+
+        setPropertyFormOpen(false);
       } else {
         // Create new property
         const propertyData = {
@@ -1050,6 +1556,7 @@ const PropertyForm: React.FC<{
             onSubmit={handleSubmit}
             onEdit={goToStep}
             isSubmitting={formState.isSubmitting}
+            isEditMode={isAnyEditMode}
           />
         );
       
@@ -1069,9 +1576,16 @@ const PropertyForm: React.FC<{
                 <Building className="h-6 w-6 text-green-600" />
               </div>
               <div>
-                <h1 className="text-lg md:text-2xl font-bold">Add New Property</h1>
+                <h1 className="text-lg md:text-2xl font-bold">
+                  {isEditMode ? 'Edit Property' : isListingEditMode ? 'Edit Listing' : 'Add New Property'}
+                </h1>
                 <p className="text-sm text-green-50">
-                  Create a new property with units and listings • All fields marked with * are required
+                  {isEditMode 
+                    ? `Edit ${editingProperty?.name || 'property'} details • All fields marked with * are required`
+                    : isListingEditMode
+                    ? `Edit ${editingListing?.title || 'listing'} details • All fields marked with * are required`
+                    : 'Create a new property with units and listings • All fields marked with * are required'
+                  }
                 </p>
               </div>
             </div>
@@ -1083,7 +1597,7 @@ const PropertyForm: React.FC<{
                 className="bg-white text-green-600 hover:bg-green-50 font-semibold transition-all duration-200 shadow-lg"
               >
                 <ArrowLeft className="h-4 w-4 mr-2" />
-                Back to Dashboard
+                Go to Back 
               </Button>
             </div>
           </div>

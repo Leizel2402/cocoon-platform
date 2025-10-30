@@ -17,9 +17,11 @@ import {
   MapPin,
   Loader2,
   CheckCircle,
-  XCircle
+  XCircle,
+  Trash,
+  AlertCircle
 } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const Notifications: React.FC = () => {
   const { 
@@ -28,11 +30,19 @@ const Notifications: React.FC = () => {
     unreadCount, 
     markAsRead, 
     markAllAsRead, 
-    deleteNotification 
+    deleteNotification,
+    deleteMultipleNotifications,
+    deleteAllNotifications,
+    refetch
   } = useNotifications();
 
   const [filter, setFilter] = useState<'all' | 'unread' | 'read'>('all');
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedNotifications, setSelectedNotifications] = useState<string[]>([]);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [notificationToDelete, setNotificationToDelete] = useState<string | null>(null);
+  const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const getNotificationIcon = (type: string) => {
     switch (type) {
@@ -54,6 +64,23 @@ const Notifications: React.FC = () => {
         return <CheckCircle className="h-5 w-5 text-green-500" />;
       case 'listing_removed':
         return <Home className="h-5 w-5 text-blue-500" />;
+      // Landlord notification types
+      case 'new_application':
+        return <FileText className="h-5 w-5 text-green-600" />;
+      case 'new_maintenance_request':
+        return <Wrench className="h-5 w-5 text-orange-500" />;
+      case 'new_subscription':
+        return <Bell className="h-5 w-5 text-purple-500" />;
+      case 'property_viewed':
+        return <Home className="h-5 w-5 text-blue-600" />;
+      case 'application_withdrawn':
+        return <FileText className="h-5 w-5 text-gray-500" />;
+      case 'maintenance_updated':
+        return <Wrench className="h-5 w-5 text-yellow-500" />;
+      case 'payment_received':
+        return <CheckCircle className="h-5 w-5 text-green-600" />;
+      case 'payment_failed':
+        return <AlertTriangle className="h-5 w-5 text-red-600" />;
       default:
         return <Info className="h-5 w-5 text-gray-500" />;
     }
@@ -94,6 +121,83 @@ const Notifications: React.FC = () => {
     if (diffInHours < 24) return `${diffInHours}h ago`;
     if (diffInHours < 168) return `${Math.floor(diffInHours / 24)}d ago`;
     return dateObj.toLocaleDateString();
+  };
+
+  // Handle notification selection
+  const toggleNotificationSelection = (notificationId: string) => {
+    setSelectedNotifications(prev => 
+      prev.includes(notificationId) 
+        ? prev.filter(id => id !== notificationId)
+        : [...prev, notificationId]
+    );
+  };
+
+  // Handle select all
+  const toggleSelectAll = () => {
+    if (selectedNotifications.length === filteredNotifications.length) {
+      setSelectedNotifications([]);
+    } else {
+      setSelectedNotifications(filteredNotifications.map(n => n.id));
+    }
+  };
+
+  // Handle single delete confirmation
+  const handleDeleteClick = (notificationId: string) => {
+    setNotificationToDelete(notificationId);
+    setShowDeleteConfirm(true);
+  };
+
+  // Handle bulk delete confirmation
+  const handleBulkDeleteClick = () => {
+    if (selectedNotifications.length > 0) {
+      setShowBulkDeleteConfirm(true);
+    }
+  };
+
+  // Confirm single delete
+  const confirmDelete = async () => {
+    if (!notificationToDelete) return;
+    
+    setIsDeleting(true);
+    try {
+      await deleteNotification(notificationToDelete);
+    } finally {
+      setIsDeleting(false);
+      setShowDeleteConfirm(false);
+      setNotificationToDelete(null);
+    }
+  };
+
+  // Confirm bulk delete
+  const confirmBulkDelete = async () => {
+    if (selectedNotifications.length === 0) return;
+    
+    setIsDeleting(true);
+    try {
+      await deleteMultipleNotifications(selectedNotifications);
+      setSelectedNotifications([]);
+    } finally {
+      setIsDeleting(false);
+      setShowBulkDeleteConfirm(false);
+    }
+  };
+
+  // Cancel delete operations
+  const cancelDelete = () => {
+    setShowDeleteConfirm(false);
+    setShowBulkDeleteConfirm(false);
+    setNotificationToDelete(null);
+  };
+
+  // Handle refresh with cleanup
+  const handleRefresh = async () => {
+    // Clear selections and reset filters
+    setSelectedNotifications([]);
+    setSearchTerm('');
+    setFilter('all');
+    
+    // Fetch fresh data
+    await refetch();
   };
 
   const filteredNotifications = notifications.filter(notification => {
@@ -157,11 +261,16 @@ const Notifications: React.FC = () => {
             </div>
             <div className="flex gap-3">
               <Button
-                onClick={() => window.location.reload()}
+                onClick={handleRefresh}
                 variant="outline"
                 className="border-white text-white hover:bg-white/20 font-semibold transition-all duration-200"
+                disabled={loading}
               >
-                <Search className="h-4 w-4 mr-2" />
+                {loading ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Search className="h-4 w-4 mr-2" />
+                )}
                 Refresh
               </Button>
               {unreadCount > 0 && (
@@ -171,6 +280,16 @@ const Notifications: React.FC = () => {
                 >
                   <CheckCheck className="h-4 w-4 mr-2" />
                   Mark all as read
+                </Button>
+              )}
+              {notifications.length > 0 && (
+                <Button
+                  onClick={() => setShowBulkDeleteConfirm(true)}
+                  variant="outline"
+                  className=" bg-white text-red-600 hover:bg-red-50 font-semibold transition-all duration-200 shadow-lg"
+                >
+                  <Trash className="h-4 w-4 mr-2" />
+                  Delete All
                 </Button>
               )}
             </div>
@@ -278,6 +397,31 @@ const Notifications: React.FC = () => {
                 </Button>
               ))}
             </div>
+
+            {/* Bulk Actions */}
+            {filteredNotifications.length > 0 && (
+              <div className="flex gap-2 flex-wrap">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={toggleSelectAll}
+                  className="text-xs sm:text-sm border-gray-200 hover:bg-gray-50 text-gray-700"
+                >
+                  {selectedNotifications.length === filteredNotifications.length ? 'Deselect All' : 'Select All'}
+                </Button>
+                {selectedNotifications.length > 0 && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleBulkDeleteClick}
+                    className="text-xs sm:text-sm border-red-200 text-red-600 hover:bg-red-50"
+                  >
+                    <Trash2 className="h-3 w-3 mr-1" />
+                    Delete Selected ({selectedNotifications.length})
+                  </Button>
+                )}
+              </div>
+            )}
           </div>
         </div>
 
@@ -309,10 +453,16 @@ const Notifications: React.FC = () => {
               >
                 <div className={`bg-white rounded-2xl shadow-sm border border-gray-100 p-4 sm:p-6 hover:shadow-lg transition-all duration-300 ${
                   !notification.isRead ? 'border-l-4 border-l-blue-500' : ''
-                }`}>
+                } ${selectedNotifications.includes(notification.id) ? 'ring-2 ring-blue-500 bg-blue-50' : ''}`}>
                   {/* Mobile Layout */}
                   <div className="sm:hidden">
                     <div className="flex items-start gap-3 mb-4">
+                      <input
+                        type="checkbox"
+                        checked={selectedNotifications.includes(notification.id)}
+                        onChange={() => toggleNotificationSelection(notification.id)}
+                        className="mt-1 h-4 w-4 !text-green-600 focus:ring-blue-500 !border-green-300 rounded "
+                      />
                       <div className="flex-1 min-w-0">
                         <h3 className="text-base font-bold text-gray-900 mb-2 truncate">{notification.title}</h3>
                         <div className="flex items-center gap-2 mb-2">
@@ -334,25 +484,33 @@ const Notifications: React.FC = () => {
                   {/* Desktop Layout */}
                   <div className="hidden sm:block">
                     <div className="flex items-start justify-between mb-4">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-2">
-                          <h3 className="text-lg font-bold text-gray-900">{notification.title}</h3>
-                          <div className="flex items-center gap-2">
-                            <span className={`px-3 py-1 flex rounded-full text-xs font-semibold ${getNotificationTypeColor(notification.type)}`}>
-                              {getNotificationIcon(notification.type)}
-                              <span className="ml-1 capitalize">{notification.type.replace('_', ' ')}</span>
-                            </span>
-                            {!notification.isRead && (
-                              <span className="px-3 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-700">
-                                New
+                      <div className="flex items-start gap-3 flex-1">
+                        <input
+                          type="checkbox"
+                          checked={selectedNotifications.includes(notification.id)}
+                          onChange={() => toggleNotificationSelection(notification.id)}
+                          className="mt-1 h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
+                        />
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3 mb-2">
+                            <h3 className="text-lg font-bold text-gray-900">{notification.title}</h3>
+                            <div className="flex items-center gap-2">
+                              <span className={`px-3 py-1 flex rounded-full text-xs font-semibold ${getNotificationTypeColor(notification.type)}`}>
+                                {getNotificationIcon(notification.type)}
+                                <span className="ml-1 capitalize">{notification.type.replace('_', ' ')}</span>
                               </span>
-                            )}
+                              {!notification.isRead && (
+                                <span className="px-3 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-700">
+                                  New
+                                </span>
+                              )}
+                            </div>
                           </div>
-                        </div>
-                        <p className="text-gray-600 text-sm mb-3 line-clamp-2">{notification.message}</p>
-                        <div className="flex items-center text-sm text-gray-500">
-                          <MapPin className="h-4 w-4 mr-1" />
-                          <span>{notification.propertyName}</span>
+                          <p className="text-gray-600 text-sm mb-3 line-clamp-2">{notification.message}</p>
+                          <div className="flex items-center text-sm text-gray-500">
+                            <MapPin className="h-4 w-4 mr-1" />
+                            <span>{notification.propertyName}</span>
+                          </div>
                         </div>
                       </div>
                       <div className="text-right text-sm text-gray-500 ml-4">
@@ -394,8 +552,9 @@ const Notifications: React.FC = () => {
                       <Button 
                         variant="outline" 
                         size="sm"
-                        onClick={() => deleteNotification(notification.id)}
+                        onClick={() => handleDeleteClick(notification.id)}
                         className="text-gray-600 hover:text-red-600"
+                        disabled={isDeleting}
                       >
                         <Trash2 className="h-4 w-4 mr-1" />
                         Delete
@@ -408,6 +567,126 @@ const Notifications: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Confirmation Dialogs */}
+      <AnimatePresence>
+        {/* Single Delete Confirmation */}
+        {showDeleteConfirm && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white rounded-2xl p-6 max-w-md w-full shadow-xl"
+            >
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
+                  <AlertCircle className="h-5 w-5 text-red-600" />
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900">Delete Notification</h3>
+              </div>
+              <p className="text-gray-600 mb-6">
+                Are you sure you want to delete this notification? This action cannot be undone.
+              </p>
+              <div className="flex gap-3 justify-end">
+                <Button
+                  variant="outline"
+                  onClick={cancelDelete}
+                  disabled={isDeleting}
+                  className="text-gray-600"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={confirmDelete}
+                  disabled={isDeleting}
+                  className="bg-red-600 hover:bg-red-700 text-white"
+                >
+                  {isDeleting ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Deleting...
+                    </>
+                  ) : (
+                    <>
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Delete
+                    </>
+                  )}
+                </Button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+
+        {/* Bulk Delete Confirmation */}
+        {showBulkDeleteConfirm && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white rounded-2xl p-6 max-w-md w-full shadow-xl"
+            >
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
+                  <AlertCircle className="h-5 w-5 text-red-600" />
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900">
+                  {selectedNotifications.length > 0 ? 'Delete Selected Notifications' : 'Delete All Notifications'}
+                </h3>
+              </div>
+              <p className="text-gray-600 mb-6">
+                {selectedNotifications.length > 0 
+                  ? `Are you sure you want to delete ${selectedNotifications.length} selected notification${selectedNotifications.length > 1 ? 's' : ''}? This action cannot be undone.`
+                  : 'Are you sure you want to delete all notifications? This action cannot be undone.'
+                }
+              </p>
+              <div className="flex gap-3 justify-end">
+                <Button
+                  variant="outline"
+                  onClick={cancelDelete}
+                  disabled={isDeleting}
+                  className="text-gray-600"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={selectedNotifications.length > 0 ? confirmBulkDelete : () => {
+                    setIsDeleting(true);
+                    deleteAllNotifications().finally(() => setIsDeleting(false));
+                    setShowBulkDeleteConfirm(false);
+                  }}
+                  disabled={isDeleting}
+                  className="bg-red-600 hover:bg-red-700 text-white"
+                >
+                  {isDeleting ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Deleting...
+                    </>
+                  ) : (
+                    <>
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Delete {selectedNotifications.length > 0 ? 'Selected' : 'All'}
+                    </>
+                  )}
+                </Button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

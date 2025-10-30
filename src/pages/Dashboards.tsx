@@ -13,7 +13,7 @@ import { Checkbox } from "../components/ui/checkbox";
 // import {Slider}  from '../components/ui/slider';
 import { Search, MapPin, ChevronDown } from "lucide-react";
 import { useTranslation } from "../hooks/useTranslations";
-import { collection, query, limit, getDocs } from "firebase/firestore";
+import { collection, query, limit, getDocs, onSnapshot } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import heroImage from "../assets/images/hero-apartments.jpg";
 import QualifiedProperties from "../Prospect/QualifiedProperties";
@@ -923,20 +923,196 @@ const Dashboards = () => {
       }
     };
 
+    // Initial load
     loadProperties();
-  }, []);
+
+    // Set up real-time listener for properties collection
+    const propertiesQuery = query(
+      collection(db, "properties"),
+      limit(20)
+    );
+    
+    const unsubscribeProperties = onSnapshot(propertiesQuery, (snapshot) => {
+      console.log('Properties updated in real-time on Dashboards:', snapshot.docs.length);
+      
+      // Filter available properties in memory
+      const availableProperties = snapshot.docs.filter((doc) => {
+        const data = doc.data();
+        return data.is_available === true;
+      });
+
+      if (availableProperties.length === 0) {
+        setDatabaseProperties([]);
+        return;
+      }
+
+      // Transform properties for real-time updates
+      const transformedProperties = availableProperties.map((doc: any) => {
+        const prop = doc.data();
+        
+        // Handle address - could be string or object
+        let addressString = "";
+        let city = "";
+        let state = "";
+        let zip_code = "";
+        let country = "";
+
+        if (typeof prop.address === "string") {
+          addressString = prop.address;
+        } else if (prop.address && typeof prop.address === "object") {
+          addressString = `${prop.address.line1}${
+            prop.address.line2 ? ", " + prop.address.line2 : ""
+          }`;
+          city = prop.address.city || "";
+          state = prop.address.region || "";
+          zip_code = prop.address.postalCode || "";
+          country = prop.address.country || "";
+        }
+
+        // Handle location coordinates
+        let coordinates: [number, number] = [0, 0];
+        if (prop.location && prop.location.lat && prop.location.lng) {
+          coordinates = [prop.location.lng, prop.location.lat];
+        } else if (prop.lat && prop.lng) {
+          coordinates = [prop.lng, prop.lat];
+        }
+
+        // Handle images - use first image if available
+        let imageUrl = "";
+        if (prop.images && prop.images.length > 0 && prop.images[0]) {
+          imageUrl = prop.images[0];
+        } else if (prop.image) {
+          imageUrl = prop.image;
+        }
+
+        // Handle timestamps
+        let createdAt = null;
+        let updatedAt = null;
+        if (prop.createdAt) {
+          if (prop.createdAt.seconds) {
+            createdAt = new Date(prop.createdAt.seconds * 1000);
+          } else {
+            createdAt = new Date(prop.createdAt);
+          }
+        }
+        if (prop.updatedAt) {
+          if (prop.updatedAt.seconds) {
+            updatedAt = new Date(prop.updatedAt.seconds * 1000);
+          } else {
+            updatedAt = new Date(prop.updatedAt);
+          }
+        }
+
+        return {
+          id: doc.id,
+          name: prop.name || prop.title || "",
+          title: prop.title || prop.name || "",
+          address: addressString || "",
+          city: city,
+          state: state,
+          zip_code: zip_code,
+          country: country,
+          priceRange: prop.rent_amount
+            ? `$${prop.rent_amount.toLocaleString()}`
+            : "",
+          beds: prop.bedrooms
+            ? `${prop.bedrooms} ${prop.bedrooms === 1 ? "Bed" : "Beds"}`
+            : "",
+          rating: prop.rating || 0,
+          amenities: prop.amenities || [],
+          image: imageUrl || "",
+          coordinates: coordinates,
+          propertyType: prop.propertyType || "",
+          bathrooms: prop.bathrooms || 0,
+          squareFeet: prop.sqft || 0,
+          rent: prop.rent_amount || 0,
+          deposit: prop.deposit || 0,
+          description: prop.description || "",
+          availableDate: prop.available_date || "",
+          publishedAt: prop.createdAt || new Date(),
+          is_available: prop.is_available || false,
+          createdAt: createdAt,
+          updatedAt: updatedAt,
+        };
+      });
+
+      setDatabaseProperties(transformedProperties);
+    });
+
+    // Set up real-time listener for listings collection as fallback
+    const listingsQuery = query(collection(db, "listings"), limit(20));
+    
+    const unsubscribeListings = onSnapshot(listingsQuery, (snapshot) => {
+      console.log('Listings updated in real-time on Dashboards:', snapshot.docs.length);
+      
+      // Filter available listings in memory
+      const availableListings = snapshot.docs.filter((doc) => {
+        const data = doc.data();
+        return data.available === true;
+      });
+
+      if (availableListings.length === 0) {
+        // Only update if we don't have properties from the properties collection
+        if (databaseProperties.length === 0) {
+          setDatabaseProperties([]);
+        }
+        return;
+      }
+
+      // Transform listings for real-time updates
+      const transformedListings = availableListings.map((doc: any) => {
+        const prop = doc.data();
+        
+        return {
+          id: doc.id,
+          name: prop.title || "",
+          address: prop.address || "",
+          priceRange: prop.rent ? `$${prop.rent.toLocaleString()}` : "",
+          beds: prop.bedrooms
+            ? `${prop.bedrooms} ${prop.bedrooms === 1 ? "Bed" : "Beds"}`
+            : "",
+          rating: prop.rating || 0,
+          amenities: prop.amenities || [],
+          image: prop.images?.[0] || "",
+          coordinates: prop.coordinates || ([0, 0] as [number, number]),
+          propertyType: prop.propertyType || "",
+          bathrooms: prop.bathrooms || 0,
+          squareFeet: prop.squareFeet || 0,
+          rent: prop.rent || 0,
+          deposit: prop.deposit || 0,
+          description: prop.description || "",
+          availableDate: prop.availableDate || "",
+          publishedAt: prop.publishedAt || new Date(),
+          is_available: prop.available || false,
+          createdAt: prop.publishedAt || new Date(),
+          updatedAt: prop.publishedAt || new Date(),
+        };
+      });
+
+      // Only update if we don't have properties from the properties collection
+      if (databaseProperties.length === 0) {
+        setDatabaseProperties(transformedListings);
+      }
+    });
+
+    // Cleanup listeners on unmount
+    return () => {
+      unsubscribeProperties();
+      unsubscribeListings();
+    };
+  }, [databaseProperties.length]);
 
   // Handle URL parameters for search filters and property details
   useEffect(() => {
     const propertyId = searchParams.get("propertyId");
-
-    // Handle property details
-    if (propertyId && databaseProperties.length > 0) {
+ 
+    // Handle property details - only proceed if data has finished loading
+    if (propertyId && !propertiesLoading && databaseProperties?.length > 0) {
       // Find the property by ID
       const foundProperty = databaseProperties.find(
         (p: any) => p.id === propertyId
       );
-
+ 
       if (foundProperty) {
         setSelectedProperty(foundProperty);
         setCurrentView("property-details");
@@ -1780,7 +1956,7 @@ const Dashboards = () => {
             <div className="h-1.5 bg-gradient-to-r  from-green-600 via-emerald-500 to-teal-600"></div>
 
             {/* Modern Search Filters Bar */}
-            <section className="bg-white/95 backdrop-blur-md border-b border-gray-200 shadow-lg py-4 sticky top-16 z-40 px-4 md:px-8">
+            <section className="bg-white/95 backdrop-blur-md border-b border-gray-200 shadow-lg py-4 sticky top-16 z-30 px-4 md:px-8">
               <div className="container mx-auto  px-auto">
                 <div className="flex items-center space-x-0 xl:space-x-4 flex-wrap 2xl:gap-0 gap-3">
                   <div className="relative">

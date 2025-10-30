@@ -85,8 +85,26 @@ export function Property() {
       })) as Property[];
       setProperties(fetchedProperties);
 
+      // Load listings using the separate function
+      await loadListings(fetchedProperties);
+
+    } catch (err) {
+      console.error('Error loading properties and listings:', err);
+      setError('Failed to load properties. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadPropertiesAndListings();
+  }, []);
+
+  // Separate function to load listings
+  const loadListings = async (propertiesToUse: Property[] = properties) => {
+    try {
       const allListings: Listing[] = [];
-      for (const property of fetchedProperties) {
+      for (const property of propertiesToUse) {
         const unitsRef = collection(db, `properties/${property.id}/units`);
         const unitsSnapshot = await getDocs(unitsRef);
         for (const unitDoc of unitsSnapshot.docs) {
@@ -103,18 +121,10 @@ export function Property() {
         }
       }
       setListings(allListings);
-
     } catch (err) {
-      console.error('Error loading properties and listings:', err);
-      setError('Failed to load properties. Please try again.');
-    } finally {
-      setLoading(false);
+      console.error('Error loading listings:', err);
     }
   };
-
-  useEffect(() => {
-    loadPropertiesAndListings();
-  }, []);
 
   const filteredListings = listings.filter(listing => {
     const property = properties.find(p => p.id === listing.propertyId);

@@ -1,46 +1,53 @@
-import { useState, useEffect } from 'react';
-import { useAuth } from '../hooks/useAuth';
-import { motion } from 'framer-motion';
-import { 
-  Heart, 
-  MapPin, 
-  Bed, 
-  Bath, 
-  Square, 
+import { useState, useEffect } from "react";
+import { useAuth } from "../hooks/useAuth";
+import { motion } from "framer-motion";
+import {
+  Heart,
+  MapPin,
+  Bed,
+  Bath,
+  Square,
   Star,
   Calendar,
-  Search
-} from 'lucide-react';
-import { Button } from '../components/ui/Button';
-import { Input } from '../components/ui/input';
-import { Badge } from '../components/ui/badge';
-import { useToast } from '../hooks/use-toast';
-import { 
-  getSavedProperties, 
-  removeSavedProperty, 
-  SavedProperty 
-} from '../services/savedPropertiesService';
-import PropertyDetailsModal from '../components/rentar/unitSelecttion/PropertyDetailsModal';
-import ScheduleTourModal from '../components/rentar/unitSelecttion/ScheduleTourModal';
-import { useNavigate } from 'react-router-dom';
-import { collection, query, getDocs } from 'firebase/firestore';
-import { db } from '../lib/firebase';
-import { Loader } from '../components/ui/Loader';
+  Search,
+} from "lucide-react";
+import { Button } from "../components/ui/Button";
+import { Input } from "../components/ui/input";
+import { Badge } from "../components/ui/badge";
+import { useToast } from "../hooks/use-toast";
+import {
+  getSavedProperties,
+  removeSavedProperty,
+  SavedProperty,
+} from "../services/savedPropertiesService";
+import PropertyDetailsModal from "../components/rentar/unitSelecttion/PropertyDetailsModal";
+import ScheduleTourModal from "../components/rentar/unitSelecttion/ScheduleTourModal";
+import { useNavigate } from "react-router-dom";
+import { collection, query, getDocs } from "firebase/firestore";
+import { db } from "../lib/firebase";
+import { Loader } from "../components/ui/Loader";
 
 export function SavedProperties() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
-  
+
   const [savedProperties, setSavedProperties] = useState<SavedProperty[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filterType, setFilterType] = useState<'all' | 'recent' | 'favorites'>('all');
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterType, setFilterType] = useState<"all" | "recent" | "favorites">(
+    "all"
+  );
   const [saving, setSaving] = useState(false);
-  const [selectedPropertyForDetails, setSelectedPropertyForDetails] = useState<any | null>(null);
+  const [selectedPropertyForDetails, setSelectedPropertyForDetails] = useState<
+    any | null
+  >(null);
   const [showPropertyDetails, setShowPropertyDetails] = useState(false);
-  const [selectedPropertyForTour, setSelectedPropertyForTour] = useState<any | null>(null);
+  const [selectedPropertyForTour, setSelectedPropertyForTour] = useState<
+    any | null
+  >(null);
   const [scheduleTourModalOpen, setScheduleTourModalOpen] = useState(false);
+  // console.log("showPropertyDetails", showPropertyDetails);
 
   // Load saved properties from Firebase
   useEffect(() => {
@@ -53,23 +60,23 @@ export function SavedProperties() {
       try {
         setLoading(true);
         const result = await getSavedProperties(user.uid);
-        
+
         if (result.success && result.properties) {
           setSavedProperties(result.properties);
         } else {
-          console.error('Error loading saved properties:', result.error);
+          console.error("Error loading saved properties:", result.error);
           toast({
             title: "Error loading properties",
             description: result.error || "Failed to load saved properties",
-            variant: "destructive"
+            variant: "destructive",
           });
         }
       } catch (error) {
-        console.error('Error loading saved properties:', error);
+        console.error("Error loading saved properties:", error);
         toast({
           title: "Error loading properties",
           description: "Failed to load saved properties",
-          variant: "destructive"
+          variant: "destructive",
         });
       } finally {
         setLoading(false);
@@ -110,15 +117,25 @@ export function SavedProperties() {
             availableDate: unit.availableDate || new Date().toISOString(),
             floorPlan: unit.floorPlan || "Open Floor Plan",
             rent: unit.rent || unit.rentAmount || 2000,
-            deposit: unit.deposit || Math.round((unit.rent || unit.rentAmount || 2000) * 1.5),
+            deposit:
+              unit.deposit ||
+              Math.round((unit.rent || unit.rentAmount || 2000) * 1.5),
             amenities: unit.amenities || ["Pool", "Gym", "Pet Friendly"],
             images: unit.images || [],
             description: unit.description || "",
             propertyId: unit.propertyId || "",
             floor: unit.floor || Math.floor(Math.random() * 10) + 1,
             view: unit.view || "City View",
-            parkingIncluded: unit.amenities?.includes("Garage") || unit.amenities?.includes("Parking") || false,
-            petFriendly: unit.amenities?.some((amenity: string) => amenity.toLowerCase().includes("pet") || amenity.toLowerCase().includes("dog")) || false,
+            parkingIncluded:
+              unit.amenities?.includes("Garage") ||
+              unit.amenities?.includes("Parking") ||
+              false,
+            petFriendly:
+              unit.amenities?.some(
+                (amenity: string) =>
+                  amenity.toLowerCase().includes("pet") ||
+                  amenity.toLowerCase().includes("dog")
+              ) || false,
             furnished: unit.furnished || false,
             leaseTerms: [
               {
@@ -146,24 +163,27 @@ export function SavedProperties() {
           };
         });
 
-       console.log(`Loaded ${propertyUnits.length} units for property ${propertyId}`);
-       return propertyUnits;
+      console.log(
+        `Loaded ${propertyUnits.length} units for property ${propertyId}`
+      );
+      return propertyUnits;
     } catch (error) {
       console.error("Error loading units for property:", error);
       return [];
     }
   };
 
-  const filteredProperties = savedProperties.filter(property => {
-    const matchesSearch = property.propertyName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         property.propertyAddress.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    if (filterType === 'recent') {
+  const filteredProperties = savedProperties.filter((property) => {
+    const matchesSearch =
+      property.propertyName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      property.propertyAddress.toLowerCase().includes(searchTerm.toLowerCase());
+
+    if (filterType === "recent") {
       const oneWeekAgo = new Date();
       oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
       return matchesSearch && property.savedAt >= oneWeekAgo;
     }
-    
+
     return matchesSearch;
   });
 
@@ -171,9 +191,11 @@ export function SavedProperties() {
     try {
       setSaving(true);
       const result = await removeSavedProperty(savedPropertyId);
-      
+
       if (result.success) {
-        setSavedProperties(prev => prev.filter(p => p.id !== savedPropertyId));
+        setSavedProperties((prev) =>
+          prev.filter((p) => p.id !== savedPropertyId)
+        );
         toast({
           title: "Property removed",
           description: "Property has been removed from your saved list.",
@@ -182,15 +204,15 @@ export function SavedProperties() {
         toast({
           title: "Error removing property",
           description: result.error || "Failed to remove property",
-          variant: "destructive"
+          variant: "destructive",
         });
       }
     } catch (error) {
-      console.error('Error removing property:', error);
+      console.error("Error removing property:", error);
       toast({
         title: "Error removing property",
         description: "Failed to remove property",
-        variant: "destructive"
+        variant: "destructive",
       });
     } finally {
       setSaving(false);
@@ -198,39 +220,20 @@ export function SavedProperties() {
   };
 
   const handleViewDetails = (property: SavedProperty) => {
-    // Convert SavedProperty to format expected by PropertyDetailsModal
-    const propertyForModal = {
-      id: property.propertyId,
-      name: property.propertyName,
-      address: property.propertyAddress,
-      priceRange: property.propertyPrice,
-      beds: `${property.propertyBeds} Bed${property.propertyBeds !== 1 ? 's' : ''}`,
-      bedrooms: property.propertyBeds,
-      bathrooms: property.propertyBaths,
-      rating: property.propertyRating,
-      amenities: property.propertyAmenities,
-      image: property.propertyImage,
-      propertyType: property.propertyType,
-      coordinates: [0, 0] as [number, number], // Default coordinates
-    };
-    
-    setSelectedPropertyForDetails(propertyForModal);
-    setShowPropertyDetails(true);
+    // Navigate directly to the property details page
+    navigate(`/property?propertyId=${property.propertyId}`);
   };
 
   const handleViewUnits = async (property: SavedProperty) => {
     // Load units for this property
     await loadUnitsForProperty(property.id);
     // console.log("property",property);
-    
-  
   };
-
 
   if (loading) {
     return (
-      <Loader 
-        message="Loading Saved Properties" 
+      <Loader
+        message="Loading Saved Properties"
         subMessage="Retrieving your favorite rental homes..."
       />
     );
@@ -239,19 +242,27 @@ export function SavedProperties() {
   return (
     <div className="min-h-screen">
       {/* Header */}
-      <div className="bg-white shadow-sm border-b">
+      <div className="bg-gradient-to-r from-green-600 to-emerald-600 shadow-sm border-b">
         <div className="max-w-6xl mx-auto px-6 py-8">
           <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
-                Saved Properties
-              </h1>
-              <p className="text-gray-600 mt-2">
-                {savedProperties.length} properties saved
-              </p>
+            <div className="flex items-center">
+              <div className="bg-green-100 rounded-lg p-3 mr-4">
+                <Heart className="h-8 w-8 text-green-600" />
+              </div>
+              <div>
+                <h1 className="text-3xl font-bold text-white">
+                  Saved Properties
+                </h1>
+                <p className="text-green-100 mt-2">
+                  {savedProperties.length} properties saved
+                </p>
+              </div>
             </div>
             <div className="flex items-center space-x-3">
-              <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+              <Badge
+                variant="outline"
+                className="bg-green-50 text-green-700 border-green-200"
+              >
                 <Heart className="h-4 w-4 mr-1" />
                 {savedProperties.length} Saved
               </Badge>
@@ -278,17 +289,20 @@ export function SavedProperties() {
 
             <div className="flex gap-2">
               {[
-                { key: 'all', label: 'All Properties' },
-                { key: 'recent', label: 'Recent' },
+                { key: "all", label: "All Properties" },
+                { key: "recent", label: "Recent" },
               ].map((filter) => (
                 <Button
                   key={filter.key}
                   variant={filterType === filter.key ? "default" : "outline"}
                   size="sm"
-                  onClick={() => setFilterType(filter.key as 'all' | 'recent' | 'favorites')}
-                  className={filterType === filter.key 
-                    ? "bg-blue-600 hover:bg-blue-700 text-white" 
-                    : "border-gray-200 hover:bg-blue-50"
+                  onClick={() =>
+                    setFilterType(filter.key as "all" | "recent" | "favorites")
+                  }
+                  className={
+                    filterType === filter.key
+                      ? "bg-blue-600 hover:bg-blue-700 text-white"
+                      : "border-gray-200 hover:bg-blue-50"
                   }
                 >
                   {filter.label}
@@ -307,17 +321,16 @@ export function SavedProperties() {
               <Heart className="h-12 w-12 text-green-600" />
             </div>
             <h3 className="text-2xl font-bold text-gray-900 mb-4">
-              {searchTerm ? 'No properties found' : 'No saved properties yet'}
+              {searchTerm ? "No properties found" : "No saved properties yet"}
             </h3>
             <p className="text-gray-600 text-lg mb-8">
-              {searchTerm 
-                ? 'Try adjusting your search terms'
-                : 'Start saving properties you like to see them here'
-              }
+              {searchTerm
+                ? "Try adjusting your search terms"
+                : "Start saving properties you like to see them here"}
             </p>
             {!searchTerm && (
-              <Button 
-                onClick={() => navigate('/dashboard')}
+              <Button
+                onClick={() => navigate("/dashboard")}
                 className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
               >
                 Browse Properties
@@ -341,7 +354,7 @@ export function SavedProperties() {
                     alt={property.propertyName}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                   />
-                  <motion.div 
+                  <motion.div
                     className="absolute top-4 right-4 w-7 h-7 rounded-full flex items-center justify-center cursor-pointer transition-all duration-300 z-10 bg-gradient-to-r from-green-500 to-emerald-500 shadow-lg shadow-green-200"
                     whileHover={{ scale: 1.1 }}
                     whileTap={{ scale: 0.9 }}
@@ -351,13 +364,15 @@ export function SavedProperties() {
                         handleRemoveProperty(property.id);
                       }
                     }}
-                    style={{ pointerEvents: 'auto' }}
+                    style={{ pointerEvents: "auto" }}
                   >
-                    <Heart 
-                      size={17} 
-                      color="#ffffff" 
+                    <Heart
+                      size={17}
+                      color="#ffffff"
                       fill="#ffffff"
-                      className={`transition-all duration-300 ${saving ? 'animate-pulse' : ''}`}
+                      className={`transition-all duration-300 ${
+                        saving ? "animate-pulse" : ""
+                      }`}
                     />
                   </motion.div>
                   <div className="absolute bottom-3 left-3">
@@ -376,13 +391,17 @@ export function SavedProperties() {
                     </h3>
                     <div className="flex items-center">
                       <Star className="h-4 w-4 text-yellow-400 fill-current" />
-                      <span className="text-sm text-gray-600 ml-1">{property.propertyRating}</span>
+                      <span className="text-sm text-gray-600 ml-1">
+                        {property.propertyRating}
+                      </span>
                     </div>
                   </div>
 
                   <div className="flex items-center text-gray-600 mb-3">
                     <MapPin className="h-4 w-4 mr-1" />
-                    <span className="text-sm line-clamp-1">{property.propertyAddress}</span>
+                    <span className="text-sm line-clamp-1">
+                      {property.propertyAddress}
+                    </span>
                   </div>
 
                   <div className="flex items-center justify-between mb-4">
@@ -441,41 +460,41 @@ export function SavedProperties() {
         <PropertyDetailsModal
           property={selectedPropertyForDetails}
           isOpen={showPropertyDetails}
-           onClose={() => {
-             setShowPropertyDetails(false);
-             setSelectedPropertyForDetails(null);
-             // Clear URL parameters when closing modal
-             navigate('/saved-properties', { replace: true });
-           }}
+          onClose={() => {
+            setShowPropertyDetails(false);
+            setSelectedPropertyForDetails(null);
+            // Clear URL parameters when closing modal
+            navigate("/saved-properties", { replace: true });
+          }}
           onScheduleTour={() => {
             setShowPropertyDetails(false);
             setSelectedPropertyForTour(selectedPropertyForDetails);
             setScheduleTourModalOpen(true);
           }}
-          onApplyNow={() => {
-            setShowPropertyDetails(false);
-            // Navigate to dashboard with propertyId parameter to open unit selection
-            navigate(`/dashboard?propertyId=${selectedPropertyForDetails.id}`);
-          }}
+          // onApplyNow={() => {
+          //   setShowPropertyDetails(false);
+          //   // Navigate to dashboard with propertyId parameter to open unit selection
+          //   navigate(`/dashboard?propertyId=${selectedPropertyForDetails.id}`);
+          // }}
           onViewUnits={async (property) => {
-            setShowPropertyDetails(false);
             // Navigate to dashboard with propertyId parameter to open unit selection
-            navigate(`/dashboard?propertyId=${property.id}`);
+            navigate(`/property?propertyId=${property.id}`);
+            setShowPropertyDetails(false);
           }}
         />
       )}
 
       {/* Schedule Tour Modal */}
-       <ScheduleTourModal
-         property={selectedPropertyForTour}
-         isOpen={scheduleTourModalOpen}
-         onClose={() => {
-           setScheduleTourModalOpen(false);
-           setSelectedPropertyForTour(null);
-           // Clear URL parameters when closing modal
-           navigate('/saved-properties', { replace: true });
-         }}
-       />
+      <ScheduleTourModal
+        property={selectedPropertyForTour}
+        isOpen={scheduleTourModalOpen}
+        onClose={() => {
+          setScheduleTourModalOpen(false);
+          setSelectedPropertyForTour(null);
+          // Clear URL parameters when closing modal
+          navigate("/saved-properties", { replace: true });
+        }}
+      />
     </div>
   );
 }

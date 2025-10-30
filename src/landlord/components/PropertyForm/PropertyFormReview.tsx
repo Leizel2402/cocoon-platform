@@ -10,13 +10,15 @@ interface PropertyFormReviewProps {
   onSubmit: () => void;
   onEdit: (section: 'property' | 'units' | 'listings') => void;
   isSubmitting?: boolean;
+  isEditMode?: boolean;
 }
 
 const PropertyFormReview: React.FC<PropertyFormReviewProps> = ({
   data,
   onSubmit,
   onEdit,
-  isSubmitting = false
+  isSubmitting = false,
+  isEditMode = false
 }) => {
   const { FloatingScrollButton } = useScrollToTop();
   const formatCurrency = (amount: number) => {
@@ -26,8 +28,27 @@ const PropertyFormReview: React.FC<PropertyFormReviewProps> = ({
     }).format(amount);
   };
 
-  const formatDate = (date: Date) => {
-    return date.toLocaleDateString('en-US', {
+  const formatDate = (date: Date | string | any) => {
+    if (!date) return '';
+    
+    let dateObj: Date;
+    if (date instanceof Date) {
+      dateObj = date;
+    } else if (typeof date === 'string') {
+      dateObj = new Date(date);
+    } else if (date.seconds) {
+      // Firebase timestamp
+      dateObj = new Date(date.seconds * 1000);
+    } else {
+      dateObj = new Date(date);
+    }
+    
+    // Check if the date is valid
+    if (isNaN(dateObj.getTime())) {
+      return 'Invalid Date';
+    }
+    
+    return dateObj.toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'long',
       day: 'numeric',
@@ -381,17 +402,25 @@ const PropertyFormReview: React.FC<PropertyFormReviewProps> = ({
           <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
             <CheckCircle className="h-4 w-4 text-green-600" />
           </div>
-          <h3 className="text-lg font-semibold text-green-800">Ready to Submit</h3>
+          <h3 className="text-lg font-semibold text-green-800">
+            {isEditMode ? 'Ready to Update' : 'Ready to Submit'}
+          </h3>
         </div>
         <p className="text-green-700 mb-6 leading-relaxed">
-          Review all the information above. Once submitted, your property will be created and available for management.
+          {isEditMode 
+            ? 'Review all the information above. Once submitted, your property will be updated with the new changes.'
+            : 'Review all the information above. Once submitted, your property will be created and available for management.'
+          }
         </p>
         <Button
           onClick={onSubmit}
           disabled={isSubmitting}
           className="w-full bg-green-600 hover:bg-green-700 px-6 py-3 rounded-lg font-semibold text-white transition-colors"
         >
-          {isSubmitting ? 'Creating Property...' : 'Create Property'}
+          {isSubmitting 
+            ? (isEditMode ? 'Updating Property...' : 'Creating Property...') 
+            : (isEditMode ? 'Save Changes' : 'Create Property')
+          }
         </Button>
       </div>
       
