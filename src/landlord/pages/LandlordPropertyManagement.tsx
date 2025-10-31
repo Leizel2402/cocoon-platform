@@ -7,13 +7,21 @@ import { Button } from "../../components/ui/Button";
 import { Badge } from "../../components/ui/badge";
 import { Popover, PopoverContent, PopoverTrigger } from "../../components/ui/popover";
 import { motion } from "framer-motion";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "../../components/ui/dialog";
 import { useAuth } from "../../hooks/useAuth";
 import { collection, query, where, getDocs, orderBy, doc, updateDoc } from "firebase/firestore";
 import { db } from "../../lib/firebase";
 import { maintenanceService, MaintenanceActivity, MaintenanceRequest } from "../../services/maintenanceService";
-import { updateApplicationStatus } from "../../services/submissionService";
+import { updateApplicationStatus, getTourBookings, updateTourBookingStatus, TourBookingData } from "../../services/submissionService";
 import { propertyDeletionService } from "../../services/propertyDeletionService";
 import { notificationService } from "../../services/notificationService";
+import { generateApplicationPDF } from "../../services/pdfService";
 import { useToast } from "../../hooks/use-toast";
 import { 
   Building, 
@@ -45,6 +53,7 @@ import {
   User,
   Star,
   Check,
+  CheckCircle,
   XCircle,
   MoreVertical,
   Trash2,
@@ -502,6 +511,9 @@ const LandlordPropertyManagement: React.FC = () => {
   const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
   const [selectedMaintenanceRequest, setSelectedMaintenanceRequest] = useState<MaintenanceRequest | null>(null);
   const [showMaintenanceModal, setShowMaintenanceModal] = useState(false);
+  const [tourBookings, setTourBookings] = useState<(TourBookingData & { id: string })[]>([]);
+  const [tourBookingsLoading, setTourBookingsLoading] = useState(false);
+  const [tourBookingsError, setTourBookingsError] = useState<string | null>(null);
   const [editingProperty, setEditingProperty] = useState<PropertyData | null>(null);
   const [editingListing, setEditingListing] = useState<ListingData | null>(null);
   const [selectedPropertyForDelete, setSelectedPropertyForDelete] = useState<PropertyData | null>(null);
@@ -778,6 +790,45 @@ const LandlordPropertyManagement: React.FC = () => {
     }
   }, [activeTab, fetchMaintenanceRequests]);
 
+  // Fetch tour bookings when tour bookings tab is active
+  const fetchTourBookings = useCallback(async () => {
+    if (!user?.uid) return;
+
+    setTourBookingsLoading(true);
+    setTourBookingsError(null);
+    try {
+      const result = await getTourBookings(user.uid);
+      
+      if (result.success && result.data) {
+        // Filter tour bookings by properties owned by this landlord
+        const landlordPropertyIds = properties.map(p => p.id);
+        const filteredBookings = (result.data as Array<TourBookingData & { id: string }>)
+          .filter((booking) => 
+            booking.propertyId && landlordPropertyIds.includes(booking.propertyId)
+          )
+          .map((booking) => ({
+            ...booking,
+            id: booking.id || booking.submittedBy // Ensure id exists
+          }));
+        
+        setTourBookings(filteredBookings);
+      } else {
+        setTourBookingsError(result.error || "Failed to load tour bookings");
+      }
+    } catch (error) {
+      console.error('Error fetching tour bookings:', error);
+      setTourBookingsError("Failed to load tour bookings. Please try again.");
+    } finally {
+      setTourBookingsLoading(false);
+    }
+  }, [user, properties]);
+
+  useEffect(() => {
+    if (activeTab === "tour-bookings") {
+      fetchTourBookings();
+    }
+  }, [activeTab, fetchTourBookings]);
+
   // Fetch maintenance requests on component mount for impact analysis
   useEffect(() => {
     if (user?.uid) {
@@ -831,12 +882,13 @@ const LandlordPropertyManagement: React.FC = () => {
         fetchApplications(),
         fetchMaintenanceRequests(),
         fetchListings(),
-        fetchUnits()
+        fetchUnits(),
+        fetchTourBookings()
       ]);
     } catch (error) {
       console.error('Error refreshing data:', error);
     }
-  }, [user, fetchProperties, fetchApplications, fetchMaintenanceRequests, fetchListings, fetchUnits]);
+  }, [user, fetchProperties, fetchApplications, fetchMaintenanceRequests, fetchListings, fetchUnits, fetchTourBookings]);
 
   // Combine maintenance activities with other activities
   const recentActivity = [
@@ -897,9 +949,114 @@ const LandlordPropertyManagement: React.FC = () => {
   };
 
   // Handle closing application details modal
-  const handleCloseApplicationModal = () => {
+  const handleCloseApplicationModal = (open?: boolean) => {
+    if (open === false || open === undefined) {
     setSelectedApplication(null);
     setShowApplicationModal(false);
+    }
+  };
+
+  // Handle PDF download
+  const handleDownloadPDF = async () => {
+    if (!selectedApplication) return;
+    
+    try {
+      toast({
+        title: "Generating PDF...",
+        description: "Please wait while we prepare your document.",
+      });
+      
+      // Generate and download PDF
+      await generateApplicationPDF(selectedApplication as any);
+      
+      toast({
+        title: "PDF Downloaded",
+        description: "The application PDF has been downloaded successfully.",
+      });
+    } catch (error) {
+      console.error("Error generating PDF:", error);
+      toast({
+        title: "Error",
+        description: "Failed to generate PDF. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Handle tour booking status update
+  const handleTourBookingStatusUpdate = async (bookingId: string, newStatus: 'confirmed' | 'completed' | 'cancelled') => {
+    try {
+      // Find the booking to get user information
+      const booking = tourBookings.find(b => b.id === bookingId);
+      
+      if (!booking) {
+        // Remove from local state if not found (might have been deleted)
+        setTourBookings(prev => prev.filter(b => b.id !== bookingId));
+        throw new Error('Tour booking not found. It may have been deleted by the user.');
+      }
+
+      const result = await updateTourBookingStatus(bookingId, newStatus);
+      
+      if (result.success) {
+        // Update local state
+        setTourBookings(prev => 
+          prev.map(b => 
+            b.id === bookingId 
+              ? { ...b, status: newStatus }
+              : b
+          )
+        );
+
+        // Send notification to user when booking is confirmed or cancelled
+        if (newStatus === 'confirmed' && booking.submittedBy) {
+          try {
+            await notificationService.notifyTourBookingConfirmed(
+              booking.submittedBy,
+              bookingId,
+              booking.propertyId,
+              booking.propertyName || 'Property',
+              booking.preferredDate,
+              booking.unitNumber || null
+            );
+          } catch (notificationError) {
+            console.error('Error sending tour booking confirmed notification:', notificationError);
+            // Don't fail the status update if notification fails
+          }
+        } else if (newStatus === 'cancelled' && booking.submittedBy) {
+          try {
+            await notificationService.notifyTourBookingCancelled(
+              booking.submittedBy,
+              bookingId,
+              booking.propertyId,
+              booking.propertyName || 'Property',
+              booking.preferredDate,
+              booking.unitNumber || null
+            );
+          } catch (notificationError) {
+            console.error('Error sending tour booking cancelled notification:', notificationError);
+            // Don't fail the status update if notification fails
+          }
+        }
+        
+        toast({
+          title: "Status Updated",
+          description: `Tour booking ${newStatus === 'confirmed' ? 'confirmed' : newStatus === 'completed' ? 'marked as completed' : 'cancelled'} successfully.`,
+        });
+      } else {
+        // If update failed because document doesn't exist, remove from local state
+        if (result.error && result.error.includes('not found')) {
+          setTourBookings(prev => prev.filter(b => b.id !== bookingId));
+        }
+        throw new Error(result.error || 'Failed to update tour booking status');
+      }
+    } catch (error) {
+      console.error('Error updating tour booking status:', error);
+      toast({
+        title: "Update Failed",
+        description: error instanceof Error ? error.message : "Failed to update tour booking status. The booking may have been deleted by the user.",
+        variant: "destructive"
+      });
+    }
   };
 
   // Handle application status update
@@ -1113,6 +1270,18 @@ const LandlordPropertyManagement: React.FC = () => {
   // Maintenance request handlers
   const handleStatusChange = async (requestId: string, newStatus: MaintenanceRequest['status']) => {
     try {
+      // If trying to change to 'in_progress', check if scheduled date exists
+      if (newStatus === 'in_progress') {
+        const request = maintenanceRequests.find(req => req.id === requestId);
+        if (request && !request.scheduledDate) {
+          // Open schedule modal instead
+          if (request) {
+            handleScheduleMaintenance(request);
+          }
+          return;
+        }
+      }
+      
       await maintenanceService.updateMaintenanceRequestStatus(requestId, newStatus);
       
       // Update local state
@@ -1130,11 +1299,20 @@ const LandlordPropertyManagement: React.FC = () => {
       });
     } catch (error) {
       console.error("Error updating status:", error);
+      const errorMessage = error instanceof Error ? error.message : "Failed to update maintenance request status.";
       toast({
         title: "Update Failed",
-        description: "Failed to update maintenance request status.",
+        description: errorMessage,
         variant: "destructive",
       });
+      
+      // If the error mentions scheduling, open schedule modal
+      if (errorMessage.includes('schedule') || errorMessage.includes('scheduled')) {
+        const request = maintenanceRequests.find(req => req.id === requestId);
+        if (request) {
+          handleScheduleMaintenance(request);
+        }
+      }
     }
   };
 
@@ -1186,6 +1364,36 @@ const LandlordPropertyManagement: React.FC = () => {
   // Inline editing handlers
   const handleInlineStatusChange = async (requestId: string, newStatus: MaintenanceRequest['status']) => {
     try {
+      const request = maintenanceRequests.find(req => req.id === requestId);
+      if (!request) {
+        throw new Error('Maintenance request not found');
+      }
+
+      // If trying to change to 'in_progress', redirect to schedule modal instead
+      if (newStatus === 'in_progress') {
+        // Check if scheduled date exists
+        if (!request.scheduledDate) {
+          toast({
+            title: "Schedule Required",
+            description: "Please schedule the maintenance request first before marking it as 'in progress'. Use the Schedule button to set a date and time.",
+            variant: "destructive",
+          });
+          // Open schedule modal instead
+          handleScheduleMaintenance(request);
+          return;
+        }
+      }
+
+      // Check for final states
+      if (request.status === 'completed' || request.status === 'cancelled') {
+        toast({
+          title: "Cannot Change Status",
+          description: `${request.status === 'completed' ? 'Completed' : 'Cancelled'} requests cannot have their status changed. They are final states.`,
+          variant: "destructive",
+        });
+        return;
+      }
+      
       await maintenanceService.updateMaintenanceRequestStatus(requestId, newStatus);
       
       // Update local state
@@ -1203,11 +1411,20 @@ const LandlordPropertyManagement: React.FC = () => {
       });
     } catch (error) {
       console.error("Error updating status:", error);
+      const errorMessage = error instanceof Error ? error.message : "Failed to update status.";
       toast({
         title: "Update Failed",
-        description: "Failed to update status.",
+        description: errorMessage,
         variant: "destructive",
       });
+      
+      // If the error mentions scheduling, open schedule modal
+      if (errorMessage.includes('schedule') || errorMessage.includes('scheduled')) {
+        const request = maintenanceRequests.find(req => req.id === requestId);
+        if (request) {
+          handleScheduleMaintenance(request);
+        }
+      }
     }
   };
 
@@ -1417,6 +1634,7 @@ const LandlordPropertyManagement: React.FC = () => {
                 { id: "properties", label: "Properties", icon: Building },
                 { id: "listings", label: "Listings", icon: List },
                 { id: "applications", label: "Applications", icon: Users },
+                { id: "tour-bookings", label: "Tour Bookings", icon: Calendar },
                 // { id: "maintenance", label: "Work Orders", icon: Wrench },
                 { id: "maintenance-requests", label: "Maintenance Requests", icon: Wrench },
                 { id: "reports", label: "Reports", icon: BarChart3 },
@@ -2246,144 +2464,210 @@ const LandlordPropertyManagement: React.FC = () => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
                       transition={{ duration: 0.6, delay: index * 0.1 }}
-                      whileHover={{ scale: 1.02, y: -4 }}
-                      className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-lg transition-all duration-300"
+                      whileHover={{ scale: 1.01, y: -2 }}
+                      className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-all duration-300"
                     >
+                      {/* Status Indicator - Thin line at top */}
+                      <div className={`h-1 ${
+                        application.status === 'pending'
+                          ? "bg-yellow-500"
+                          : application.status === 'approved'
+                          ? "bg-green-500"
+                          : application.status === 'rejected'
+                          ? "bg-red-500"
+                          : "bg-gray-400"
+                      }`}></div>
+
                       <div className="p-6">
-                        <div className="flex items-center justify-between mb-4">
-                          <div className="flex items-center space-x-3">
-                            <div className="w-12 h-12 bg-gradient-to-br from-purple-100 to-purple-200 rounded-lg flex items-center justify-center">
+                        {/* Header Section */}
+                        <div className="flex items-start justify-between mb-6">
+                          <div className="flex items-start space-x-4 flex-1">
+                            <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center ring-2 ring-purple-200">
                               <Users className="h-6 w-6 text-purple-600" />
                 </div>
-                            <div>
-                              <h3 className="font-semibold text-gray-900 text-lg">
+                            <div className="flex-1 min-w-0">
+                              <h3 className="font-semibold text-gray-900 text-lg mb-1.5">
                                 {application.personalInfo.firstName} {application.personalInfo.lastName}
                               </h3>
-                              <div className="flex items-center text-gray-500 text-sm">
-                                <MapPin className="h-3 w-3 mr-1" />
+                              <div className="flex items-center text-gray-500 text-sm mb-3">
+                                <MapPin className="h-3.5 w-3.5 mr-1.5 flex-shrink-0" />
                                 <span className="truncate">
                                   {application.applicationMetadata.propertyName || application.property?.name || 'Property'}
                                 </span>
                               </div>
+                              {/* Contact Information */}
+                              <div className="flex items-center space-x-2">
+                                {application.personalInfo.email && (
+                                  <motion.button
+                                    whileHover={{ scale: 1.1 }}
+                                    whileTap={{ scale: 0.9 }}
+                                    onClick={() => {
+                                      window.location.href = `mailto:${application.personalInfo.email}`;
+                                    }}
+                                    className="p-1.5 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition-all duration-200"
+                                    title={`Email: ${application.personalInfo.email}`}
+                                    type="button"
+                                  >
+                                    <Mail className="h-3.5 w-3.5" />
+                                  </motion.button>
+                                )}
+                                {application.personalInfo.phone && (
+                                  <motion.button
+                                    whileHover={{ scale: 1.1 }}
+                                    whileTap={{ scale: 0.9 }}
+                                    onClick={() => {
+                                      window.location.href = `tel:${application.personalInfo.phone}`;
+                                    }}
+                                    className="p-1.5 rounded-lg bg-green-50 text-green-600 hover:bg-green-100 transition-all duration-200"
+                                    title={`Call: ${application.personalInfo.phone}`}
+                                    type="button"
+                                  >
+                                    <Phone className="h-3.5 w-3.5" />
+                                  </motion.button>
+                                )}
                             </div>
                           </div>
-                          <span
-                            className={`px-3 py-1 rounded-full text-xs font-medium ${
+                          </div>
+                          {/* Status Badge */}
+                          <div className={`px-3 py-1.5 rounded-lg flex items-center space-x-1.5 text-xs font-medium ${
                               application.status === 'pending'
-                                ? "bg-yellow-100 text-yellow-700"
+                              ? "bg-yellow-100 text-yellow-800"
                                 : application.status === 'approved'
-                                ? "bg-green-100 text-green-700"
+                              ? "bg-green-100 text-green-800"
                                 : application.status === 'rejected'
-                                ? "bg-red-100 text-red-700"
-                                : "bg-gray-100 text-gray-700"
-                            }`}
-                          >
+                              ? "bg-red-100 text-red-800"
+                              : "bg-gray-100 text-gray-800"
+                          }`}>
+                            <Clock className={`h-3 w-3 ${
+                              application.status === 'pending' ? "text-yellow-600" : "opacity-70"
+                            }`} />
+                            <span>
                             {application.status.charAt(0).toUpperCase() + application.status.slice(1)}
                           </span>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-4 mb-4">
-                          <div className="bg-blue-50 rounded-lg p-3 border border-blue-100">
-                            <p className="text-xs text-blue-700 font-medium mb-1">Monthly Income</p>
-                            <p className="text-xl font-bold text-gray-900">
-                              ${application.leaseHoldersAndGuarantors.leaseHolders[0]?.monthlyIncome || application.legacy.annualIncome || "0"}
-                            </p>
-                          </div>
-                          <div className="bg-green-50 rounded-lg p-3 border border-green-100">
-                            <p className="text-xs text-green-700 font-medium mb-1">Unit Rent</p>
-                            <p className="text-xl font-bold text-green-600">
-                              ${application.applicationMetadata.unitRent?.toLocaleString() || "0"}
-                            </p>
                           </div>
                         </div>
 
-                        <div className="mb-4">
-                          <div className="flex items-center justify-between text-sm mb-2">
-                            <span className="text-gray-600 font-medium">Move-in Date</span>
-                            <span className="font-bold text-gray-900">
-                              {application.personalInfo.moveInDate 
-                                ? new Date(application.personalInfo.moveInDate).toLocaleDateString()
-                                : "N/A"}
-                            </span>
+                        {/* Financial Information Cards */}
+                        <div className="grid grid-cols-2 gap-3 mb-5">
+                          <div className="bg-blue-50 rounded-xl p-4 border border-blue-100">
+                            <div className="flex items-center justify-between mb-2">
+                              <p className="text-xs text-blue-700 font-medium">Monthly Income</p>
+                              <DollarSign className="h-4 w-4 text-blue-600 opacity-70" />
                           </div>
-                          <div className="w-full bg-gray-200 rounded-full h-2">
-                            <div
-                              className="bg-gradient-to-r from-purple-500 to-purple-600 h-2 rounded-full transition-all duration-500"
-                              style={{ width: "100%" }}
-                            ></div>
+                            <p className="text-2xl font-bold text-gray-900">
+                              ${(application.leaseHoldersAndGuarantors.leaseHolders[0]?.monthlyIncome || application.legacy.annualIncome || 0).toLocaleString()}
+                            </p>
+                          </div>
+                          <div className="bg-green-50 rounded-xl p-4 border border-green-100">
+                            <div className="flex items-center justify-between mb-2">
+                              <p className="text-xs text-green-700 font-medium">Unit Rent</p>
+                              <Home className="h-4 w-4 text-green-600 opacity-70" />
+                        </div>
+                            <p className="text-2xl font-bold text-gray-900">
+                              ${(application.applicationMetadata.unitRent || 0).toLocaleString()}
+                            </p>
                           </div>
                         </div>
 
-                        <div className="flex items-center justify-between mb-4">
-                          <div>
-                            <p className="text-xs text-gray-500 font-medium">Unit Deposit</p>
-                            <p className="text-2xl font-bold text-green-600">
-                              ${application.applicationMetadata.unitDeposit?.toLocaleString() || "0"}
+                        {/* Deposit and Move-in Date */}
+                        <div className="bg-gray-50 rounded-xl p-4 mb-5 border border-gray-100">
+                          <div className="flex items-center justify-between">
+                            <div className="flex-1">
+                              <p className="text-xs text-gray-600 font-medium mb-1.5">Security Deposit</p>
+                              <p className="text-xl font-bold text-gray-900">
+                                ${(application.applicationMetadata.unitDeposit || 0).toLocaleString()}
                             </p>
                           </div>
-                          <div className="text-right">
-                            <p className="text-xs text-gray-500 font-medium">Applied Date</p>
-                            <p className="text-sm font-semibold text-gray-900">
-                              {application.submittedAt 
-                                ? new Date(
-                                    typeof application.submittedAt === 'object' && 'seconds' in application.submittedAt
-                                      ? application.submittedAt.seconds * 1000
-                                      : application.submittedAt
-                                  ).toLocaleDateString()
+                            <div className="h-10 w-px bg-gray-300 mx-4"></div>
+                            <div className="flex-1">
+                              <p className="text-xs text-gray-600 font-medium mb-1.5">Move-in Date</p>
+                              <p className="text-lg font-semibold text-gray-900">
+                                {application.personalInfo.moveInDate 
+                                  ? new Date(application.personalInfo.moveInDate).toLocaleDateString('en-US', {
+                                      month: 'short',
+                                      day: 'numeric',
+                                      year: 'numeric'
+                                    })
                                 : "N/A"}
                             </p>
+                            </div>
                           </div>
                         </div>
 
-                        {/* Application Details */}
-                        <div className="mb-4">
-                          <p className="text-xs text-gray-500 font-medium mb-2">Application Details</p>
+                        {/* Application Details Tags */}
+                        <div className="mb-5">
+                          <p className="text-xs text-gray-500 font-medium mb-2.5">Property Details</p>
                           <div className="flex flex-wrap gap-2">
-                            <span className="px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-700">
-                              Unit: {application.applicationMetadata.unitNumber}
+                            <span className="px-2.5 py-1.5 rounded-lg text-xs font-medium bg-blue-50 text-blue-700">
+                              <FileText className="h-3 w-3 inline mr-1.5" />
+                              Unit: {application.applicationMetadata.unitNumber || 'N/A'}
                             </span>
-                            <span className="px-2 py-1 rounded-full text-xs bg-green-100 text-green-700">
-                              {application.applicationMetadata.unitBedrooms} bed, {application.applicationMetadata.unitBathrooms} bath
+                            <span className="px-2.5 py-1.5 rounded-lg text-xs font-medium bg-green-50 text-green-700">
+                              <Bed className="h-3 w-3 inline mr-1.5" />
+                              {application.applicationMetadata.unitBedrooms || 0} bed, {application.applicationMetadata.unitBathrooms || 0} bath
                             </span>
-                            <span className="px-2 py-1 rounded-full text-xs bg-purple-100 text-purple-700">
-                              {application.applicationMetadata.selectedLeaseTermMonths} months
+                            <span className="px-2.5 py-1.5 rounded-lg text-xs font-medium bg-purple-50 text-purple-700">
+                              <Calendar className="h-3 w-3 inline mr-1.5" />
+                              {application.applicationMetadata.selectedLeaseTermMonths || 0} months
                             </span>
-                            {application.additionalInfo.pets.hasPets && (
-                              <span className="px-2 py-1 rounded-full text-xs bg-orange-100 text-orange-700">
+                            {application.additionalInfo?.pets?.hasPets && (
+                              <span className="px-2.5 py-1.5 rounded-lg text-xs font-medium bg-orange-50 text-orange-700">
+                                <Heart className="h-3 w-3 inline mr-1.5" />
                                 Has Pets
                               </span>
                             )}
                           </div>
                         </div>
 
-                        <div className="flex gap-2">
+                        {/* Submitted Date */}
+                        <div className="mb-5 pb-4 border-b border-gray-100">
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-gray-500">Applied on</span>
+                            <span className="font-medium text-gray-700">
+                              {application.submittedAt 
+                                ? new Date(
+                                    typeof application.submittedAt === 'object' && 'seconds' in application.submittedAt
+                                      ? application.submittedAt.seconds * 1000
+                                      : application.submittedAt
+                                  ).toLocaleDateString('en-US', {
+                                      month: 'short',
+                                      day: 'numeric',
+                                      year: 'numeric'
+                                    })
+                                : "N/A"}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Action Buttons */}
+                        <div className="flex gap-2.5">
                           <motion.button
-                            whileHover={{ scale: 1.02 }}
-                            whileTap={{ scale: 0.98 }}
+                            whileHover={{ scale: 1.01 }}
+                            whileTap={{ scale: 0.99 }}
                             onClick={() => handleViewApplicationDetails(application)}
-                            className="flex-1 flex items-center justify-center px-3 py-2 border border-gray-200 rounded-lg hover:bg-gray-50 font-medium text-gray-700 transition-all duration-200"
+                            className="flex-1 flex items-center justify-center px-4 py-2.5 border border-gray-300 rounded-lg hover:bg-gray-50 hover:border-gray-400 font-medium text-gray-700 transition-all duration-200"
                           >
                             <Eye className="h-4 w-4 mr-2" />
-                            View
+                            View Details
                           </motion.button>
                           
                           {/* Status Change Buttons - Only show for pending applications */}
                           {application.status === 'pending' && (
                             <>
                               <motion.button
-                                whileHover={{ scale: 1.02 }}
-                                whileTap={{ scale: 0.98 }}
+                                whileHover={{ scale: 1.01 }}
+                                whileTap={{ scale: 0.99 }}
                                 onClick={() => handleStatusUpdate(application.id, 'approved')}
-                                className="flex-1 flex items-center justify-center px-3 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-all duration-200"
+                                className="flex-1 flex items-center justify-center px-4 py-2.5 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white rounded-lg font-medium shadow-sm hover:shadow transition-all duration-200"
                               >
                                 <Check className="h-4 w-4 mr-2" />
                                 Approve
                               </motion.button>
                               <motion.button
-                                whileHover={{ scale: 1.02 }}
-                                whileTap={{ scale: 0.98 }}
+                                whileHover={{ scale: 1.01 }}
+                                whileTap={{ scale: 0.99 }}
                                 onClick={() => handleStatusUpdate(application.id, 'rejected')}
-                                className="flex-1 flex items-center justify-center px-3 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-all duration-200"
+                                className="flex items-center justify-center px-4 py-2.5 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white rounded-lg font-medium shadow-sm hover:shadow transition-all duration-200"
                               >
                                 <XCircle className="h-4 w-4 mr-2" />
                                 Reject
@@ -2393,26 +2677,295 @@ const LandlordPropertyManagement: React.FC = () => {
                           
                           {/* Show status for non-pending applications */}
                           {application.status !== 'pending' && (
-                            <div className="flex-1 flex items-center justify-center px-3 py-2 bg-gray-100 rounded-lg">
-                              <span className={`text-sm font-medium ${
+                            <div className={`flex-1 flex items-center justify-center px-4 py-2.5 rounded-lg font-medium ${
                                 application.status === 'approved' 
-                                  ? 'text-green-700' 
+                                ? 'bg-green-50 text-green-700 border border-green-200' 
                                   : application.status === 'rejected'
-                                  ? 'text-red-700'
-                                  : 'text-gray-700'
+                                ? 'bg-red-50 text-red-700 border border-red-200'
+                                : 'bg-gray-50 text-gray-700 border border-gray-200'
                               }`}>
+                              <span className="text-sm">
                                 {application.status.charAt(0).toUpperCase() + application.status.slice(1)}
                               </span>
                             </div>
                           )}
+                        </div>
+                      </div>
+                    </motion.div>
+                  ))
+                )}
+          </div>
+            )}
+          </motion.div>
+        )}
+
+        {/* Tour Bookings Tab */}
+        {activeTab === "tour-bookings" && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+            className="space-y-8"
+          >
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center">
+              <div>
+                <h2 className="text-lg md:text-2xl font-bold text-gray-900">
+                  Tour Bookings
+                </h2>
+                <p className="text-gray-600 mt-1">
+                  Manage and schedule property tours for prospective tenants
+                </p>
+              </div>
+              <div className="flex items-center space-x-2 mt-3 md:mt-0">
+                <Badge className="bg-blue-100 text-blue-700 border-blue-200">
+                  {tourBookings.filter(b => b.status === 'pending').length} Pending
+                </Badge>
+                <Badge className="bg-green-100 text-green-700 border-green-200">
+                  {tourBookings.filter(b => b.status === 'confirmed').length} Confirmed
+                </Badge>
+              </div>
+            </div>
+
+            {/* Loading State */}
+            {tourBookingsLoading && (
+              <Loader 
+                message="Loading Tour Bookings" 
+                subMessage="Retrieving your tour booking data..."
+              />
+            )}
+
+            {/* Error State */}
+            {tourBookingsError && (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                <div className="flex items-center">
+                  <AlertTriangle className="h-5 w-5 text-red-600 mr-2" />
+                  <span className="text-red-800">{tourBookingsError}</span>
+                </div>
+                <button 
+                  onClick={fetchTourBookings}
+                  className="mt-2 text-sm text-red-600 hover:text-red-800 underline"
+                >
+                  Try again
+                </button>
+              </div>
+            )}
+
+            {/* Tour Bookings Grid */}
+            {!tourBookingsLoading && !tourBookingsError && (
+              <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+                {tourBookings.length === 0 ? (
+                  <div className="col-span-full text-center py-12">
+                    <Calendar className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                      No Tour Bookings Found
+                    </h3>
+                    <p className="text-gray-600 mb-4">
+                      You haven't received any tour booking requests yet.
+                    </p>
+                  </div>
+                ) : (
+                  tourBookings.map((booking, index) => (
+                    <motion.div
+                      key={booking.id}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.6, delay: index * 0.1 }}
+                      whileHover={{ scale: 1.01, y: -2 }}
+                      className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-all duration-300"
+                    >
+                      {/* Status Indicator - Thin line at top */}
+                      <div className={`h-1 ${
+                        booking.status === 'pending'
+                          ? "bg-yellow-500"
+                          : booking.status === 'confirmed'
+                          ? "bg-blue-500"
+                          : booking.status === 'completed'
+                          ? "bg-green-500"
+                          : "bg-red-500"
+                      }`}></div>
+
+                      <div className="p-6">
+                        {/* Header Section */}
+                        <div className="flex items-start justify-between mb-6">
+                          <div className="flex items-start space-x-4 flex-1">
+                            <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center ring-2 ring-blue-200">
+                              <Calendar className="h-6 w-6 text-blue-600" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <h3 className="font-semibold text-gray-900 text-lg mb-1.5">
+                                {booking.firstName} {booking.lastName}
+                              </h3>
+                              <div className="flex items-center text-gray-500 text-sm mb-3">
+                                <MapPin className="h-3.5 w-3.5 mr-1.5 flex-shrink-0" />
+                                <span className="truncate">
+                                  {booking.propertyName || 'Property'}
+                                </span>
+                              </div>
+                              {/* Contact Information */}
+                              <div className="flex items-center space-x-2">
+                                {booking.email && (
+                                  <motion.button
+                                    whileHover={{ scale: 1.1 }}
+                                    whileTap={{ scale: 0.9 }}
+                                    onClick={() => {
+                                      window.location.href = `mailto:${booking.email}`;
+                                    }}
+                                    className="p-1.5 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition-all duration-200"
+                                    title={`Email: ${booking.email}`}
+                                    type="button"
+                                  >
+                                    <Mail className="h-3.5 w-3.5" />
+                                  </motion.button>
+                                )}
+                                {booking.phone && (
+                                  <motion.button
+                                    whileHover={{ scale: 1.1 }}
+                                    whileTap={{ scale: 0.9 }}
+                                    onClick={() => {
+                                      window.location.href = `tel:${booking.phone}`;
+                                    }}
+                                    className="p-1.5 rounded-lg bg-green-50 text-green-600 hover:bg-green-100 transition-all duration-200"
+                                    title={`Call: ${booking.phone}`}
+                                    type="button"
+                                  >
+                                    <Phone className="h-3.5 w-3.5" />
+                                  </motion.button>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                          {/* Status Badge */}
+                          <div className={`px-3 py-1.5 rounded-lg flex items-center space-x-1.5 text-xs font-medium ${
+                            booking.status === 'pending'
+                              ? "bg-yellow-100 text-yellow-800"
+                              : booking.status === 'confirmed'
+                              ? "bg-blue-100 text-blue-800"
+                              : booking.status === 'completed'
+                              ? "bg-green-100 text-green-800"
+                              : "bg-red-100 text-red-800"
+                          }`}>
+                            <Clock className={`h-3 w-3 ${
+                              booking.status === 'pending' ? "text-yellow-600" : 
+                              booking.status === 'confirmed' ? "text-blue-600" :
+                              booking.status === 'completed' ? "text-green-600" : "text-red-600"
+                            }`} />
+                            <span>
+                              {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Booking Details Cards */}
+                        <div className="grid grid-cols-2 gap-3 mb-5">
+                          <div className="bg-blue-50 rounded-xl p-4 border border-blue-100">
+                            <div className="flex items-center justify-between mb-2">
+                              <p className="text-xs text-blue-700 font-medium">Preferred Date</p>
+                              <Calendar className="h-4 w-4 text-blue-600 opacity-70" />
+                            </div>
+                            <p className="text-sm font-bold text-gray-900">
+                              {new Date(booking.preferredDate).toLocaleDateString('en-US', {
+                                month: 'short',
+                                day: 'numeric',
+                                year: 'numeric'
+                              })}
+                            </p>
+                          </div>
+                          <div className="bg-green-50 rounded-xl p-4 border border-green-100">
+                            <div className="flex items-center justify-between mb-2">
+                              <p className="text-xs text-green-700 font-medium">Move-In Date</p>
+                              <Home className="h-4 w-4 text-green-600 opacity-70" />
+                            </div>
+                            <p className="text-sm font-bold text-gray-900">
+                              {new Date(booking.moveInDate).toLocaleDateString('en-US', {
+                                month: 'short',
+                                day: 'numeric',
+                                year: 'numeric'
+                              })}
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Unit and Preferences */}
+                        <div className="bg-gray-50 rounded-xl p-4 mb-5 border border-gray-100">
+                          <div className="flex items-center justify-between">
+                            {booking.unitNumber && (
+                              <>
+                                <div className="flex-1">
+                                  <p className="text-xs text-gray-600 font-medium mb-1.5">Unit Number</p>
+                                  <p className="text-lg font-semibold text-gray-900">
+                                    {booking.unitNumber}
+                                  </p>
+                                </div>
+                                {booking.apartmentPreferences && (
+                                  <div className="h-10 w-px bg-gray-300 mx-4"></div>
+                                )}
+                              </>
+                            )}
+                            {booking.apartmentPreferences && (
+                              <div className="flex-1">
+                                <p className="text-xs text-gray-600 font-medium mb-1.5">Preferences</p>
+                                <p className="text-sm font-medium text-gray-900 line-clamp-1">
+                                  {booking.apartmentPreferences}
+                                </p>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Action Buttons */}
+                        <div className="flex gap-2">
+                          {booking.status === 'pending' && (
+                            <>
                           
                           <motion.button
                             whileHover={{ scale: 1.02 }}
                             whileTap={{ scale: 0.98 }}
-                            className="px-3 py-2 border border-gray-200 rounded-lg hover:bg-gray-50 font-medium text-gray-700 transition-all duration-200"
+                                onClick={() => handleTourBookingStatusUpdate(booking.id, 'confirmed')}
+                                className="flex-1 flex items-center justify-center px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-lg font-medium transition-all duration-200 shadow-sm"
                           >
-                            <Settings className="h-4 w-4" />
+                                <Check className="h-4 w-4 mr-2" />
+                                Confirm
                           </motion.button>
+                              <motion.button
+                                whileHover={{ scale: 1.02 }}
+                                whileTap={{ scale: 0.98 }}
+                                onClick={() => handleTourBookingStatusUpdate(booking.id, 'cancelled')}
+                                className="flex items-center justify-center px-3 py-1 border border-red-200 text-red-600 hover:bg-red-50 rounded-lg font-medium transition-all duration-200"
+                              >
+                                <XCircle className="h-4 w-4 mr-2" />
+                                Cancel
+                              </motion.button>
+                            </>
+                          )}
+                          
+                          {booking.status === 'confirmed' && (
+                            <motion.button
+                              whileHover={{ scale: 1.02 }}
+                              whileTap={{ scale: 0.98 }}
+                              onClick={() => handleTourBookingStatusUpdate(booking.id, 'completed')}
+                              className="flex-1 flex items-center justify-center px-4 py-2 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white rounded-lg font-medium transition-all duration-200 shadow-sm"
+                            >
+                              <CheckCircle className="h-4 w-4 mr-2" />
+                              Mark Complete
+                            </motion.button>
+                          )}
+
+                          {(booking.status === 'completed' || booking.status === 'cancelled') && (
+                            <div className="flex-1 flex items-center justify-center px-3 py-2 text-gray-500 text-sm rounded-lg bg-gray-50 border border-gray-200">
+                              {booking.status === 'completed' ? 'Tour Completed' : 'Tour Cancelled'}
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Submitted Date */}
+                        <div className="mt-5 pt-4 border-t border-gray-100">
+                          <p className="text-xs text-gray-500">
+                            Submitted: {booking.submittedAt && (
+                              typeof booking.submittedAt === 'object' && 'seconds' in booking.submittedAt
+                                ? new Date(booking.submittedAt.seconds * 1000).toLocaleDateString()
+                                : new Date(booking.submittedAt).toLocaleDateString()
+                            )}
+                          </p>
                 </div>
               </div>
             </motion.div>
@@ -2629,51 +3182,85 @@ const LandlordPropertyManagement: React.FC = () => {
                                     <span className="text-gray-700">Change Status</span>
                                   </div>
                                   <div className="p-1">
-                                    {[
-                                      { value: 'submitted', label: 'Submitted' },
-                                      { value: 'in_progress', label: 'In Progress' },
-                                      { value: 'completed', label: 'Completed' },
-                                      { value: 'cancelled', label: 'Cancelled' },
-                                    ].map((status) => (
-                                      <div
-                                        key={status.value}
-                                        className={`px-3 py-2 text-sm cursor-pointer rounded m-1 flex items-center transition-all ${
-                                          request.status === status.value
-                                            ? "bg-gray-100"
-                                            : "hover:bg-gray-100"
-                                        }`}
-                                        onClick={() => {
-                                          if (request.id && request.status !== status.value) {
-                                            handleInlineStatusChange(request.id, status.value as MaintenanceRequest['status']);
-                                          }
-                                        }}
-                                      >
-                                        <span className="mr-2"></span>
-                                        <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                                          status.value === 'submitted' ? "bg-yellow-100 text-yellow-700" :
-                                          status.value === 'in_progress' ? "bg-blue-100 text-blue-700" :
-                                          status.value === 'completed' ? "bg-green-100 text-green-700" :
-                                          "bg-gray-100 text-gray-700"
-                                        }`}>
-                                          {status.label}
-                                        </span>
-                                        {request.status === status.value && (
-                                          <svg
-                                            className="ml-auto h-4 w-4 text-blue-500"
-                                            fill="none"
-                                            viewBox="0 0 24 24"
-                                            stroke="currentColor"
+                                    {(() => {
+                                      // Define valid transitions based on current status
+                                      const validTransitions: MaintenanceRequest['status'][] = 
+                                        request.status === 'submitted' 
+                                          ? ['in_progress', 'cancelled']
+                                          : request.status === 'in_progress'
+                                          ? ['completed', 'cancelled']
+                                          : request.status === 'completed' || request.status === 'cancelled'
+                                          ? [] // Final states - no transitions allowed
+                                          : [];
+                                      
+                                      // Always show current status + valid transitions
+                                      const allStatuses: Array<{ value: MaintenanceRequest['status']; label: string }> = [
+                                        { value: 'submitted', label: 'Submitted' },
+                                        { value: 'in_progress', label: 'In Progress' },
+                                        { value: 'completed', label: 'Completed' },
+                                        { value: 'cancelled', label: 'Cancelled' }
+                                      ];
+                                      
+                                      // Filter to show only current status and valid transitions
+                                      const availableStatuses = allStatuses.filter(status => 
+                                        status.value === request.status || validTransitions.includes(status.value)
+                                      );
+                                      
+                                      return availableStatuses.map((status) => {
+                                        const isCurrentStatus = request.status === status.value;
+                                        const isValidTransition = validTransitions.includes(status.value);
+                                        const isClickable = isCurrentStatus || isValidTransition;
+                                        
+                                        return (
+                                          <div
+                                            key={status.value}
+                                            className={`px-3 py-2 text-sm rounded m-1 flex items-center transition-all ${
+                                              isCurrentStatus
+                                                ? "bg-gray-100 font-semibold cursor-default"
+                                                : isClickable
+                                                ? "hover:bg-gray-100 cursor-pointer"
+                                                : "opacity-50 cursor-not-allowed"
+                                            }`}
+                                            onClick={() => {
+                                              if (request.id && !isCurrentStatus && isValidTransition) {
+                                                handleInlineStatusChange(request.id, status.value);
+                                              } else if (!isClickable) {
+                                                toast({
+                                                  title: "Final Status",
+                                                  description: `${request.status === 'completed' ? 'Completed' : 'Cancelled'} requests cannot have their status changed.`,
+                                                  variant: "default",
+                                                });
+                                              }
+                                            }}
                                           >
-                                            <path
-                                              strokeLinecap="round"
-                                              strokeLinejoin="round"
-                                              strokeWidth={2}
-                                              d="M5 13l4 4L19 7"
-                                            />
-                                          </svg>
-                                        )}
-                                      </div>
-                                    ))}
+                                            <span className="mr-2"></span>
+                                            <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                                              status.value === 'submitted' ? "bg-yellow-100 text-yellow-700" :
+                                              status.value === 'in_progress' ? "bg-blue-100 text-blue-700" :
+                                              status.value === 'completed' ? "bg-green-100 text-green-700" :
+                                              "bg-gray-100 text-gray-700"
+                                            }`}>
+                                              {status.label}
+                                            </span>
+                                            {isCurrentStatus && (
+                                              <svg
+                                                className="ml-auto h-4 w-4 text-blue-500"
+                                                fill="none"
+                                                viewBox="0 0 24 24"
+                                                stroke="currentColor"
+                                              >
+                                                <path
+                                                  strokeLinecap="round"
+                                                  strokeLinejoin="round"
+                                                  strokeWidth={2}
+                                                  d="M5 13l4 4L19 7"
+                                                />
+                                              </svg>
+                                            )}
+                                          </div>
+                                        );
+                                      });
+                                    })()}
                                   </div>
                                 </div>
                               </PopoverContent>
@@ -2991,131 +3578,76 @@ const LandlordPropertyManagement: React.FC = () => {
 
       {/* Application Details Modal */}
       {showApplicationModal && selectedApplication && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-            className="bg-white rounded-2xl shadow-2xl max-w-5xl w-full max-h-[90vh] overflow-hidden bg-gradient-to-br from-slate-50 via-gray-50 to-zinc-100"
-          >
-            {/* Modern Header with Gradient Background */}
-            <div className="relative bg-gradient-to-r from-green-600 via-emerald-600 to-green-600 p-6 text-white">
-              <div className="absolute inset-0 bg-black/10"></div>
-              <div className="relative z-10 flex items-center justify-between">
-                <div className="flex items-center space-x-4">
-                  <motion.div
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    transition={{ delay: 0.1, type: "spring", stiffness: 200 }}
-                    className="w-12 h-12 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center shadow-2xl"
-                  >
-                    <Users className="h-6 w-6 text-white" />
-                  </motion.div>
+        <Dialog open={showApplicationModal} onOpenChange={handleCloseApplicationModal}>
+          <DialogContent className="max-w-5xl max-h-[95vh] flex flex-col p-0 bg-gradient-to-br from-green-50 to-blue-50">
+            <DialogHeader className="flex-shrink-0 bg-gradient-to-r from-green-600 via-emerald-600 to-green-600 px-6 py-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center">
+                  <div className="bg-white/20 backdrop-blur-sm p-2 rounded-xl mr-4">
+                    <Users className="h-8 w-8 text-white" />
+                  </div>
                   <div>
-                    <h2 className="text-3xl font-bold text-white mb-1">
+                    <DialogTitle className="text-3xl font-bold text-white">
                       {selectedApplication.personalInfo.firstName} {selectedApplication.personalInfo.lastName}
-                    </h2>
-                    <p className="text-white/90 text-sm">
+                    </DialogTitle>
+                    <p className="text-green-100 text-lg mt-1">
                       Application for {selectedApplication.applicationMetadata.propertyName || 'Property'}
                     </p>
-                    <div className="flex items-center space-x-4 mt-2">
-                      <div className="flex items-center">
-                        <Calendar className="h-4 w-4 mr-1" />
-                        <span className="text-sm">
-                          Applied: {selectedApplication.submittedAt 
-                            ? new Date(
-                                typeof selectedApplication.submittedAt === 'object' && 'seconds' in selectedApplication.submittedAt
-                                  ? selectedApplication.submittedAt.seconds * 1000
-                                  : selectedApplication.submittedAt
-                              ).toLocaleDateString()
-                            : "N/A"}
-                        </span>
                       </div>
-                      <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                        selectedApplication.status === 'pending'
-                          ? "bg-yellow-100 text-yellow-700"
-                          : selectedApplication.status === 'approved'
-                          ? "bg-green-100 text-green-700"
-                          : selectedApplication.status === 'rejected'
-                          ? "bg-red-100 text-red-700"
-                          : "bg-gray-100 text-gray-700"
-                      }`}>
-                        {selectedApplication.status.charAt(0).toUpperCase() + selectedApplication.status.slice(1)}
-                      </span>
                     </div>
                   </div>
-                </div>
-                <button
-                  onClick={handleCloseApplicationModal}
-                  className="p-2 hover:bg-white/20 rounded-lg transition-colors"
-                >
-                  <X className="h-6 w-6" />
-                </button>
-              </div>
-            </div>
-
-            {/* Security Banner */}
-            <div className="bg-gradient-to-r from-emerald-50 to-teal-50 border-b border-emerald-200 px-6 py-3">
-              <div className="flex items-center space-x-2">
-                <div className="w-5 h-5 bg-emerald-100 rounded-full flex items-center justify-center">
-                  <div className="w-2 h-2 bg-emerald-600 rounded-full"></div>
-                </div>
-                <span className="text-sm font-medium text-emerald-800">
-                  All application information is secure and verified
-                </span>
-              </div>
-            </div>
+            </DialogHeader>
 
             {/* Modal Content */}
-            <div className="p-6 max-h-[calc(90vh-200px)] overflow-y-auto">
+            <div className="flex-1 overflow-y-auto p-6">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Left Column - Personal Information */}
                 <div className="space-y-6">
                   {/* Personal Information Card */}
-                  <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 hover:shadow-xl transition-shadow">
-                    <div className="flex items-center mb-6">
-                      <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center mr-3">
+                  <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                    <div className="flex items-center mb-5">
+                      <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center mr-3">
                         <User className="h-5 w-5 text-blue-600" />
                       </div>
-                      <h3 className="text-xl font-bold text-gray-900">Personal Information</h3>
+                      <h3 className="text-lg font-semibold text-gray-900">Personal Information</h3>
                     </div>
-                    <div className="space-y-4">
-                      <div className="flex items-center space-x-4 p-3 bg-gray-50 rounded-xl">
+                    <div className="space-y-3">
+                      <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg border border-gray-100">
                         <div className="w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center">
                           <Mail className="h-4 w-4 text-blue-600" />
                         </div>
                         <div className="flex-1">
-                          <p className="text-sm text-gray-600 font-medium">Email</p>
-                          <p className="font-semibold text-gray-900">{selectedApplication.personalInfo.email}</p>
+                          <p className="text-xs text-gray-600 font-medium mb-0.5">Email</p>
+                          <p className="font-medium text-gray-900">{selectedApplication.personalInfo.email}</p>
                         </div>
                       </div>
-                      <div className="flex items-center space-x-4 p-3 bg-gray-50 rounded-xl">
+                      <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg border border-gray-100">
                         <div className="w-8 h-8 bg-green-50 rounded-lg flex items-center justify-center">
                           <Phone className="h-4 w-4 text-green-600" />
                         </div>
                         <div className="flex-1">
-                          <p className="text-sm text-gray-600 font-medium">Phone</p>
-                          <p className="font-semibold text-gray-900">{selectedApplication.personalInfo.phone}</p>
+                          <p className="text-xs text-gray-600 font-medium mb-0.5">Phone</p>
+                          <p className="font-medium text-gray-900">{selectedApplication.personalInfo.phone}</p>
                         </div>
                       </div>
-                      <div className="flex items-center space-x-4 p-3 bg-gray-50 rounded-xl">
+                      <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg border border-gray-100">
                         <div className="w-8 h-8 bg-purple-50 rounded-lg flex items-center justify-center">
                           <Calendar className="h-4 w-4 text-purple-600" />
                         </div>
                         <div className="flex-1">
-                          <p className="text-sm text-gray-600 font-medium">Date of Birth</p>
-                          <p className="font-semibold text-gray-900">
+                          <p className="text-xs text-gray-600 font-medium mb-0.5">Date of Birth</p>
+                          <p className="font-medium text-gray-900">
                             {new Date(selectedApplication.personalInfo.dateOfBirth).toLocaleDateString()}
                           </p>
                         </div>
                       </div>
-                      <div className="flex items-center space-x-4 p-3 bg-gray-50 rounded-xl">
+                      <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg border border-gray-100">
                         <div className="w-8 h-8 bg-orange-50 rounded-lg flex items-center justify-center">
                           <Calendar className="h-4 w-4 text-orange-600" />
                         </div>
                         <div className="flex-1">
-                          <p className="text-sm text-gray-600 font-medium">Move-in Date</p>
-                          <p className="font-semibold text-gray-900">
+                          <p className="text-xs text-gray-600 font-medium mb-0.5">Move-in Date</p>
+                          <p className="font-medium text-gray-900">
                             {new Date(selectedApplication.personalInfo.moveInDate).toLocaleDateString()}
                           </p>
                         </div>
@@ -3124,57 +3656,53 @@ const LandlordPropertyManagement: React.FC = () => {
                   </div>
 
                   {/* Financial Information Card */}
-                  <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 hover:shadow-xl transition-shadow">
-                    <div className="flex items-center mb-6">
-                      <div className="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center mr-3">
+                  <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                    <div className="flex items-center mb-5">
+                      <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center mr-3">
                         <DollarSign className="h-5 w-5 text-green-600" />
                       </div>
-                      <h3 className="text-xl font-bold text-gray-900">Financial Information</h3>
+                      <h3 className="text-lg font-semibold text-gray-900">Financial Information</h3>
                     </div>
-                    <div className="space-y-6">
+                    <div className="space-y-5">
                       {/* Financial Highlights */}
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-2xl p-6 border border-blue-200">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div className="bg-blue-50 rounded-xl p-4 border border-blue-100">
                           <div className="flex items-center justify-between mb-2">
-                            <p className="text-sm text-blue-700 font-semibold">Monthly Income</p>
-                            <div className="w-6 h-6 bg-blue-200 rounded-full flex items-center justify-center">
-                              <DollarSign className="h-3 w-3 text-blue-700" />
+                            <p className="text-xs text-blue-700 font-medium">Monthly Income</p>
+                            <DollarSign className="h-4 w-4 text-blue-600 opacity-70" />
                             </div>
-                          </div>
-                          <p className="text-2xl font-bold text-blue-900">
-                            ${selectedApplication.leaseHoldersAndGuarantors.leaseHolders[0]?.monthlyIncome || selectedApplication.legacy.annualIncome || "0"}
+                          <p className="text-2xl font-bold text-gray-900">
+                            ${(selectedApplication.leaseHoldersAndGuarantors.leaseHolders[0]?.monthlyIncome || selectedApplication.legacy.annualIncome || 0).toLocaleString()}
                           </p>
                         </div>
-                        <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-2xl p-6 border border-green-200">
+                        <div className="bg-green-50 rounded-xl p-4 border border-green-100">
                           <div className="flex items-center justify-between mb-2">
-                            <p className="text-sm text-green-700 font-semibold">Unit Rent</p>
-                            <div className="w-6 h-6 bg-green-200 rounded-full flex items-center justify-center">
-                              <Home className="h-3 w-3 text-green-700" />
+                            <p className="text-xs text-green-700 font-medium">Unit Rent</p>
+                            <Home className="h-4 w-4 text-green-600 opacity-70" />
                             </div>
-                          </div>
-                          <p className="text-2xl font-bold text-green-900">
-                            ${selectedApplication.applicationMetadata.unitRent?.toLocaleString() || "0"}
+                          <p className="text-2xl font-bold text-gray-900">
+                            ${(selectedApplication.applicationMetadata.unitRent || 0).toLocaleString()}
                           </p>
                         </div>
                       </div>
                       
                       {/* Employment Information */}
-                      <div className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-2xl p-6 border border-gray-200">
+                      <div className="bg-gray-50 rounded-xl p-5 border border-gray-100">
                         <div className="flex items-center mb-4">
                           <div className="w-8 h-8 bg-indigo-50 rounded-lg flex items-center justify-center mr-3">
                             <User className="h-4 w-4 text-indigo-600" />
                           </div>
-                          <h4 className="text-lg font-semibold text-gray-900">Employment Details</h4>
+                          <h4 className="text-base font-semibold text-gray-900">Employment Details</h4>
                         </div>
                         <div className="space-y-3">
                           <div>
-                            <p className="text-sm text-gray-600 font-medium">Status</p>
-                            <p className="font-semibold text-gray-900">{selectedApplication.financialInfo.employment}</p>
+                            <p className="text-xs text-gray-600 font-medium mb-1">Status</p>
+                            <p className="font-medium text-gray-900">{selectedApplication.financialInfo.employment}</p>
                           </div>
                           {selectedApplication.financialInfo.employerName && (
                             <div>
-                              <p className="text-sm text-gray-600 font-medium">Employer</p>
-                              <p className="font-semibold text-gray-900">{selectedApplication.financialInfo.employerName}</p>
+                              <p className="text-xs text-gray-600 font-medium mb-1">Employer</p>
+                              <p className="font-medium text-gray-900">{selectedApplication.financialInfo.employerName}</p>
                             </div>
                           )}
                         </div>
@@ -3183,33 +3711,33 @@ const LandlordPropertyManagement: React.FC = () => {
                   </div>
 
                   {/* Housing History Card */}
-                  <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 hover:shadow-xl transition-shadow">
-                    <div className="flex items-center mb-6">
-                      <div className="w-10 h-10 bg-purple-100 rounded-xl flex items-center justify-center mr-3">
+                  <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                    <div className="flex items-center mb-5">
+                      <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center mr-3">
                         <Home className="h-5 w-5 text-purple-600" />
                       </div>
-                      <h3 className="text-xl font-bold text-gray-900">Housing History</h3>
+                      <h3 className="text-lg font-semibold text-gray-900">Housing History</h3>
                     </div>
-                    <div className="space-y-4">
-                      <div className="bg-gradient-to-r from-purple-50 to-purple-100 rounded-2xl p-6 border border-purple-200">
+                    <div className="space-y-3">
+                      <div className="bg-purple-50 rounded-xl p-5 border border-purple-100">
                         <div className="flex items-center mb-3">
-                          <div className="w-6 h-6 bg-purple-200 rounded-full flex items-center justify-center mr-3">
-                            <Home className="h-3 w-3 text-purple-700" />
+                          <div className="w-6 h-6 bg-purple-100 rounded-lg flex items-center justify-center mr-2">
+                            <Home className="h-3 w-3 text-purple-600" />
                           </div>
-                          <h4 className="text-lg font-semibold text-purple-900">Current Address</h4>
+                          <h4 className="text-base font-semibold text-gray-900">Current Address</h4>
                         </div>
-                        <p className="font-semibold text-gray-900 mb-2">{selectedApplication.housingHistory.currentAddress.fullAddress}</p>
-                        <p className="text-sm text-purple-700 font-medium">Duration: {selectedApplication.housingHistory.currentAddress.duration}</p>
+                        <p className="font-medium text-gray-900 mb-1.5">{selectedApplication.housingHistory.currentAddress.fullAddress}</p>
+                        <p className="text-xs text-gray-600 font-medium">Duration: {selectedApplication.housingHistory.currentAddress.duration}</p>
                       </div>
                       {selectedApplication.housingHistory.previousAddress.fullAddress && (
-                        <div className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-2xl p-6 border border-gray-200">
+                        <div className="bg-gray-50 rounded-xl p-5 border border-gray-100">
                           <div className="flex items-center mb-3">
-                            <div className="w-6 h-6 bg-gray-200 rounded-full flex items-center justify-center mr-3">
-                              <Home className="h-3 w-3 text-gray-700" />
+                            <div className="w-6 h-6 bg-gray-100 rounded-lg flex items-center justify-center mr-2">
+                              <Home className="h-3 w-3 text-gray-600" />
                             </div>
-                            <h4 className="text-lg font-semibold text-gray-900">Previous Address</h4>
+                            <h4 className="text-base font-semibold text-gray-900">Previous Address</h4>
                           </div>
-                          <p className="font-semibold text-gray-900">{selectedApplication.housingHistory.previousAddress.fullAddress}</p>
+                          <p className="font-medium text-gray-900">{selectedApplication.housingHistory.previousAddress.fullAddress}</p>
                         </div>
                       )}
                     </div>
@@ -3219,113 +3747,103 @@ const LandlordPropertyManagement: React.FC = () => {
                 {/* Right Column - Additional Information */}
                 <div className="space-y-6">
                   {/* Application Details Card */}
-                  <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 hover:shadow-xl transition-shadow">
-                    <div className="flex items-center mb-6">
-                      <div className="w-10 h-10 bg-indigo-100 rounded-xl flex items-center justify-center mr-3">
+                  <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                    <div className="flex items-center mb-5">
+                      <div className="w-10 h-10 bg-indigo-100 rounded-lg flex items-center justify-center mr-3">
                         <FileText className="h-5 w-5 text-indigo-600" />
                       </div>
-                      <h3 className="text-xl font-bold text-gray-900">Application Details</h3>
+                      <h3 className="text-lg font-semibold text-gray-900">Application Details</h3>
                     </div>
-                    <div className="space-y-6">
+                    <div className="space-y-4">
                       {/* Unit Information Grid */}
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="bg-gradient-to-br from-indigo-50 to-indigo-100 rounded-xl p-4 border border-indigo-200">
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="bg-indigo-50 rounded-xl p-4 border border-indigo-100">
                           <div className="flex items-center mb-2">
-                            <div className="w-6 h-6 bg-indigo-200 rounded-full flex items-center justify-center mr-2">
-                              <Home className="h-3 w-3 text-indigo-700" />
+                            <Home className="h-3 w-3 text-indigo-600 mr-1.5" />
+                            <p className="text-xs text-indigo-700 font-medium">Unit</p>
                             </div>
-                            <p className="text-sm text-indigo-700 font-semibold">Unit</p>
+                          <p className="text-lg font-bold text-gray-900">{selectedApplication.applicationMetadata.unitNumber}</p>
                           </div>
-                          <p className="text-lg font-bold text-indigo-900">{selectedApplication.applicationMetadata.unitNumber}</p>
-                        </div>
-                        <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-4 border border-blue-200">
+                        <div className="bg-blue-50 rounded-xl p-4 border border-blue-100">
                           <div className="flex items-center mb-2">
-                            <div className="w-6 h-6 bg-blue-200 rounded-full flex items-center justify-center mr-2">
-                              <Calendar className="h-3 w-3 text-blue-700" />
+                            <Calendar className="h-3 w-3 text-blue-600 mr-1.5" />
+                            <p className="text-xs text-blue-700 font-medium">Lease Term</p>
                             </div>
-                            <p className="text-sm text-blue-700 font-semibold">Lease Term</p>
-                          </div>
-                          <p className="text-lg font-bold text-blue-900">{selectedApplication.applicationMetadata.selectedLeaseTermMonths} months</p>
+                          <p className="text-lg font-bold text-gray-900">{selectedApplication.applicationMetadata.selectedLeaseTermMonths} months</p>
                         </div>
                       </div>
                       
                       {/* Unit Specifications */}
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-4 border border-green-200">
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="bg-green-50 rounded-xl p-4 border border-green-100">
                           <div className="flex items-center mb-2">
-                            <div className="w-6 h-6 bg-green-200 rounded-full flex items-center justify-center mr-2">
-                              <Home className="h-3 w-3 text-green-700" />
+                            <Bed className="h-3 w-3 text-green-600 mr-1.5" />
+                            <p className="text-xs text-green-700 font-medium">Bedrooms</p>
                             </div>
-                            <p className="text-sm text-green-700 font-semibold">Bedrooms</p>
+                          <p className="text-lg font-bold text-gray-900">{selectedApplication.applicationMetadata.unitBedrooms}</p>
                           </div>
-                          <p className="text-lg font-bold text-green-900">{selectedApplication.applicationMetadata.unitBedrooms}</p>
-                        </div>
-                        <div className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl p-4 border border-orange-200">
+                        <div className="bg-orange-50 rounded-xl p-4 border border-orange-100">
                           <div className="flex items-center mb-2">
-                            <div className="w-6 h-6 bg-orange-200 rounded-full flex items-center justify-center mr-2">
-                              <Home className="h-3 w-3 text-orange-700" />
+                            <Bath className="h-3 w-3 text-orange-600 mr-1.5" />
+                            <p className="text-xs text-orange-700 font-medium">Bathrooms</p>
                             </div>
-                            <p className="text-sm text-orange-700 font-semibold">Bathrooms</p>
-                          </div>
-                          <p className="text-lg font-bold text-orange-900">{selectedApplication.applicationMetadata.unitBathrooms}</p>
+                          <p className="text-lg font-bold text-gray-900">{selectedApplication.applicationMetadata.unitBathrooms}</p>
                         </div>
                       </div>
                       
                       {/* Security Deposit Highlight */}
-                      <div className="bg-gradient-to-br from-emerald-50 to-emerald-100 rounded-2xl p-6 border border-emerald-200">
+                      <div className="bg-gray-50 rounded-xl p-5 border border-gray-200">
                         <div className="flex items-center justify-between mb-3">
                           <div className="flex items-center">
-                            <div className="w-8 h-8 bg-emerald-200 rounded-full flex items-center justify-center mr-3">
-                              <DollarSign className="h-4 w-4 text-emerald-700" />
+                            <DollarSign className="h-5 w-5 text-gray-600 mr-2" />
+                            <h4 className="text-base font-semibold text-gray-900">Security Deposit</h4>
                             </div>
-                            <h4 className="text-lg font-semibold text-emerald-900">Security Deposit</h4>
-                          </div>
-                          <div className="bg-emerald-200 text-emerald-800 px-3 py-1 rounded-full text-xs font-bold">
+                          <span className="bg-gray-200 text-gray-700 px-2.5 py-1 rounded-full text-xs font-medium">
                             Required
+                          </span>
                           </div>
-                        </div>
-                        <p className="text-3xl font-bold text-emerald-900">
-                          ${selectedApplication.applicationMetadata.unitDeposit?.toLocaleString() || "0"}
+                        <p className="text-2xl font-bold text-gray-900">
+                          ${(selectedApplication.applicationMetadata.unitDeposit || 0).toLocaleString()}
                         </p>
                       </div>
                     </div>
                   </div>
 
                   {/* Emergency Contact Card */}
-                  <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 hover:shadow-xl transition-shadow">
-                    <div className="flex items-center mb-6">
-                      <div className="w-10 h-10 bg-red-100 rounded-xl flex items-center justify-center mr-3">
+                  <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                    <div className="flex items-center mb-5">
+                      <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center mr-3">
                         <Phone className="h-5 w-5 text-red-600" />
                       </div>
-                      <h3 className="text-xl font-bold text-gray-900">Emergency Contact</h3>
+                      <h3 className="text-lg font-semibold text-gray-900">Emergency Contact</h3>
                     </div>
-                    <div className="bg-gradient-to-r from-red-50 to-red-100 rounded-2xl p-6 border border-red-200">
-                      <div className="space-y-4">
-                        <div className="flex items-center space-x-4">
-                          <div className="w-8 h-8 bg-red-200 rounded-lg flex items-center justify-center">
-                            <User className="h-4 w-4 text-red-700" />
+                    <div className="bg-red-50 rounded-xl p-5 border border-red-100">
+                      <div className="space-y-3">
+                        <div className="flex items-center space-x-3">
+                          <div className="w-8 h-8 bg-red-100 rounded-lg flex items-center justify-center">
+                            <User className="h-4 w-4 text-red-600" />
                           </div>
                           <div className="flex-1">
-                            <p className="text-sm text-red-700 font-medium">Name</p>
-                            <p className="font-semibold text-gray-900">{selectedApplication.additionalInfo.emergencyContact.name}</p>
+                            <p className="text-xs text-gray-600 font-medium mb-0.5">Name</p>
+                            <p className="font-medium text-gray-900">{selectedApplication.additionalInfo.emergencyContact.name}</p>
                           </div>
                         </div>
-                        <div className="flex items-center space-x-4">
-                          <div className="w-8 h-8 bg-red-200 rounded-lg flex items-center justify-center">
-                            <Phone className="h-4 w-4 text-red-700" />
+                        <div className="flex items-center space-x-3">
+                          <div className="w-8 h-8 bg-red-100 rounded-lg flex items-center justify-center">
+                            <Phone className="h-4 w-4 text-red-600" />
                           </div>
                           <div className="flex-1">
-                            <p className="text-sm text-red-700 font-medium">Phone</p>
-                            <p className="font-semibold text-gray-900">{selectedApplication.additionalInfo.emergencyContact.phone}</p>
+                            <p className="text-xs text-gray-600 font-medium mb-0.5">Phone</p>
+                            <p className="font-medium text-gray-900">{selectedApplication.additionalInfo.emergencyContact.phone}</p>
                           </div>
                         </div>
-                        <div className="flex items-center space-x-4">
-                          <div className="w-8 h-8 bg-red-200 rounded-lg flex items-center justify-center">
-                            <Heart className="h-4 w-4 text-red-700" />
+                        <div className="flex items-center space-x-3">
+                          <div className="w-8 h-8 bg-red-100 rounded-lg flex items-center justify-center">
+                            <Heart className="h-4 w-4 text-red-600" />
                           </div>
                           <div className="flex-1">
-                            <p className="text-sm text-red-700 font-medium">Relation</p>
-                            <p className="font-semibold text-gray-900">{selectedApplication.additionalInfo.emergencyContact.relation}</p>
+                            <p className="text-xs text-gray-600 font-medium mb-0.5">Relation</p>
+                            <p className="font-medium text-gray-900">{selectedApplication.additionalInfo.emergencyContact.relation}</p>
                           </div>
                         </div>
                       </div>
@@ -3333,74 +3851,66 @@ const LandlordPropertyManagement: React.FC = () => {
                   </div>
 
                   {/* Pets & Vehicles Card */}
-                  <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 hover:shadow-xl transition-shadow">
-                    <div className="flex items-center mb-6">
-                      <div className="w-10 h-10 bg-pink-100 rounded-xl flex items-center justify-center mr-3">
+                  <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                    <div className="flex items-center mb-5">
+                      <div className="w-10 h-10 bg-pink-100 rounded-lg flex items-center justify-center mr-3">
                         <Heart className="h-5 w-5 text-pink-600" />
                       </div>
-                      <h3 className="text-xl font-bold text-gray-900">Pets & Vehicles</h3>
+                      <h3 className="text-lg font-semibold text-gray-900">Pets & Vehicles</h3>
                     </div>
-                    <div className="space-y-6">
+                    <div className="space-y-4">
                       {/* Pets Section */}
-                      <div className="bg-gradient-to-r from-pink-50 to-pink-100 rounded-2xl p-6 border border-pink-200">
+                      <div className="bg-pink-50 rounded-xl p-5 border border-pink-100">
                         <div className="flex items-center mb-4">
-                          <div className="w-8 h-8 bg-pink-200 rounded-lg flex items-center justify-center mr-3">
-                            <Heart className="h-4 w-4 text-pink-700" />
-                          </div>
-                          <h4 className="text-lg font-semibold text-pink-900">Pets</h4>
+                          <Heart className="h-4 w-4 text-pink-600 mr-2" />
+                          <h4 className="text-base font-semibold text-gray-900">Pets</h4>
                         </div>
                         {selectedApplication.additionalInfo.pets.hasPets ? (
-                          <div className="space-y-3">
+                          <div className="space-y-2.5">
                             {selectedApplication.additionalInfo.pets.pets.map((pet, index) => (
-                              <div key={index} className="bg-white rounded-xl p-4 border border-pink-200">
-                                <div className="flex items-center justify-between mb-2">
-                                  <p className="font-semibold text-gray-900">{pet.type} - {pet.breed}</p>
-                                  <div className="bg-pink-100 text-pink-700 px-2 py-1 rounded-full text-xs font-medium">
+                              <div key={index} className="bg-white rounded-lg p-3 border border-pink-100">
+                                <div className="flex items-center justify-between mb-1.5">
+                                  <p className="font-medium text-gray-900">{pet.type} - {pet.breed}</p>
+                                  <span className="bg-pink-100 text-pink-700 px-2 py-0.5 rounded-full text-xs font-medium">
                                     Pet
+                                  </span>
                                   </div>
-                                </div>
-                                <p className="text-sm text-pink-700">Age: {pet.age}, Weight: {pet.weight}</p>
+                                <p className="text-xs text-gray-600">Age: {pet.age}, Weight: {pet.weight}</p>
                               </div>
                             ))}
                           </div>
                         ) : (
-                          <div className="text-center py-4">
-                            <div className="w-12 h-12 bg-pink-100 rounded-full flex items-center justify-center mx-auto mb-2">
-                              <Heart className="h-6 w-6 text-pink-400" />
-                            </div>
-                            <p className="text-pink-600 font-medium">No pets</p>
+                          <div className="text-center py-3">
+                            <Heart className="h-8 w-8 text-pink-300 mx-auto mb-2" />
+                            <p className="text-sm text-gray-600 font-medium">No pets</p>
                           </div>
                         )}
                       </div>
                       
                       {/* Vehicles Section */}
-                      <div className="bg-gradient-to-r from-blue-50 to-blue-100 rounded-2xl p-6 border border-blue-200">
+                      <div className="bg-blue-50 rounded-xl p-5 border border-blue-100">
                         <div className="flex items-center mb-4">
-                          <div className="w-8 h-8 bg-blue-200 rounded-lg flex items-center justify-center mr-3">
-                            <Home className="h-4 w-4 text-blue-700" />
-                          </div>
-                          <h4 className="text-lg font-semibold text-blue-900">Vehicles</h4>
+                          <Home className="h-4 w-4 text-blue-600 mr-2" />
+                          <h4 className="text-base font-semibold text-gray-900">Vehicles</h4>
                         </div>
                         {selectedApplication.additionalInfo.vehicles.hasVehicles ? (
-                          <div className="space-y-3">
+                          <div className="space-y-2.5">
                             {selectedApplication.additionalInfo.vehicles.vehicles.map((vehicle, index) => (
-                              <div key={index} className="bg-white rounded-xl p-4 border border-blue-200">
-                                <div className="flex items-center justify-between mb-2">
-                                  <p className="font-semibold text-gray-900">{vehicle.year} {vehicle.make} {vehicle.model}</p>
-                                  <div className="bg-blue-100 text-blue-700 px-2 py-1 rounded-full text-xs font-medium">
+                              <div key={index} className="bg-white rounded-lg p-3 border border-blue-100">
+                                <div className="flex items-center justify-between mb-1.5">
+                                  <p className="font-medium text-gray-900">{vehicle.year} {vehicle.make} {vehicle.model}</p>
+                                  <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full text-xs font-medium">
                                     Vehicle
+                                  </span>
                                   </div>
-                                </div>
-                                <p className="text-sm text-blue-700">License: {vehicle.licensePlate}</p>
+                                <p className="text-xs text-gray-600">License: {vehicle.licensePlate}</p>
                               </div>
                             ))}
                           </div>
                         ) : (
-                          <div className="text-center py-4">
-                            <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-2">
-                              <Home className="h-6 w-6 text-blue-400" />
-                            </div>
-                            <p className="text-blue-600 font-medium">No vehicles</p>
+                          <div className="text-center py-3">
+                            <Home className="h-8 w-8 text-blue-300 mx-auto mb-2" />
+                            <p className="text-sm text-gray-600 font-medium">No vehicles</p>
                           </div>
                         )}
                       </div>
@@ -3409,15 +3919,15 @@ const LandlordPropertyManagement: React.FC = () => {
 
                   {/* Additional Notes Card */}
                   {selectedApplication.additionalInfo.notes && (
-                    <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 hover:shadow-xl transition-shadow">
-                      <div className="flex items-center mb-6">
-                        <div className="w-10 h-10 bg-gray-100 rounded-xl flex items-center justify-center mr-3">
+                    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                      <div className="flex items-center mb-5">
+                        <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center mr-3">
                           <FileText className="h-5 w-5 text-gray-600" />
                         </div>
-                        <h3 className="text-xl font-bold text-gray-900">Additional Notes</h3>
+                        <h3 className="text-lg font-semibold text-gray-900">Additional Notes</h3>
                       </div>
-                      <div className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-2xl p-6 border border-gray-200">
-                        <p className="text-gray-700 leading-relaxed">{selectedApplication.additionalInfo.notes}</p>
+                      <div className="bg-gray-50 rounded-xl p-5 border border-gray-100">
+                        <p className="text-sm text-gray-700 leading-relaxed">{selectedApplication.additionalInfo.notes}</p>
                       </div>
                     </div>
                   )}
@@ -3425,47 +3935,53 @@ const LandlordPropertyManagement: React.FC = () => {
               </div>
             </div>
 
-            {/* Modern Footer with Action Buttons */}
-            <div className="bg-gradient-to-r from-gray-50 to-gray-100 px-6 py-6 border-t border-gray-200">
-              <div className="flex flex-col sm:flex-row items-center justify-between space-y-4 sm:space-y-0">
-                <div className="flex items-center space-x-4">
-                  <div className="flex items-center space-x-2">
-                    <div className={`w-3 h-3 rounded-full ${
+            {/* Footer with Action Buttons - Matching ApplicationProcess */}
+            <DialogFooter className="flex-shrink-0 flex !justify-between items-center px-6 py-6 bg-white/90 backdrop-blur-md">
+              <div className="flex items-center space-x-3">
+                <div className={`w-2.5 h-2.5 rounded-full ${
                       selectedApplication.status === 'pending'
-                        ? "bg-yellow-400"
+                    ? "bg-yellow-500"
                         : selectedApplication.status === 'approved'
-                        ? "bg-green-400"
+                    ? "bg-green-500"
                         : selectedApplication.status === 'rejected'
-                        ? "bg-red-400"
+                    ? "bg-red-500"
                         : "bg-gray-400"
                     }`}></div>
                     <span className="text-sm font-medium text-gray-700">
                       Status: {selectedApplication.status.charAt(0).toUpperCase() + selectedApplication.status.slice(1)}
                     </span>
                   </div>
-                </div>
-                <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
+              <div className="flex items-center space-x-3">
+              
+                {selectedApplication.status === 'pending' && (
+                  <>
                   <Button
-                    variant="outline"
-                    onClick={handleCloseApplicationModal}
-                    className="border-gray-300 text-gray-700 hover:bg-gray-50 px-6 py-2"
+                      onClick={() => handleStatusUpdate(selectedApplication.id, 'approved')}
+                      className="flex items-center space-x-2 px-8 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white font-semibold rounded-lg hover:from-green-700 hover:to-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 transition-all duration-200 shadow-lg hover:shadow-xl"
                   >
-                    <X className="h-4 w-4 mr-2" />
-                    Close
+                      <Check className="h-4 w-4" />
+                      <span>Approve</span>
                   </Button>
-                  <Button className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white px-6 py-2 shadow-lg hover:shadow-xl transition-all">
-                    <Users className="h-4 w-4 mr-2" />
-                    Screen Applicant
+                    <Button 
+                      onClick={() => handleStatusUpdate(selectedApplication.id, 'rejected')}
+                      className="flex items-center space-x-2 px-8 py-3 bg-gradient-to-r from-red-600 to-red-700 text-white font-semibold rounded-lg hover:from-red-700 hover:to-red-800 focus:outline-none focus:ring-2 focus:ring-offset-2 transition-all duration-200 shadow-lg hover:shadow-xl"
+                    >
+                      <XCircle className="h-4 w-4" />
+                      <span>Reject</span>
                   </Button>
-                  <Button className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-6 py-2 shadow-lg hover:shadow-xl transition-all">
-                    <FileText className="h-4 w-4 mr-2" />
-                    Download PDF
+                  </>
+                )}
+                <Button 
+                  // onClick={handleDownloadPDF}
+                  className="flex items-center space-x-2 px-8 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold rounded-xl hover:from-blue-700 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 transition-all duration-200 shadow-lg hover:shadow-xl"
+                >
+                  <FileText className="h-4 w-4" />
+                  <span>Download PDF</span>
                   </Button>
                 </div>
-              </div>
-            </div>
-          </motion.div>
-        </div>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
         )}
 
         {/* Property Details Modal */}

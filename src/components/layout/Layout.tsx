@@ -16,6 +16,7 @@ import {
   Search,
   Building,
   Bell,
+  Calendar,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { Button } from "../ui/Button";
@@ -157,6 +158,17 @@ export function Layout({ children }: LayoutProps) {
                     >
                       My Applications
                     </Button>
+                    <Button
+                      variant="ghost"
+                      className={`px-4 py-2 rounded-lg transition-all ${
+                        isActive("/tour-bookings")
+                          ? "bg-gradient-to-r from-green-600 to-emerald-600 text-white shadow-md"
+                          : "text-gray-700 hover:bg-muted"
+                      }`}
+                      onClick={() => navigate("/tour-bookings")}
+                    >
+                      Tour Bookings
+                    </Button>
                   </>
                 )}
                 {(user?.role === "landlord_admin" ||
@@ -206,6 +218,7 @@ export function Layout({ children }: LayoutProps) {
                     >
                       Maintenance
                     </Button>
+                  
                     <Button
                       variant="ghost"
                       className={`px-4 py-2 rounded-lg transition-all ${
@@ -715,6 +728,23 @@ export function Layout({ children }: LayoutProps) {
                         Get Prequalified
                       </button>
                     </motion.div>
+
+                    <motion.div whileTap={{ scale: 0.95 }}>
+                      <button
+                        onClick={() => {
+                          navigate("/tour-bookings");
+                          setIsMobileMenuOpen(false);
+                        }}
+                        className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all w-full ${
+                          isActive("/tour-bookings")
+                            ? "bg-gradient-to-r from-green-600 to-emerald-600 text-white shadow-md"
+                            : "text-gray-700 hover:bg-gray-100"
+                        }`}
+                      >
+                        <Calendar className="h-5 w-5" />
+                        Tour Bookings
+                      </button>
+                    </motion.div>
                   </>
                 ))}
 
@@ -751,6 +781,23 @@ export function Layout({ children }: LayoutProps) {
                     >
                       <BarChart3 className="h-5 w-5" />
                       Maintenance
+                    </button>
+                  </motion.div>
+
+                  <motion.div whileTap={{ scale: 0.95 }}>
+                    <button
+                      onClick={() => {
+                        navigate("/tour-bookings");
+                        setIsMobileMenuOpen(false);
+                      }}
+                      className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all w-full ${
+                        isActive("/tour-bookings")
+                          ? "bg-gradient-to-r from-green-600 to-emerald-600 text-white shadow-md"
+                          : "text-gray-700 hover:bg-gray-100"
+                      }`}
+                    >
+                      <Calendar className="h-5 w-5" />
+                      Tour Bookings
                     </button>
                   </motion.div>
 

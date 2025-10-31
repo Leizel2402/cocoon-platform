@@ -28,7 +28,9 @@ import {
   Building,
   Settings,
   FileText,
-  Shield
+  Shield,
+  Trash2,
+  AlertCircle
 } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/input';
@@ -38,6 +40,7 @@ import { useAuth } from '../hooks/useAuth';
 import { maintenanceService, MaintenanceRequest } from '../services/maintenanceService';
 import { getUserApprovedApplications, UserApplication } from '../services/userDataService';
 import { landlordService, LandlordContactInfo } from '../services/landlordService';
+import { notificationService } from '../services/notificationService';
 import { Loader } from '../components/ui/Loader';
 
 // Using MaintenanceRequest interface from maintenanceService
@@ -58,6 +61,12 @@ export function MaintenanceRequests() {
   const [selectedProperty, setSelectedProperty] = useState<UserApplication | null>(null);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [landlordContactInfo, setLandlordContactInfo] = useState<LandlordContactInfo | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [cancellationReason, setCancellationReason] = useState('');
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isCancelling, setIsCancelling] = useState(false);
+  const [requestToDelete, setRequestToDelete] = useState<MaintenanceRequest | null>(null);
 // console.log("uploadedImages",uploadedImages);
 
   // Form state
@@ -123,6 +132,163 @@ export function MaintenanceRequests() {
         description: "Landlord contact information is not available for this property.",
         variant: "destructive"
       });
+    }
+  };
+
+  // Handle Delete/Cancel Button Click
+  const handleDeleteOrCancelClick = (request: MaintenanceRequest, e?: React.MouseEvent) => {
+    if (e) {
+      e.stopPropagation();
+    }
+    
+    setRequestToDelete(request);
+    
+    if (request.status === 'submitted' || request.status === 'completed' || request.status === 'cancelled') {
+      setShowDeleteConfirm(true);
+    } else if (request.status === 'in_progress') {
+      setShowCancelModal(true);
+    } else {
+      toast({
+        title: "Cannot Cancel",
+        description: "Only submitted or in-progress requests can be deleted or cancelled.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  // Handle Delete Confirmation (for submitted/completed/cancelled requests)
+  const handleConfirmDelete = async () => {
+    if (!requestToDelete || !user) return;
+
+    const request = requestToDelete;
+    setIsDeleting(true);
+
+    try {
+      // Delete the request (pass userId for verification)
+      const result = await maintenanceService.deleteMaintenanceRequest(request.id, user.uid);
+      
+      if (result.success) {
+        // Remove from local state immediately
+        setRequests(prev => prev.filter(r => r.id !== request.id));
+        
+        // Close modals
+        setShowDeleteConfirm(false);
+        setRequestToDelete(null);
+        if (selectedRequest?.id === request.id) {
+          setSelectedRequest(null);
+          setLandlordContactInfo(null);
+        }
+
+        // Only notify landlord if it was a submitted request
+        // Completed/cancelled requests don't need notification on deletion
+        if (request.status === 'submitted') {
+          try {
+            // Notify landlord about deletion of submitted request
+            await notificationService.notifyLandlordMaintenanceRequestDeleted(
+              request.landlordId,
+              request.id,
+              request.propertyId,
+              request.propertyAddress || 'Property',
+              user.displayName || user.email?.split('@')[0] || 'Tenant',
+              request.title
+            );
+          } catch (notificationError) {
+            console.error('Error sending landlord notification:', notificationError);
+            // Don't fail the deletion if notification fails
+          }
+        }
+
+        toast({
+          title: "Request Deleted",
+          description: "Your maintenance request has been deleted successfully.",
+        });
+      } else {
+        throw new Error(result.error || 'Failed to delete request');
+      }
+    } catch (error) {
+      console.error('Error deleting maintenance request:', error);
+      toast({
+        title: "Delete Failed",
+        description: error instanceof Error ? error.message : "Failed to delete maintenance request. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  // Handle Cancel Confirmation (for in_progress requests)
+  const handleConfirmCancel = async () => {
+    if (!requestToDelete || !user || !cancellationReason.trim()) {
+      toast({
+        title: "Reason Required",
+        description: "Please provide a reason for cancelling the maintenance request.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const request = requestToDelete;
+    setIsCancelling(true);
+
+    try {
+      // Cancel the request with reason
+      const result = await maintenanceService.cancelMaintenanceRequest(
+        request.id,
+        user.uid,
+        cancellationReason.trim()
+      );
+      
+      if (result.success) {
+        // Update local state
+        setRequests(prev => 
+          prev.map(r => 
+            r.id === request.id 
+              ? { ...r, status: 'cancelled' as const }
+              : r
+          )
+        );
+
+        // Close modals and reset form
+        setShowCancelModal(false);
+        setCancellationReason('');
+        setRequestToDelete(null);
+        if (selectedRequest?.id === request.id) {
+          setSelectedRequest(prev => prev ? { ...prev, status: 'cancelled' as const } : null);
+        }
+
+        // Notify landlord about cancellation with reason
+        try {
+          await notificationService.notifyLandlordMaintenanceRequestCancelledByTenant(
+            request.landlordId,
+            request.id,
+            request.propertyId,
+            request.propertyAddress || 'Property',
+            user.displayName || user.email?.split('@')[0] || 'Tenant',
+            request.title,
+            cancellationReason.trim()
+          );
+        } catch (notificationError) {
+          console.error('Error sending landlord notification:', notificationError);
+          // Don't fail the cancellation if notification fails
+        }
+
+        toast({
+          title: "Request Cancelled",
+          description: "Your maintenance request has been cancelled and the landlord has been notified.",
+        });
+      } else {
+        throw new Error(result.error || 'Failed to cancel request');
+      }
+    } catch (error) {
+      console.error('Error cancelling maintenance request:', error);
+      toast({
+        title: "Cancel Failed",
+        description: error instanceof Error ? error.message : "Failed to cancel maintenance request. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsCancelling(false);
     }
   };
 
@@ -462,63 +628,6 @@ console.log("selectedProperty",selectedProperty);
       </div>
 
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Quick Stats */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
-          <div className="bg-white rounded-lg p-3 sm:p-4 border border-gray-100 hover:shadow-md transition-shadow">
-            <div className="flex items-center justify-between">
-              <div className="flex-1">
-                <p className="text-gray-600 text-xs sm:text-sm font-medium">Total Requests</p>
-                <p className="text-lg sm:text-2xl font-bold text-gray-900">{requests.length}</p>
-              </div>
-              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                <Wrench className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600" />
-              </div>
-            </div>
-          </div>
-          
-          <div className="bg-white rounded-lg p-3 sm:p-4 border border-gray-100 hover:shadow-md transition-shadow">
-            <div className="flex items-center justify-between">
-              <div className="flex-1">
-                <p className="text-gray-600 text-xs sm:text-sm font-medium">In Progress</p>
-                <p className="text-lg sm:text-2xl font-bold text-yellow-600">
-                  {requests.filter(r => r.status === 'in_progress').length}
-                </p>
-              </div>
-              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-yellow-100 rounded-lg flex items-center justify-center">
-                <AlertTriangle className="h-4 w-4 sm:h-5 sm:w-5 text-yellow-600" />
-              </div>
-            </div>
-          </div>
-          
-          <div className="bg-white rounded-lg p-3 sm:p-4 border border-gray-100 hover:shadow-md transition-shadow">
-            <div className="flex items-center justify-between">
-              <div className="flex-1">
-                <p className="text-gray-600 text-xs sm:text-sm font-medium">Completed</p>
-                <p className="text-lg sm:text-2xl font-bold text-green-600">
-                  {requests.filter(r => r.status === 'completed').length}
-                </p>
-              </div>
-              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                <CheckCircle className="h-4 w-4 sm:h-5 sm:w-5 text-green-600" />
-              </div>
-            </div>
-          </div>
-          
-          <div className="bg-white rounded-lg p-3 sm:p-4 border border-gray-100 hover:shadow-md transition-shadow">
-            <div className="flex items-center justify-between">
-              <div className="flex-1">
-                <p className="text-gray-600 text-xs sm:text-sm font-medium">Pending</p>
-                <p className="text-lg sm:text-2xl font-bold text-blue-600">
-                  {requests.filter(r => r.status === 'submitted').length}
-                </p>
-              </div>
-              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                <Clock className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600" />
-              </div>
-            </div>
-          </div>
-        </div>
-
         {/* Search and Filter Bar */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 sm:p-6 mb-6">
           <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
@@ -843,14 +952,14 @@ console.log("selectedProperty",selectedProperty);
 
       {/* Requests List */}
         {filteredRequests.length === 0 ? (
-          <div className="text-center py-12 sm:py-16">
-            <div className="bg-gradient-to-r from-green-100 to-emerald-100 rounded-full w-20 h-20 sm:w-24 sm:h-24 flex items-center justify-center mx-auto mb-4 sm:mb-6">
-              <Wrench className="h-10 w-10 sm:h-12 sm:w-12 text-green-600" />
+          <div className="text-center py-16">
+            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-full w-24 h-24 flex items-center justify-center mx-auto mb-6">
+              <Wrench className="h-12 w-12 text-green-500" />
             </div>
-            <h3 className="text-xl sm:text-2xl font-bold text-gray-900 mb-3 sm:mb-4">
+            <h3 className="text-2xl font-bold text-gray-900 mb-3">
               {searchTerm ? 'No requests found' : 'No maintenance requests yet'}
             </h3>
-            <p className="text-gray-600 text-sm sm:text-lg mb-4 sm:mb-8 max-w-md mx-auto px-4">
+            <p className="text-gray-600 mb-6 max-w-md mx-auto">
               {searchTerm 
                 ? 'Try adjusting your search terms'
                 : 'Submit your first maintenance request to get started'
@@ -871,91 +980,112 @@ console.log("selectedProperty",selectedProperty);
             {filteredRequests.map((request, index) => (
               <motion.div
                 key={request.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.1 }}
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: index * 0.05 }}
               >
-                <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 sm:p-6 hover:shadow-lg transition-all duration-300 cursor-pointer"
-                     onClick={() => setSelectedRequest(request)}>
-                  {/* Mobile Layout */}
-                  <div className="sm:hidden">
-                    <div className="flex items-start gap-3 mb-4">
+                <div 
+                  className="bg-white rounded-lg shadow-sm border-l-4 border-r border-t border-b border-gray-200 hover:shadow-md transition-all duration-300 cursor-pointer group overflow-hidden"
+                  style={{
+                    borderLeftColor: request.status === 'submitted' ? '#3b82f6' :
+                                    request.status === 'in_progress' ? '#eab308' :
+                                    request.status === 'completed' ? '#22c55e' :
+                                    '#ef4444'
+                  }}
+                  onClick={() => setSelectedRequest(request)}
+                >
+                  <div className="p-5">
+                    {/* Header Row */}
+                    <div className="flex items-start justify-between mb-4">
                       <div className="flex-1 min-w-0">
-                        <h3 className="text-base font-bold text-gray-900 mb-2 truncate">{request.title}</h3>
-                        <div className="flex items-center gap-2 mb-2">
-                          <span className={`px-2 py-1 flex rounded-full text-xs font-semibold ${getStatusColor(request.status)}`}>
-                            {getStatusIcon(request.status)}
-                            <span className="ml-1 capitalize">{request.status.replace('_', ' ')}</span>
-                          </span>
-                          <span className={`px-2 py-1 rounded-full text-xs font-semibold ${getPriorityColor(request.priority)}`}>
-                            {request.priority}
-                          </span>
+                        <div className="flex items-center gap-3 mb-2">
+                          <h3 className="text-lg font-bold text-gray-900 group-hover:text-green-600 transition-colors">
+                            {request.title}
+                          </h3>
                         </div>
-                        <p className="text-gray-600 text-xs mb-2 line-clamp-2">{request.description}</p>
+                        <p className="text-sm text-gray-600 line-clamp-2 mb-3">
+                          {request.description}
+                        </p>
+                        <div className="flex items-center gap-4 text-sm text-gray-500">
+                          <div className="flex items-center">
+                            <MapPin className="h-4 w-4 mr-1.5" />
+                            <span>{request.propertyAddress} {request.unitNumber}</span>
+                          </div>
+                          <div className="flex items-center">
+                            <Calendar className="h-4 w-4 mr-1.5" />
+                            <span>{request.submittedAt.toLocaleDateString()}</span>
+                          </div>
+                          {request.scheduledDate && (
+                            <div className="flex items-center">
+                              <Clock className="h-4 w-4 mr-1.5" />
+                              <span>Scheduled: {request.scheduledDate.toLocaleDateString()}</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      
+                      {/* Status and Priority Badges */}
+                      <div className="flex flex-col items-end gap-2 ml-4 flex-shrink-0">
+                        <span className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 ${getStatusColor(request.status)}`}>
+                          {getStatusIcon(request.status)}
+                          <span className="capitalize whitespace-nowrap">{request.status.replace('_', ' ')}</span>
+                        </span>
+                        <span className={`px-3 py-1.5 rounded-lg text-xs font-semibold ${getPriorityColor(request.priority)} whitespace-nowrap`}>
+                          {request.priority} priority
+                        </span>
                       </div>
                     </div>
-                  </div>
 
-                  {/* Desktop Layout */}
-                  <div className="hidden sm:block">
-                    <div className="flex items-start justify-between mb-4">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-2">
-                          <h3 className="text-lg font-bold text-gray-900">{request.title}</h3>
-                          <div className="flex items-center gap-2">
-                            <span className={`px-3 py-1 flex rounded-full text-xs font-semibold ${getStatusColor(request.status)}`}>
-                              {getStatusIcon(request.status)}
-                              <span className="ml-1 capitalize">{request.status.replace('_', ' ')}</span>
-                            </span>
-                            <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getPriorityColor(request.priority)}`}>
-                              {request.priority} priority
-                            </span>
-                          </div>
-                        </div>
-                      <p className="text-gray-600 text-sm mb-3 line-clamp-2">{request.description}</p>
-                      <div className="flex items-center text-sm text-gray-500">
-                          <MapPin className="h-4 w-4 mr-1" />
-                          <span>{request.propertyAddress} {request.unitNumber}</span>
-                        </div>
-                      </div>
-                    <div className="text-right text-sm text-gray-500 ml-4">
-                      <div className="flex items-center justify-end mb-1">
-                          <Calendar className="h-4 w-4 mr-1" />
-                          <span>Submitted {request.submittedAt.toLocaleDateString()}</span>
-                        </div>
-                        {request.scheduledDate && (
-                        <div className="flex items-center justify-end">
-                            <Clock className="h-4 w-4 mr-1" />
-                            <span>Scheduled {request.scheduledDate.toLocaleDateString()}</span>
-                          </div>
+                    {/* Bottom Row - Category and Actions */}
+                    <div className="flex items-center justify-between pt-4 border-t border-gray-100">
+                      <div className="flex items-center gap-3">
+                        <span className="px-3 py-1 bg-gray-100 text-gray-700 rounded-lg text-xs font-medium flex items-center gap-1.5">
+                          <Wrench className="h-3.5 w-3.5" />
+                          <span className="capitalize">{request.category}</span>
+                        </span>
+                        {request.images && request.images.length > 0 && (
+                          <span className="px-2 py-1 bg-blue-50 text-blue-700 rounded-lg text-xs font-medium flex items-center gap-1">
+                            <Eye className="h-3 w-3" />
+                            {request.images.length} {request.images.length === 1 ? 'photo' : 'photos'}
+                          </span>
                         )}
                       </div>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center justify-between pt-4 border-t border-gray-100">
                       <div className="flex items-center gap-2">
-                      <span className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-xs font-medium">
-                        <Wrench className="h-3 w-3 mr-1 inline" />
-                          {request.category}
-                      </span>
-                      </div>
-                      <div className="flex gap-2">
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSelectedRequest(request);
-                        }}
-                        className="text-gray-600 hover:text-gray-900"
-                      >
-                          <Eye className="h-4 w-4 mr-1" />
+                        {(request.status === 'submitted' || request.status === 'in_progress' || request.status === 'completed' || request.status === 'cancelled') && (
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={(e) => handleDeleteOrCancelClick(request, e)}
+                            className="text-red-600 border-red-200 hover:bg-red-50"
+                          >
+                            {request.status === 'in_progress' ? (
+                              <>
+                                <XCircle className="h-4 w-4 mr-1.5" />
+                                Cancel
+                              </>
+                            ) : (
+                              <>
+                                <Trash2 className="h-4 w-4 mr-1.5" />
+                                Delete
+                              </>
+                            )}
+                          </Button>
+                        )}
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedRequest(request);
+                          }}
+                          className="text-gray-700 border-gray-300 hover:bg-gray-50 hover:border-gray-400"
+                        >
+                          <Eye className="h-4 w-4 mr-1.5" />
                           View Details
                         </Button>
-                    
                       </div>
                     </div>
+                  </div>
                 </div>
               </motion.div>
             ))}
@@ -1144,26 +1274,185 @@ console.log("selectedProperty",selectedProperty);
 
             {/* Modern Action Buttons */}
             <div className="flex-shrink-0 bg-white border-t border-gray-200 p-4">
-              <div className="flex space-x-4">
-                {/* <div className="flex-1">
-                  <Button 
-                    variant="outline"
-                    className="w-full h-12 text-base font-semibold border-2 border-gray-300 hover:border-blue-500 hover:bg-blue-50 rounded-lg transition-all duration-200 hover:scale-105"
-                  >
-                    <MessageSquare className="h-4 w-4 mr-2" />
-                    Add Note
-                  </Button>
-                </div> */}
-                <div className="flex-1">
+              <div className="flex justify-between items-center">
+                <div>
+                  {(selectedRequest.status === 'submitted' || selectedRequest.status === 'in_progress' || selectedRequest.status === 'completed' || selectedRequest.status === 'cancelled') && (
+                    <Button
+                      variant="outline"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteOrCancelClick(selectedRequest, e);
+                      }}
+                      className="text-red-600 border-red-200 hover:bg-red-50"
+                    >
+                      {selectedRequest.status === 'in_progress' ? (
+                        <>
+                          <XCircle className="h-4 w-4 mr-2" />
+                          Cancel Request
+                        </>
+                      ) : (
+                        <>
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Delete Request
+                        </>
+                      )}
+                    </Button>
+                  )}
+                </div>
+                <div className="flex space-x-4">
                   <Button 
                     onClick={handleContactManager}
-                    className="w-full h-12 text-base font-semibold bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105"
+                    className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white"
                   >
                     <Phone className="h-4 w-4 mr-2" />
-                    Contact to landlord 
+                    Contact Landlord 
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setSelectedRequest(null);
+                      setLandlordContactInfo(null);
+                    }}
+                    className="border-gray-300 text-gray-700 hover:bg-gray-100"
+                  >
+                    Close
                   </Button>
                 </div>
               </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Delete Confirmation Modal (for submitted/completed/cancelled requests) */}
+      {showDeleteConfirm && requestToDelete && (
+        <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <div className="flex items-center gap-3 mb-2">
+                <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+                  <AlertCircle className="h-6 w-6 text-red-600" />
+                </div>
+                <DialogTitle className="text-xl font-bold text-gray-900">
+                  Delete Maintenance Request
+                </DialogTitle>
+              </div>
+            </DialogHeader>
+            <div className="py-4">
+              <p className="text-gray-600 mb-4">
+                Are you sure you want to delete this maintenance request? This action cannot be undone.
+                {requestToDelete.status === 'submitted' && ' The landlord will be notified.'}
+              </p>
+              <div className="bg-gray-50 rounded-lg p-4 mb-4">
+                <p className="text-sm font-medium text-gray-700 mb-1">Request Details:</p>
+                <p className="text-sm text-gray-600">{requestToDelete.title}</p>
+                <p className="text-sm text-gray-600">Property: {requestToDelete.propertyAddress}</p>
+                <p className="text-sm text-gray-600">Status: <span className="capitalize">{requestToDelete.status.replace('_', ' ')}</span></p>
+              </div>
+            </div>
+            <div className="flex justify-end gap-3">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowDeleteConfirm(false);
+                  setRequestToDelete(null);
+                }}
+                disabled={isDeleting}
+                className="border-gray-300 text-gray-700 hover:bg-gray-100"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleConfirmDelete}
+                disabled={isDeleting}
+                className="bg-red-600 hover:bg-red-700 text-white"
+              >
+                {isDeleting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Deleting...
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Delete Request
+                  </>
+                )}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Cancel with Reason Modal (for in_progress requests) */}
+      {showCancelModal && requestToDelete && (
+        <Dialog open={showCancelModal} onOpenChange={setShowCancelModal}>
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <div className="flex items-center gap-3 mb-2">
+                <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center">
+                  <AlertCircle className="h-6 w-6 text-orange-600" />
+                </div>
+                <DialogTitle className="text-xl font-bold text-gray-900">
+                  Cancel Maintenance Request
+                </DialogTitle>
+              </div>
+            </DialogHeader>
+            <div className="py-4">
+              <p className="text-gray-600 mb-4">
+                Since this maintenance request is in progress, please provide a reason for cancellation. The landlord will be notified with your reason.
+              </p>
+              <div className="bg-blue-50 rounded-lg p-4 mb-4">
+                <p className="text-sm font-medium text-gray-700 mb-1">Request Details:</p>
+                <p className="text-sm text-gray-600">{requestToDelete.title}</p>
+                <p className="text-sm text-gray-600">Property: {requestToDelete.propertyAddress}</p>
+              </div>
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Cancellation Reason <span className="text-red-500">*</span>
+                </label>
+                <Textarea
+                  placeholder="Please explain why you need to cancel this in-progress maintenance request..."
+                  value={cancellationReason}
+                  onChange={(e) => setCancellationReason(e.target.value)}
+                  rows={4}
+                  className="w-full border-gray-300 focus:border-orange-500 focus:ring-orange-200"
+                />
+                <p className="text-xs text-gray-500">
+                  This reason will be sent to the landlord along with the cancellation notification.
+                </p>
+              </div>
+            </div>
+            <div className="flex justify-end gap-3">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowCancelModal(false);
+                  setCancellationReason('');
+                  setRequestToDelete(null);
+                }}
+                disabled={isCancelling}
+                className="border-gray-300 text-gray-700 hover:bg-gray-100"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleConfirmCancel}
+                disabled={isCancelling || !cancellationReason.trim()}
+                className="bg-orange-600 hover:bg-orange-700 text-white disabled:opacity-50"
+              >
+                {isCancelling ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Cancelling...
+                  </>
+                ) : (
+                  <>
+                    <XCircle className="h-4 w-4 mr-2" />
+                    Cancel Request
+                  </>
+                )}
+              </Button>
             </div>
           </DialogContent>
         </Dialog>

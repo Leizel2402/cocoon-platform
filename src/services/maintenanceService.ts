@@ -165,10 +165,95 @@ class MaintenanceService {
     }
   }
 
+  /**
+   * Valid status transitions (Production Rules):
+   * 
+   * From Landlord:
+   * - submitted → in_progress (requires scheduledDate)
+   * - submitted → cancelled
+   * - in_progress → completed
+   * - in_progress → cancelled
+   * 
+   * Final States (cannot be changed):
+   * - completed (final)
+   * - cancelled (final)
+   * 
+   * Invalid Transitions:
+   * - in_progress → submitted (not allowed)
+   * - completed → any (final state)
+   * - cancelled → any (final state)
+   */
+  private isValidStatusTransition(currentStatus: MaintenanceRequest['status'], newStatus: MaintenanceRequest['status']): { valid: boolean; error?: string } {
+    // Same status is always valid (no-op)
+    if (currentStatus === newStatus) {
+      return { valid: true };
+    }
+
+    // Final states cannot be changed
+    if (currentStatus === 'completed') {
+      return { valid: false, error: 'Cannot change status of a completed request. Completed requests are final.' };
+    }
+    
+    if (currentStatus === 'cancelled') {
+      return { valid: false, error: 'Cannot change status of a cancelled request. Cancelled requests are final.' };
+    }
+
+    // Define valid transitions from each state
+    const validTransitions: Record<MaintenanceRequest['status'], MaintenanceRequest['status'][]> = {
+      'submitted': ['in_progress', 'cancelled'],
+      'in_progress': ['completed', 'cancelled'],
+      'completed': [], // Final state
+      'cancelled': [] // Final state
+    };
+
+    const allowedTransitions = validTransitions[currentStatus] || [];
+    
+    if (!allowedTransitions.includes(newStatus)) {
+      return { 
+        valid: false, 
+        error: `Invalid status transition: Cannot change from "${currentStatus.replace('_', ' ')}" to "${newStatus.replace('_', ' ')}". Valid transitions from "${currentStatus.replace('_', ' ')}" are: ${allowedTransitions.map(s => s.replace('_', ' ')).join(', ')}.` 
+      };
+    }
+
+    return { valid: true };
+  }
+
   // Update maintenance request status
-  async updateMaintenanceRequestStatus(requestId: string, status: MaintenanceRequest['status'], notes?: string): Promise<void> {
+  async updateMaintenanceRequestStatus(
+    requestId: string, 
+    status: MaintenanceRequest['status'], 
+    notes?: string,
+    skipTransitionValidation: boolean = false
+  ): Promise<void> {
     try {
       const requestRef = doc(db, this.collectionName, requestId);
+      
+      // Get current status for validation
+      const requestDoc = await getDoc(requestRef);
+      if (!requestDoc.exists()) {
+        throw new Error('Maintenance request not found');
+      }
+      
+      const requestData = requestDoc.data();
+      const currentStatus = requestData.status as MaintenanceRequest['status'];
+      
+      // Validate status transition (unless explicitly skipped, e.g., from schedule modal)
+      if (!skipTransitionValidation) {
+        const validation = this.isValidStatusTransition(currentStatus, status);
+        if (!validation.valid) {
+          throw new Error(validation.error || 'Invalid status transition');
+        }
+      }
+      
+      // If changing to 'in_progress', verify that scheduledDate exists
+      if (status === 'in_progress') {
+        const scheduledDate = requestData.scheduledDate;
+        
+        if (!scheduledDate) {
+          throw new Error('Cannot change status to "in_progress" without a scheduled date. Please schedule the maintenance first.');
+        }
+      }
+      
       const updateData: Record<string, string | Date | { seconds: number; nanoseconds: number }> = {
         status,
         updatedAt: Timestamp.fromDate(new Date())
@@ -185,7 +270,7 @@ class MaintenanceService {
       await updateDoc(requestRef, updateData);
     } catch (error) {
       console.error('Error updating maintenance request:', error);
-      throw new Error('Failed to update maintenance request');
+      throw error instanceof Error ? error : new Error('Failed to update maintenance request');
     }
   }
 
@@ -288,13 +373,96 @@ class MaintenanceService {
     }
   }
 
-  // Delete maintenance request
-  async deleteMaintenanceRequest(requestId: string): Promise<void> {
+  // Delete maintenance request (for user's own requests - any status except in_progress)
+  async deleteMaintenanceRequest(requestId: string, userId: string): Promise<{ success: boolean; error?: string }> {
     try {
-      await deleteDoc(doc(db, this.collectionName, requestId));
-    } catch (error) {
+      const requestRef = doc(db, this.collectionName, requestId);
+      
+      // Check if request exists
+      const requestDoc = await getDoc(requestRef);
+      if (!requestDoc.exists()) {
+        return { success: false, error: 'Maintenance request not found. It may have already been deleted.' };
+      }
+      
+      const requestData = requestDoc.data() as MaintenanceRequest;
+      
+      // Verify the user is the owner of this request
+      if (!requestData.tenantId) {
+        return { success: false, error: 'Invalid request data: tenantId field is missing' };
+      }
+      
+      if (requestData.tenantId !== userId) {
+        return { success: false, error: 'You can only delete your own maintenance requests' };
+      }
+      
+      // For in_progress requests, they should be cancelled, not deleted
+      if (requestData.status === 'in_progress') {
+        return { success: false, error: 'Cannot delete a request that is in progress. Please cancel it instead.' };
+      }
+      
+      await deleteDoc(requestRef);
+      return { success: true };
+    } catch (error: any) {
       console.error('Error deleting maintenance request:', error);
-      throw new Error('Failed to delete maintenance request');
+      
+      // Provide more specific error messages
+      if (error?.code === 'permission-denied') {
+        return { success: false, error: 'Permission denied. You can only delete your own requests. Please ensure Firestore rules are deployed.' };
+      }
+      if (error?.code === 'not-found') {
+        return { success: false, error: 'Maintenance request not found. It may have already been deleted.' };
+      }
+      
+      return { success: false, error: error instanceof Error ? error.message : 'Unknown error occurred while deleting request' };
+    }
+  }
+
+  // Cancel maintenance request with reason (for in_progress requests)
+  async cancelMaintenanceRequest(
+    requestId: string,
+    userId: string,
+    cancellationReason: string
+  ): Promise<{ success: boolean; error?: string }> {
+    try {
+      const requestRef = doc(db, this.collectionName, requestId);
+      
+      // Check if request exists
+      const requestDoc = await getDoc(requestRef);
+      if (!requestDoc.exists()) {
+        return { success: false, error: 'Maintenance request not found' };
+      }
+      
+      const requestData = requestDoc.data() as MaintenanceRequest;
+      
+      // Verify the user is the owner
+      if (!requestData.tenantId) {
+        return { success: false, error: 'Invalid request data: tenantId field is missing' };
+      }
+      
+      if (requestData.tenantId !== userId) {
+        return { success: false, error: 'You can only cancel your own maintenance requests' };
+      }
+      
+      // Only in_progress requests can be cancelled by user
+      // submitted requests should be deleted instead
+      if (requestData.status === 'completed' || requestData.status === 'cancelled') {
+        return { success: false, error: 'Cannot cancel a completed or already cancelled request' };
+      }
+      
+      if (requestData.status === 'submitted') {
+        return { success: false, error: 'Submitted requests should be deleted, not cancelled. Please use delete instead.' };
+      }
+      
+      await updateDoc(requestRef, {
+        status: 'cancelled' as const,
+        notes: cancellationReason ? `Cancelled by tenant. Reason: ${cancellationReason}` : 'Cancelled by tenant',
+        updatedAt: Timestamp.fromDate(new Date())
+      });
+      
+      return { success: true };
+    } catch (error) {
+      console.error('Error cancelling maintenance request:', error);
+      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
     }
   }
 }

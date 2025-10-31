@@ -6,7 +6,7 @@ import { useAuth } from './useAuth';
 export interface UserNotification {
   id: string;
   userId: string;
-  type: 'property_deleted' | 'application_cancelled' | 'application_approved' | 'application_rejected' | 'application_submitted' | 'maintenance_cancelled' | 'maintenance_created' | 'maintenance_resolved' | 'listing_removed' | 'new_application' | 'new_maintenance_request' | 'new_subscription' | 'property_viewed' | 'application_withdrawn' | 'maintenance_updated' | 'payment_received' | 'payment_failed';
+  type: 'property_deleted' | 'application_cancelled' | 'application_approved' | 'application_rejected' | 'application_submitted' | 'maintenance_cancelled' | 'maintenance_created' | 'maintenance_resolved' | 'listing_removed' | 'new_application' | 'new_maintenance_request' | 'new_subscription' | 'property_viewed' | 'application_withdrawn' | 'maintenance_updated' | 'payment_received' | 'payment_failed' | 'new_tour_booking' | 'tour_booking_confirmed' | 'tour_booking_cancelled';
   title: string;
   message: string;
   propertyId: string;

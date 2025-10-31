@@ -17,7 +17,8 @@ import {
   Loader2,
   CheckCircle,
   XCircle,
-  ArrowRight
+  ArrowRight,
+  Calendar
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
@@ -77,6 +78,10 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({ isOpen, onClose
         return <CheckCircle className="h-5 w-5 text-green-600" />;
       case 'payment_failed':
         return <AlertTriangle className="h-5 w-5 text-red-600" />;
+      case 'new_tour_booking':
+      case 'tour_booking_confirmed':
+      case 'tour_booking_cancelled':
+        return <Calendar className="h-5 w-5 text-blue-500" />;
       default:
         return <Info className="h-5 w-5 text-gray-500" />;
     }
@@ -221,11 +226,30 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({ isOpen, onClose
                                     <div className="h-1.5 w-1.5 bg-blue-500 rounded-full flex-shrink-0"></div>
                                   )}
                                 </div>
-                                <p className={`text-xs line-clamp-2 mb-1.5 ${
-                                  notification.isRead ? 'text-gray-500' : 'text-gray-700'
-                                }`}>
-                                  {notification.message}
-                                </p>
+                                {/* Check if notification contains a cancellation reason */}
+                                {notification.message.includes('Reason:') ? (
+                                  <div className={`text-xs mb-1.5 ${
+                                    notification.isRead ? 'text-gray-500' : 'text-gray-700'
+                                  }`}>
+                                    {notification.message.split('Reason:').map((part, index) => {
+                                      if (index === 0) {
+                                        return <p key={index} className="line-clamp-1 mb-1">{part.trim()}</p>;
+                                      }
+                                      return (
+                                        <div key={index} className="mt-1 p-2 bg-yellow-50 border-l-4 border-yellow-400 rounded text-gray-700">
+                                          <p className="font-semibold text-yellow-900 mb-0.5 text-xs">Reason:</p>
+                                          <p className="whitespace-pre-wrap text-xs line-clamp-2">{part.trim()}</p>
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                ) : (
+                                  <p className={`text-xs line-clamp-2 mb-1.5 whitespace-pre-wrap ${
+                                    notification.isRead ? 'text-gray-500' : 'text-gray-700'
+                                  }`}>
+                                    {notification.message}
+                                  </p>
+                                )}
                                 <div className="flex items-center gap-3 text-xs text-gray-400">
                                   <div className="flex items-center gap-1">
                                     <Clock className="h-3 w-3" />

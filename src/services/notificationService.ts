@@ -5,7 +5,7 @@ import { emailTemplates } from './emailTemplates';
 export interface NotificationData {
   id?: string;
   userId: string;
-  type: 'property_deleted' | 'application_cancelled' | 'application_approved' | 'application_rejected' | 'application_submitted' | 'maintenance_cancelled' | 'maintenance_created' | 'maintenance_resolved' | 'listing_removed' | 'new_application' | 'new_maintenance_request' | 'new_subscription' | 'property_viewed' | 'application_withdrawn' | 'maintenance_updated' | 'payment_received' | 'payment_failed';
+  type: 'property_deleted' | 'application_cancelled' | 'application_approved' | 'application_rejected' | 'application_submitted' | 'maintenance_cancelled' | 'maintenance_created' | 'maintenance_resolved' | 'listing_removed' | 'new_application' | 'new_maintenance_request' | 'new_subscription' | 'property_viewed' | 'application_withdrawn' | 'maintenance_updated' | 'payment_received' | 'payment_failed' | 'new_tour_booking' | 'tour_booking_confirmed' | 'tour_booking_cancelled';
   title: string;
   message: string;
   propertyId: string;
@@ -714,6 +714,213 @@ class NotificationService {
       console.log(`Landlord notification created for failed payment for property ${propertyId}`);
     } catch (error) {
       console.error('Error creating landlord payment failure notification:', error);
+      throw error;
+    }
+  }
+
+  // Notify landlord when a new tour booking is submitted
+  async notifyLandlordNewTourBooking(
+    landlordId: string,
+    tourBookingId: string,
+    propertyId: string,
+    propertyName: string,
+    visitorName: string,
+    visitorEmail: string,
+    preferredDate: string,
+    unitNumber?: string | null
+  ): Promise<void> {
+    try {
+      const unitInfo = unitNumber ? ` for unit ${unitNumber}` : '';
+      await this.createNotification({
+        userId: landlordId,
+        type: 'new_tour_booking',
+        title: 'New Tour Booking Request! 🗓️',
+        message: `${visitorName} has requested a tour for "${propertyName}"${unitInfo} on ${preferredDate}. Review and confirm the tour booking.`,
+        propertyId,
+        propertyName,
+        actionRequired: true,
+        actionUrl: '/property-management'
+      });
+
+      console.log(`Landlord notification created for new tour booking ${tourBookingId}`);
+    } catch (error) {
+      console.error('Error creating landlord tour booking notification:', error);
+      throw error;
+    }
+  }
+
+  // Notify user when their tour booking is confirmed
+  async notifyTourBookingConfirmed(
+    userId: string,
+    tourBookingId: string,
+    propertyId: string,
+    propertyName: string,
+    preferredDate: string,
+    unitNumber?: string | null
+  ): Promise<void> {
+    try {
+      const unitInfo = unitNumber ? ` for unit ${unitNumber}` : '';
+      await this.createNotification({
+        userId,
+        type: 'tour_booking_confirmed',
+        title: 'Tour Booking Confirmed! ✅',
+        message: `Your tour booking for "${propertyName}"${unitInfo} on ${preferredDate} has been confirmed. We look forward to showing you the property!`,
+        propertyId,
+        propertyName,
+        actionRequired: false,
+        actionUrl: '/property'
+      });
+
+      console.log(`User notification created for confirmed tour booking ${tourBookingId}`);
+    } catch (error) {
+      console.error('Error creating tour booking confirmed notification:', error);
+      throw error;
+    }
+  }
+
+  // Notify user when their tour booking is cancelled
+  async notifyTourBookingCancelled(
+    userId: string,
+    tourBookingId: string,
+    propertyId: string,
+    propertyName: string,
+    preferredDate: string,
+    unitNumber?: string | null
+  ): Promise<void> {
+    try {
+      const unitInfo = unitNumber ? ` for unit ${unitNumber}` : '';
+      await this.createNotification({
+        userId,
+        type: 'tour_booking_cancelled',
+        title: 'Tour Booking Cancelled',
+        message: `Your tour booking for "${propertyName}"${unitInfo} on ${preferredDate} has been cancelled. Please contact the landlord if you have any questions.`,
+        propertyId,
+        propertyName,
+        actionRequired: false,
+        actionUrl: '/property'
+      });
+
+      console.log(`User notification created for cancelled tour booking ${tourBookingId}`);
+    } catch (error) {
+      console.error('Error creating tour booking cancelled notification:', error);
+      throw error;
+    }
+  }
+
+  // Notify landlord when a tour booking is deleted by user (pending bookings)
+  async notifyLandlordTourBookingDeleted(
+    landlordId: string,
+    tourBookingId: string,
+    propertyId: string,
+    propertyName: string,
+    visitorName: string,
+    preferredDate: string,
+    unitNumber?: string | null
+  ): Promise<void> {
+    try {
+      const unitInfo = unitNumber ? ` for unit ${unitNumber}` : '';
+      await this.createNotification({
+        userId: landlordId,
+        type: 'tour_booking_cancelled',
+        title: 'Tour Booking Deleted',
+        message: `${visitorName} has deleted their tour booking request for "${propertyName}"${unitInfo} on ${preferredDate}.`,
+        propertyId,
+        propertyName,
+        actionRequired: false,
+        actionUrl: '/property-management'
+      });
+
+      console.log(`Landlord notification created for deleted tour booking ${tourBookingId}`);
+    } catch (error) {
+      console.error('Error creating landlord tour booking deleted notification:', error);
+      throw error;
+    }
+  }
+
+  // Notify landlord when a tour booking is cancelled by user with reason (confirmed bookings)
+  async notifyLandlordTourBookingCancelledByUser(
+    landlordId: string,
+    tourBookingId: string,
+    propertyId: string,
+    propertyName: string,
+    visitorName: string,
+    preferredDate: string,
+    cancellationReason: string,
+    unitNumber?: string | null
+  ): Promise<void> {
+    try {
+      const unitInfo = unitNumber ? ` for unit ${unitNumber}` : '';
+      await this.createNotification({
+        userId: landlordId,
+        type: 'tour_booking_cancelled',
+        title: 'Tour Booking Cancelled by Visitor',
+        message: `${visitorName} has cancelled their confirmed tour booking for "${propertyName}"${unitInfo} on ${preferredDate}.\n\nReason: ${cancellationReason}`,
+        propertyId,
+        propertyName,
+        actionRequired: false,
+        actionUrl: '/property-management'
+      });
+
+      console.log(`Landlord notification created for cancelled tour booking ${tourBookingId}`);
+    } catch (error) {
+      console.error('Error creating landlord tour booking cancelled notification:', error);
+      throw error;
+    }
+  }
+
+  // Notify landlord when a maintenance request is deleted by tenant (submitted/completed/cancelled requests)
+  async notifyLandlordMaintenanceRequestDeleted(
+    landlordId: string,
+    requestId: string,
+    propertyId: string,
+    propertyName: string,
+    tenantName: string,
+    requestTitle: string
+  ): Promise<void> {
+    try {
+      await this.createNotification({
+        userId: landlordId,
+        type: 'maintenance_cancelled',
+        title: 'Maintenance Request Deleted',
+        message: `${tenantName} has deleted their maintenance request "${requestTitle}" for "${propertyName}".`,
+        propertyId,
+        propertyName,
+        actionRequired: false,
+        actionUrl: '/property-management'
+      });
+
+      console.log(`Landlord notification created for deleted maintenance request ${requestId}`);
+    } catch (error) {
+      console.error('Error creating landlord maintenance request deleted notification:', error);
+      throw error;
+    }
+  }
+
+  // Notify landlord when a maintenance request is cancelled by tenant with reason (in_progress requests)
+  async notifyLandlordMaintenanceRequestCancelledByTenant(
+    landlordId: string,
+    requestId: string,
+    propertyId: string,
+    propertyName: string,
+    tenantName: string,
+    requestTitle: string,
+    cancellationReason: string
+  ): Promise<void> {
+    try {
+      await this.createNotification({
+        userId: landlordId,
+        type: 'maintenance_cancelled',
+        title: 'Maintenance Request Cancelled by Tenant',
+        message: `${tenantName} has cancelled their in-progress maintenance request "${requestTitle}" for "${propertyName}".\n\nReason: ${cancellationReason}`,
+        propertyId,
+        propertyName,
+        actionRequired: false,
+        actionUrl: '/property-management'
+      });
+
+      console.log(`Landlord notification created for cancelled maintenance request ${requestId}`);
+    } catch (error) {
+      console.error('Error creating landlord maintenance request cancelled notification:', error);
       throw error;
     }
   }

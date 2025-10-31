@@ -19,7 +19,8 @@ import {
   CheckCircle,
   XCircle,
   Trash,
-  AlertCircle
+  AlertCircle,
+  Calendar
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -81,6 +82,10 @@ const Notifications: React.FC = () => {
         return <CheckCircle className="h-5 w-5 text-green-600" />;
       case 'payment_failed':
         return <AlertTriangle className="h-5 w-5 text-red-600" />;
+      case 'new_tour_booking':
+      case 'tour_booking_confirmed':
+      case 'tour_booking_cancelled':
+        return <Calendar className="h-5 w-5 text-blue-500" />;
       default:
         return <Info className="h-5 w-5 text-gray-500" />;
     }
@@ -106,6 +111,29 @@ const Notifications: React.FC = () => {
         return 'bg-green-100 text-green-700 border-green-200';
       case 'listing_removed':
         return 'bg-blue-100 text-blue-700 border-blue-200';
+      // Landlord notification types
+      case 'new_application':
+        return 'bg-green-100 text-green-700 border-green-200';
+      case 'new_maintenance_request':
+        return 'bg-orange-100 text-orange-700 border-orange-200';
+      case 'new_subscription':
+        return 'bg-purple-100 text-purple-700 border-purple-200';
+      case 'property_viewed':
+        return 'bg-blue-100 text-blue-700 border-blue-200';
+      case 'application_withdrawn':
+        return 'bg-gray-100 text-gray-700 border-gray-200';
+      case 'maintenance_updated':
+        return 'bg-yellow-100 text-yellow-700 border-yellow-200';
+      case 'payment_received':
+        return 'bg-green-100 text-green-700 border-green-200';
+      case 'payment_failed':
+        return 'bg-red-100 text-red-700 border-red-200';
+      case 'new_tour_booking':
+        return 'bg-blue-100 text-blue-700 border-blue-200';
+      case 'tour_booking_confirmed':
+        return 'bg-green-100 text-green-700 border-green-200';
+      case 'tour_booking_cancelled':
+        return 'bg-red-100 text-red-700 border-red-200';
       default:
         return 'bg-gray-100 text-gray-700 border-gray-200';
     }
@@ -476,7 +504,24 @@ const Notifications: React.FC = () => {
                             </span>
                           )}
                         </div>
-                        <p className="text-gray-600 text-xs mb-2 line-clamp-2">{notification.message}</p>
+                        {/* Check if notification contains a cancellation reason */}
+                        {notification.message.includes('Reason:') ? (
+                          <div className="text-gray-600 text-xs mb-2">
+                            {notification.message.split('Reason:').map((part, index) => {
+                              if (index === 0) {
+                                return <p key={index} className="mb-2 line-clamp-2">{part.trim()}</p>;
+                              }
+                                return (
+                                  <div key={index} className="mt-2 p-2 bg-yellow-50 border-l-4 border-yellow-400 rounded">
+                                    <p className="font-semibold text-yellow-900 mb-1 text-xs">Reason:</p>
+                                    <p className="text-gray-700 whitespace-pre-wrap text-xs">{part.trim()}</p>
+                                  </div>
+                                );
+                            })}
+                          </div>
+                        ) : (
+                          <p className="text-gray-600 text-xs mb-2 line-clamp-2 whitespace-pre-wrap">{notification.message}</p>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -506,7 +551,24 @@ const Notifications: React.FC = () => {
                               )}
                             </div>
                           </div>
-                          <p className="text-gray-600 text-sm mb-3 line-clamp-2">{notification.message}</p>
+                          {/* Check if notification contains a cancellation reason */}
+                          {notification.message.includes('Reason:') ? (
+                            <div className="text-gray-600 text-sm mb-3">
+                              {notification.message.split('Reason:').map((part, index) => {
+                                if (index === 0) {
+                                  return <p key={index} className="mb-2 line-clamp-1">{part.trim()}</p>;
+                                }
+                                return (
+                                  <div key={index} className="mt-2 p-3 bg-yellow-50 border-l-4 border-yellow-400 rounded-lg">
+                                    <p className="font-semibold text-yellow-900 mb-1 text-sm">Cancellation Reason:</p>
+                                    <p className="text-gray-700 whitespace-pre-wrap text-sm">{part.trim()}</p>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          ) : (
+                            <p className="text-gray-600 text-sm mb-3 line-clamp-2 whitespace-pre-wrap">{notification.message}</p>
+                          )}
                           <div className="flex items-center text-sm text-gray-500">
                             <MapPin className="h-4 w-4 mr-1" />
                             <span>{notification.propertyName}</span>

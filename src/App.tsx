@@ -19,6 +19,7 @@ import { SavedSearches } from './pages/SavedSearches';
 import { MaintenanceRequests } from './pages/MaintenanceRequests';
 import { LearningCenter } from './pages/LearningCenter';
 import { Subscriptions } from './pages/Subscriptions';
+import { TourBookings } from './pages/TourBookings';
 import Notifications from './pages/Notifications';
 import { LandlordPropertyManagement } from './landlord';
 
@@ -152,6 +153,14 @@ function App() {
             element={
               <ProtectedRoute requiredRole="renter">
                 <MaintenanceRequests />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/tour-bookings"
+            element={
+              <ProtectedRoute requiredRoles={['prospect', 'renter']}>
+                <TourBookings />
               </ProtectedRoute>
             }
           />

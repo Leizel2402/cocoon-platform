@@ -103,12 +103,16 @@ const ScheduleMaintenanceModal: React.FC<ScheduleMaintenanceModalProps> = ({
         notes
       );
 
-      // Update status if changed
-      if (status !== maintenanceRequest.status) {
+      // If status is 'submitted', automatically change to 'in_progress' when scheduled
+      const newStatus = maintenanceRequest.status === 'submitted' ? 'in_progress' : status;
+      
+      // Update status if changed (skip transition validation since we're scheduling)
+      if (newStatus !== maintenanceRequest.status) {
         await maintenanceService.updateMaintenanceRequestStatus(
           maintenanceRequest.id,
-          status,
-          notes
+          newStatus,
+          notes,
+          true // Skip validation since we just set the scheduledDate
         );
       }
 
@@ -314,37 +318,56 @@ const ScheduleMaintenanceModal: React.FC<ScheduleMaintenanceModalProps> = ({
                     <Label htmlFor="status" className="text-sm font-semibold text-gray-700">
                       Status
                     </Label>
-                    <Select value={status} onValueChange={(value: MaintenanceRequest['status']) => setStatus(value)}>
+                    <Select 
+                      value={status} 
+                      onValueChange={(value: MaintenanceRequest['status']) => setStatus(value)}
+                      disabled={maintenanceRequest?.status === 'completed' || maintenanceRequest?.status === 'cancelled'}
+                    >
                       <SelectTrigger className="h-11 border-gray-200 focus:border-green-500 focus:ring-green-500">
                         <SelectValue placeholder="Select status" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="submitted">
-                          <div className="flex items-center gap-2">
-                            <div className="w-2 h-2 rounded-full bg-yellow-500"></div>
-                            Submitted
-                          </div>
-                        </SelectItem>
-                        <SelectItem value="in_progress">
-                          <div className="flex items-center gap-2">
-                            <div className="w-2 h-2 rounded-full bg-blue-500"></div>
-                            In Progress
-                          </div>
-                        </SelectItem>
-                        <SelectItem value="completed">
-                          <div className="flex items-center gap-2">
-                            <div className="w-2 h-2 rounded-full bg-green-500"></div>
-                            Completed
-                          </div>
-                        </SelectItem>
-                        <SelectItem value="cancelled">
-                          <div className="flex items-center gap-2">
-                            <div className="w-2 h-2 rounded-full bg-gray-500"></div>
-                            Cancelled
-                          </div>
-                        </SelectItem>
+                        {/* Only show valid status transitions */}
+                        {(() => {
+                          const currentStatus = maintenanceRequest?.status || 'submitted';
+                          const validNextStatuses: MaintenanceRequest['status'][] = 
+                            currentStatus === 'submitted' 
+                              ? ['in_progress', 'cancelled']
+                              : currentStatus === 'in_progress'
+                              ? ['completed', 'cancelled']
+                              : [];
+                          
+                          // Always show current status + valid next statuses
+                          const statusesToShow: MaintenanceRequest['status'][] = [
+                            currentStatus,
+                            ...validNextStatuses.filter(s => s !== currentStatus)
+                          ];
+                          
+                          const statusOptions = [
+                            { value: 'submitted' as const, label: 'Submitted', color: 'bg-yellow-500' },
+                            { value: 'in_progress' as const, label: 'In Progress', color: 'bg-blue-500' },
+                            { value: 'completed' as const, label: 'Completed', color: 'bg-green-500' },
+                            { value: 'cancelled' as const, label: 'Cancelled', color: 'bg-gray-500' }
+                          ];
+                          
+                          return statusOptions
+                            .filter(opt => statusesToShow.includes(opt.value))
+                            .map(opt => (
+                              <SelectItem key={opt.value} value={opt.value}>
+                                <div className="flex items-center gap-2">
+                                  <div className={`w-2 h-2 rounded-full ${opt.color}`}></div>
+                                  {opt.label}
+                                </div>
+                              </SelectItem>
+                            ));
+                        })()}
                       </SelectContent>
                     </Select>
+                    {(maintenanceRequest?.status === 'completed' || maintenanceRequest?.status === 'cancelled') && (
+                      <p className="text-xs text-gray-500 mt-1">
+                        This request is in a final state and cannot be changed. Status updates are disabled.
+                      </p>
+                    )}
                   </div>
 
                   <div className="space-y-2">
